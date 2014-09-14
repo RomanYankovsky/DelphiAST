@@ -1233,7 +1233,7 @@ begin
   end;
 end;
 
-{ TXmlNodeStack }
+{ TNodeStack }
 
 function TNodeStack.AddChild(const Name: string;
   SetPositionAttributes: Boolean): TSyntaxNode;
