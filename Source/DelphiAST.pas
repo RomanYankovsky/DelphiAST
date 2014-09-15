@@ -271,32 +271,35 @@ var
   Field, TypeInfo: TSyntaxNode;
 begin
   Fields := TSyntaxNode.Create('fields');
-
-  FStack.Push(Fields);
   try
-    inherited;
-  finally
-    FStack.Pop;
-  end;
-
-  FStack.Push('fields');
-  try
-    TypeInfo := Fields.FindNode(UpperCase(sTYPE));
-    for Field in Fields.ChildNodes do
-    begin
-      if not SameText(Field.Name, sNAME) then
-        Continue;
-
-      FStack.Push('field', False);
-      try
-        FStack.AddChild(Field.Clone);
-        FStack.AddChild(TypeInfo.Clone);
-      finally
-        FStack.Pop;
-      end;
+    FStack.Push(Fields);
+    try
+      inherited;
+    finally
+      FStack.Pop;
     end;
-  finally;
-    FStack.Pop;
+
+    FStack.Push('fields');
+    try
+      TypeInfo := Fields.FindNode(UpperCase(sTYPE));
+      for Field in Fields.ChildNodes do
+      begin
+        if not SameText(Field.Name, sNAME) then
+          Continue;
+
+        FStack.Push('field', False);
+        try
+          FStack.AddChild(Field.Clone);
+          FStack.AddChild(TypeInfo.Clone);
+        finally
+          FStack.Pop;
+        end;
+      end;
+    finally;
+      FStack.Pop;
+    end;
+  finally
+    Fields.Free;
   end;
 end;
 
@@ -419,32 +422,35 @@ begin
   Col := Lexer.PosXY.X;
 
   RawExprNode := TSyntaxNode.Create('expression');
-
-  FStack.Push(RawExprNode);
   try
-    inherited;
-  finally
-    FStack.Pop;
-  end;
-
-  if RawExprNode.HasChildren then
-  begin
-    ExprNode := FStack.Push('EXPRESSION', False);
+    FStack.Push(RawExprNode);
     try
-      ExprNode.SetAttribute('line', IntToStr(Line));
-      ExprNode.SetAttribute('col', IntToStr(Col));
-
-      NodeList := TList<TSyntaxNode>.Create;
-      try
-        for Node in RawExprNode.ChildNodes do
-          NodeList.Add(Node);
-        TExpressionTools.RawNodeListToTree(RawExprNode, NodeList, ExprNode);
-      finally
-        NodeList.Free;
-      end;
+      inherited;
     finally
       FStack.Pop;
     end;
+
+    if RawExprNode.HasChildren then
+    begin
+      ExprNode := FStack.Push('EXPRESSION', False);
+      try
+        ExprNode.SetAttribute('line', IntToStr(Line));
+        ExprNode.SetAttribute('col', IntToStr(Col));
+
+        NodeList := TList<TSyntaxNode>.Create;
+        try
+          for Node in RawExprNode.ChildNodes do
+            NodeList.Add(Node);
+          TExpressionTools.RawNodeListToTree(RawExprNode, NodeList, ExprNode);
+        finally
+          NodeList.Free;
+        end;
+      finally
+        FStack.Pop;
+      end;
+    end;
+  finally
+    RawExprNode.Free;
   end;
 end;
 
@@ -481,36 +487,39 @@ var
   ParamKind: string;
 begin
   Params := TSyntaxNode.Create('params');
-
-  FStack.Push(Params);
   try
-    inherited;
-  finally
-    FStack.Pop;
-  end;
-
-  FStack.Push(sPARAMETERS);
-  for ParamList in Params.ChildNodes do
-  begin
-    TypeInfo := ParamList.FindNode(sTYPE);
-    ParamKind := ParamList.GetAttribute('kind');
-    for Param in ParamList.ChildNodes do
-    begin
-      if not SameText(Param.Name, sNAME) then
-        Continue;
-
-      FStack.Push(sPARAMETER, False);
-      if ParamKind <> '' then
-        FStack.Peek.SetAttribute('kind', ParamKind);
-
-      FStack.AddChild(Param.Clone);
-      if Assigned(TypeInfo) then
-        FStack.AddChild(TypeInfo.Clone);
-
+    FStack.Push(Params);
+    try
+      inherited;
+    finally
       FStack.Pop;
     end;
+
+    FStack.Push(sPARAMETERS);
+    for ParamList in Params.ChildNodes do
+    begin
+      TypeInfo := ParamList.FindNode(sTYPE);
+      ParamKind := ParamList.GetAttribute('kind');
+      for Param in ParamList.ChildNodes do
+      begin
+        if not SameText(Param.Name, sNAME) then
+          Continue;
+
+        FStack.Push(sPARAMETER, False);
+        if ParamKind <> '' then
+          FStack.Peek.SetAttribute('kind', ParamKind);
+
+        FStack.AddChild(Param.Clone);
+        if Assigned(TypeInfo) then
+          FStack.AddChild(TypeInfo.Clone);
+
+        FStack.Pop;
+      end;
+    end;
+    FStack.Pop;
+  finally
+    Params.Free;
   end;
-  FStack.Pop;
 end;
 
 procedure TPasSyntaxTreeBuilder.ForStatement;
@@ -901,67 +910,70 @@ begin
   Col := Lexer.PosXY.X;
 
   RawStatement := TSyntaxNode.Create('STATEMENT');
-
-  FStack.Push(RawStatement);
   try
-    inherited;
-  finally
-    FStack.Pop;
-  end;
-
-  if not RawStatement.HasChildren then
-    Exit;
-
-  if RawStatement.FindNode(sASSIGN) <> nil then
-  begin
-    FStack.Push(sASSIGN, False);
+    FStack.Push(RawStatement);
     try
-      FStack.Peek.SetAttribute('line', Line.ToString);
-      FStack.Peek.SetAttribute('col', Col.ToString);
+      inherited;
+    finally
+      FStack.Pop;
+    end;
 
-      NodeList := TList<TSyntaxNode>.Create;
+    if not RawStatement.HasChildren then
+      Exit;
+
+    if RawStatement.FindNode(sASSIGN) <> nil then
+    begin
+      FStack.Push(sASSIGN, False);
       try
-        AssignIdx := -1;
-        for I := 0 to RawStatement.ChildNodes.Count - 1 do
-        begin
-          if RawStatement.ChildNodes[I].Name = sASSIGN then
+        FStack.Peek.SetAttribute('line', Line.ToString);
+        FStack.Peek.SetAttribute('col', Col.ToString);
+
+        NodeList := TList<TSyntaxNode>.Create;
+        try
+          AssignIdx := -1;
+          for I := 0 to RawStatement.ChildNodes.Count - 1 do
           begin
-            AssignIdx := I;
-            Break;
+            if RawStatement.ChildNodes[I].Name = sASSIGN then
+            begin
+              AssignIdx := I;
+              Break;
+            end;
+            NodeList.Add(RawStatement.ChildNodes[I]);
           end;
-          NodeList.Add(RawStatement.ChildNodes[I]);
+          TExpressionTools.RawNodeListToTree(RawStatement, NodeList, FStack.AddChild('LHS', False));
+
+          NodeList.Clear;
+
+          for I := AssignIdx + 1 to RawStatement.ChildNodes.Count - 1 do
+            NodeList.Add(RawStatement.ChildNodes[I]);
+          TExpressionTools.RawNodeListToTree(RawStatement, NodeList, FStack.AddChild('RHS', False));
+        finally
+          NodeList.Free;
         end;
-        TExpressionTools.RawNodeListToTree(RawStatement, NodeList, FStack.AddChild('LHS', False));
-
-        NodeList.Clear;
-
-        for I := AssignIdx + 1 to RawStatement.ChildNodes.Count - 1 do
-          NodeList.Add(RawStatement.ChildNodes[I]);
-        TExpressionTools.RawNodeListToTree(RawStatement, NodeList, FStack.AddChild('RHS', False));
       finally
-        NodeList.Free;
+        FStack.Pop;
       end;
-    finally
-      FStack.Pop;
-    end;
-  end else
-  begin
-    FStack.Push(sCALL, False);
-    try
-      FStack.Peek.SetAttribute('line', Line.ToString);
-      FStack.Peek.SetAttribute('col', Col.ToString);
-
-      NodeList := TList<TSyntaxNode>.Create;
+    end else
+    begin
+      FStack.Push(sCALL, False);
       try
-        for Node in RawStatement.ChildNodes do
-          NodeList.Add(Node);
-        TExpressionTools.RawNodeListToTree(RawStatement, NodeList, FStack.Peek);
+        FStack.Peek.SetAttribute('line', Line.ToString);
+        FStack.Peek.SetAttribute('col', Col.ToString);
+
+        NodeList := TList<TSyntaxNode>.Create;
+        try
+          for Node in RawStatement.ChildNodes do
+            NodeList.Add(Node);
+          TExpressionTools.RawNodeListToTree(RawStatement, NodeList, FStack.Peek);
+        finally
+          NodeList.Free;
+        end;
       finally
-        NodeList.Free;
+        FStack.Pop;
       end;
-    finally
-      FStack.Pop;
     end;
+  finally
+    RawStatement.Free;
   end;
 end;
 
@@ -984,17 +996,20 @@ var
   Str: string;
 begin
   StrConst := TSyntaxNode.Create('StringConst');
-
-  FStack.Push(StrConst);
   try
-    inherited;
-  finally
-    FStack.Pop;
-  end;
+    FStack.Push(StrConst);
+    try
+      inherited;
+    finally
+      FStack.Pop;
+    end;
 
-  Str := '';
-  for Literal in StrConst.ChildNodes do
-    Str := Str + Literal.GetAttribute(sValue);
+    Str := '';
+    for Literal in StrConst.ChildNodes do
+      Str := Str + Literal.GetAttribute(sValue);
+  finally
+    StrConst.Free;
+  end;
 
   Node := FStack.AddChild(sLITERAL);
   Node.SetAttribute(sTYPE, 'string');
@@ -1203,33 +1218,36 @@ var
   VarList, Variable, TypeInfo: TSyntaxNode;
 begin
   VarSect := TSyntaxNode.Create('variables');
-
-  FStack.Push(VarSect);
   try
-    inherited VarSection;
-  finally
-    FStack.Pop;
-  end;
+    FStack.Push(VarSect);
+    try
+      inherited VarSection;
+    finally
+      FStack.Pop;
+    end;
 
-  FStack.Push(sVARIABLES);
-  for VarList in VarSect.ChildNodes do
-  begin
-    TypeInfo := VarList.FindNode(UpperCase(sTYPE));
-    for Variable in VarList.ChildNodes do
+    FStack.Push(sVARIABLES);
+    for VarList in VarSect.ChildNodes do
     begin
-      if not SameText(Variable.Name, sNAME) then
-        Continue;
+      TypeInfo := VarList.FindNode(UpperCase(sTYPE));
+      for Variable in VarList.ChildNodes do
+      begin
+        if not SameText(Variable.Name, sNAME) then
+          Continue;
 
-      FStack.Push(sVARIABLE, False);
-      try
-        FStack.AddChild(Variable.Clone);
-        FStack.AddChild(TypeInfo.Clone);
-      finally
-        FStack.Pop;
+        FStack.Push(sVARIABLE, False);
+        try
+          FStack.AddChild(Variable.Clone);
+          FStack.AddChild(TypeInfo.Clone);
+        finally
+          FStack.Pop;
+        end;
       end;
     end;
+    FStack.Pop;
+  finally
+    VarSect.Free;
   end;
-  FStack.Pop;
 end;
 
 procedure TPasSyntaxTreeBuilder.VisibilityPrivate;
