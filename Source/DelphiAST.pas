@@ -122,6 +122,7 @@ type
     procedure TypeSimple; override;
     procedure UnaryMinus; override;
     procedure UnitName; override;
+    procedure UnitId; override;
     procedure UsesClause; override;
     procedure UsedUnitName; override;
     procedure VarDeclaration; override;
@@ -1089,17 +1090,75 @@ begin
   inherited;
 end;
 
-procedure TPasSyntaxTreeBuilder.UnitName;
+procedure TPasSyntaxTreeBuilder.UnitId;
 begin
-  FStack.Peek.SetAttribute(sNAME, Lexer.Token);
-  FStack.Peek.SetPositionAttributes(Lexer.PosXY);
+  FStack.AddChild(Lexer.Token, False);
   inherited;
 end;
 
-procedure TPasSyntaxTreeBuilder.UsedUnitName;
+procedure TPasSyntaxTreeBuilder.UnitName;
+var
+  NamesNode, NamePartNode: TSyntaxNode;
+  Name: string;
+  Position: TTokenPoint;
 begin
-  FStack.AddChild(sUNIT).SetAttribute(sNAME, Lexer.Token);
-  inherited;
+  Position := Lexer.PosXY;
+
+  NamesNode := TSyntaxNode.Create('unit');
+  try
+    FStack.Push(NamesNode);
+    try
+      inherited;
+    finally
+      FStack.Pop;
+    end;
+
+    Name := '';
+    for NamePartNode in NamesNode.ChildNodes do
+    begin
+      if Name <> '' then
+        Name := Name + '.';
+      Name := Name + NamePartNode.Name;
+    end;
+  finally
+    NamesNode.Free;
+  end;
+
+  FStack.Peek.SetAttribute(sNAME, Name);
+  FStack.Peek.SetPositionAttributes(Position);
+end;
+
+procedure TPasSyntaxTreeBuilder.UsedUnitName;
+var
+  NamesNode, NamePartNode, UnitNode: TSyntaxNode;
+  Name: string;
+  Position: TTokenPoint;
+begin
+  Position := Lexer.PosXY;
+
+  NamesNode := TSyntaxNode.Create('unit');
+  try
+    FStack.Push(NamesNode);
+    try
+      inherited;
+    finally
+      FStack.Pop;
+    end;
+
+    Name := '';
+    for NamePartNode in NamesNode.ChildNodes do
+    begin
+      if Name <> '' then
+        Name := Name + '.';
+      Name := Name + NamePartNode.Name;
+    end;
+  finally
+    NamesNode.Free;
+  end;
+
+  UnitNode := FStack.AddChild(sUNIT);
+  UnitNode.SetAttribute(sNAME, Name);
+  UnitNode.SetPositionAttributes(Position);
 end;
 
 procedure TPasSyntaxTreeBuilder.UsesClause;

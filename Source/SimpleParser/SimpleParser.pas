@@ -1373,14 +1373,14 @@ end;
 procedure TmwSimplePasPar.UsedUnitName;
 begin
   {$IFDEF D8_NEWER} //JThurman 2004-03-03
-  Expected(ptIdentifier);
-  while TokenID = ptPoint do
+  UnitId;
+  while Lexer.TokenID = ptPoint do
   begin
     NextToken;
-    Expected(ptIdentifier);
+    UnitId;
   end;
   {$ELSE}
-  Expected(ptIdentifier);
+  UnitId;
   {$ENDIF}
 end;
 
@@ -1475,10 +1475,10 @@ end;
 
 procedure TmwSimplePasPar.UnitName;
 begin
-  Expected(ptIdentifier);
+  UnitId;
   while Lexer.TokenID = ptPoint do
   begin
-    Expected(ptPoint);
+    NextToken;
     UnitId;
   end;
 end;
