@@ -1,7 +1,7 @@
 ### Abstract Syntax Tree Builder for Delphi
 With DelphiAST you can take real Delphi code and get an abstract syntax tree. One unit at time and without a symbol table though. 
 
-#### Sample input:
+#### Sample input
 ```delphi
 unit Unit1;
 
@@ -18,7 +18,7 @@ end;
 
 end.
 ```
-#### Sample outcome:
+#### Sample outcome
 ```xml
 <?xml version="1.0"?>
 <UNIT line="0" col="5" name="Unit1">
