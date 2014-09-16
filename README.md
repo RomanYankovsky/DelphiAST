@@ -80,4 +80,5 @@ end.
 Copyright (c) 2014 Roman Yankovsky (roman@yankovsky.me)
 
 DelphiAST is released under the Mozilla Public License, v. 2.0
+
 See LICENSE for details.
