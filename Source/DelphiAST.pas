@@ -69,12 +69,14 @@ type
     procedure ElseStatement; override;
     procedure ExceptBlock; override;
     procedure ExceptionHandler; override;
+    procedure ExportedHeading; override;
     procedure Expression; override;
     procedure ExpressionList; override;
     procedure FieldName; override;
     procedure FinallyBlock; override;
     procedure FormalParameterList; override;
     procedure ForStatement; override;
+    procedure FunctionHeading; override;
     procedure FunctionMethodName; override;
     procedure FunctionProcedureName; override;
     procedure GotoStatement; override;
@@ -99,6 +101,7 @@ type
     procedure ParameterName; override;
     procedure PointerSymbol; override;
     procedure PointerType; override;
+    procedure ProcedureHeading; override;
     procedure ProcedureDeclarationSection; override;
     procedure ProcedureProcedureName; override;
     procedure RaiseStatement; override;
@@ -311,7 +314,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ClassMethodHeading;
 begin
-  FStack.Push('method');
+  FStack.Push(sMETHOD);
   try
     inherited;
   finally
@@ -402,6 +405,16 @@ end;
 procedure TPasSyntaxTreeBuilder.ExceptionHandler;
 begin
   FStack.Push('exceptionhandler');
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ExportedHeading;
+begin
+  FStack.Push(sMETHOD);
   try
     inherited;
   finally
@@ -530,6 +543,12 @@ begin
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.FunctionHeading;
+begin
+  FStack.Peek.SetAttribute('kind', 'function');
+  inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.FunctionMethodName;
@@ -775,6 +794,12 @@ begin
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ProcedureHeading;
+begin
+  FStack.Peek.SetAttribute('kind', 'procedure');
+  inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.ProcedureProcedureName;

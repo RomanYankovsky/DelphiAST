@@ -22,6 +22,7 @@ const
   sLITERAL      = 'literal';
   sLOWER        = 'lower';
   sLOWEREQUAL   = 'lowerequal';
+  sMETHOD       = 'method';
   sMUL          = 'mul';
   sNAME         = 'name';
   sNOTEQUAL     = 'notequal';
