@@ -1,4 +1,4 @@
-### Abstract Syntax Tree builder for Delphi
+### Abstract Syntax Tree Builder for Delphi
 With DelphiAST you can take real Delphi code and get an abstract syntax tree. One unit at time and without a symbol table though. 
 
 #### Sample input:
