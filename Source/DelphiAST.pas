@@ -901,8 +901,8 @@ begin
       FStack.Pop;
     end;
   except
-    on EListError do
-      raise EParserException.Create(Lexer.PosXY.Y, Lexer.PosXY.X, 'Unknown Parser Fault');
+    FreeAndNil(Result);
+    raise;
   end;
 
   Assert(FStack.Count = 0);
