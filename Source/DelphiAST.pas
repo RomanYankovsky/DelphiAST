@@ -11,7 +11,7 @@ type
   strict private
     FLine, FCol: Integer;
   public
-    constructor Create(Line, Col: Integer); reintroduce;
+    constructor Create(Line, Col: Integer; Msg: string); reintroduce;
 
     property Line: Integer read FLine;
     property Col: Integer read FCol;
@@ -749,7 +749,7 @@ procedure TPasSyntaxTreeBuilder.ParserMessage(Sender: TObject;
   const Typ: TMessageEventType; const Msg: string; X, Y: Integer);
 begin
   if Typ = TMessageEventType.meError then
-    raise EParserException.Create(Y, X);
+    raise EParserException.Create(Y, X, Msg);
 end;
 
 procedure TPasSyntaxTreeBuilder.OutParameter;
@@ -902,7 +902,7 @@ begin
     end;
   except
     on EListError do
-      raise EParserException.Create(Lexer.PosXY.Y, Lexer.PosXY.X);
+      raise EParserException.Create(Lexer.PosXY.Y, Lexer.PosXY.X, 'Unknown Parser Fault');
   end;
 
   Assert(FStack.Count = 0);
@@ -1406,9 +1406,9 @@ end;
 
 { EParserException }
 
-constructor EParserException.Create(Line, Col: Integer);
+constructor EParserException.Create(Line, Col: Integer; Msg: string);
 begin
-  inherited Create('Parser fault');
+  inherited Create(Msg);
   FLine := Line;
   FCol := Col;
 end;
