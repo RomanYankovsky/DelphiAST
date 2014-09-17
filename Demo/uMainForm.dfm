@@ -20,8 +20,6 @@ object Form1: TForm1
     Width = 666
     Height = 389
     Align = alClient
-    Lines.Strings = (
-      'Memo1')
     ScrollBars = ssBoth
     TabOrder = 0
   end

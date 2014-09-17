@@ -31,7 +31,6 @@ uses
 
 function Parse(const Content: string): string;
 var
-  Define: string;
   ASTBuilder: TPasSyntaxTreeBuilder;
   StringStream: TStringStream;
   SyntaxTree: TSyntaxNode;
@@ -44,6 +43,9 @@ begin
 
     ASTBuilder := TPasSyntaxTreeBuilder.Create;
     try
+      ASTBuilder.AddDefine('MSWINDOWS');
+      ASTBuilder.AddDefine('WIN32');
+
       SyntaxTree := ASTBuilder.Run(StringStream);
       try
         Result := TSyntaxTreeWriter.ToXML(SyntaxTree);
@@ -61,8 +63,6 @@ end;
 procedure TForm1.OpenDelphiUnit1Click(Sender: TObject);
 var
   SL: TStringList;
-  ParserStr: string;
-  Col, Line: Integer;
 begin
   if OpenDialog1.Execute then
   begin
@@ -70,7 +70,12 @@ begin
     try
       SL.LoadFromFile(OpenDialog1.FileName);
 
-      Memo1.Lines.Text := FormatXMLData(Parse(SL.Text));
+      try
+        Memo1.Lines.Text := FormatXMLData(Parse(SL.Text));
+      except
+        on E: EParserException do
+          Memo1.Lines.Add(Format('[%d, %d] %s', [E.Line, E.Col, E.Message]));
+      end;
     finally
       SL.Free;
     end;
