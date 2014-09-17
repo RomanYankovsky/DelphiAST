@@ -124,6 +124,7 @@ type
     procedure TypeSection; override;
     procedure TypeSimple; override;
     procedure UnaryMinus; override;
+    procedure UnitFile; override;
     procedure UnitName; override;
     procedure UnitId; override;
     procedure UsesClause; override;
@@ -498,7 +499,10 @@ var
   Params: TSyntaxNode;
   ParamList, Param, TypeInfo: TSyntaxNode;
   ParamKind: string;
+  Position: TTokenPoint;
 begin
+  Position := Lexer.PosXY;
+
   Params := TSyntaxNode.Create('params');
   try
     FStack.Push(Params);
@@ -508,7 +512,7 @@ begin
       FStack.Pop;
     end;
 
-    FStack.Push(sPARAMETERS);
+    FStack.Push(sPARAMETERS, False).SetPositionAttributes(Position);
     for ParamList in Params.ChildNodes do
     begin
       TypeInfo := ParamList.FindNode(sTYPE);
@@ -1130,6 +1134,12 @@ begin
   inherited;
 end;
 
+procedure TPasSyntaxTreeBuilder.UnitFile;
+begin
+  FStack.Peek.SetPositionAttributes(Lexer.PosXY);
+  inherited;
+end;
+
 procedure TPasSyntaxTreeBuilder.UnitId;
 begin
   FStack.AddChild(Lexer.Token, False);
@@ -1140,10 +1150,7 @@ procedure TPasSyntaxTreeBuilder.UnitName;
 var
   NamesNode, NamePartNode: TSyntaxNode;
   Name: string;
-  Position: TTokenPoint;
 begin
-  Position := Lexer.PosXY;
-
   NamesNode := TSyntaxNode.Create('unit');
   try
     FStack.Push(NamesNode);
@@ -1165,7 +1172,6 @@ begin
   end;
 
   FStack.Peek.SetAttribute(sNAME, Name);
-  FStack.Peek.SetPositionAttributes(Position);
 end;
 
 procedure TPasSyntaxTreeBuilder.UsedUnitName;
