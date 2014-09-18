@@ -299,7 +299,7 @@ begin
           FStack.Pop;
         end;
       end;
-    finally;
+    finally
       FStack.Pop;
     end;
   finally
