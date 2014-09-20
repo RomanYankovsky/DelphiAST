@@ -94,6 +94,7 @@ type
     procedure InterfaceSection; override;
     procedure InterfaceType; override;
     procedure LabelId; override;
+    procedure MainUsesClause; override;
     procedure MethodKind; override;
     procedure MultiplicativeOperator; override;
     procedure NewFormalParameterType; override;
@@ -722,6 +723,16 @@ begin
   inherited;
 end;
 
+procedure TPasSyntaxTreeBuilder.MainUsesClause;
+begin
+  FStack.Push(sUSES);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.MethodKind;
 begin
   FStack.Peek.SetAttribute('kind', LowerCase(Lexer.Token));
@@ -1301,7 +1312,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.UsesClause;
 begin
-  FStack.Push(Lexer.Token);
+  FStack.Push(sUSES);
   try
     inherited;
   finally

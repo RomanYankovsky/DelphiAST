@@ -46,6 +46,7 @@ const
   sXOR          = 'xor';
   sUNARYMINUS   = 'unaryminus';
   sUNIT         = 'unit';
+  sUSES         = 'uses';
 
 implementation
 
