@@ -5590,6 +5590,14 @@ end;
 procedure TmwSimplePasPar.ContainsIdentifier;
 begin
   Expected(ptIdentifier);
+  while Lexer.TokenID = ptPoint do
+  begin
+    NextToken;
+    if not (Lexer.TokenID in [ptIdentifier,ptHelper]) then
+      Expected(ptIdentifier)
+    else
+      NextToken;
+  end;
 end;
 
 procedure TmwSimplePasPar.ContainsExpression;
