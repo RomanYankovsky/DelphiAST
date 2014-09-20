@@ -298,6 +298,7 @@ type
     procedure ContainsClause; virtual;
     procedure ContainsExpression; virtual;
     procedure ContainsIdentifier; virtual;
+    procedure ContainsIdentifierId; virtual;
     procedure ContainsStatement; virtual;
     {$IFDEF D8_NEWER}
     procedure CustomAttribute; virtual; //JThurman 2004-03-03
@@ -5589,15 +5590,17 @@ end;
 
 procedure TmwSimplePasPar.ContainsIdentifier;
 begin
-  Expected(ptIdentifier);
+  ContainsIdentifierId;
   while Lexer.TokenID = ptPoint do
   begin
     NextToken;
-    if not (Lexer.TokenID in [ptIdentifier,ptHelper]) then
-      Expected(ptIdentifier)
-    else
-      NextToken;
+    ContainsIdentifierId;
   end;
+end;
+
+procedure TmwSimplePasPar.ContainsIdentifierId;
+begin
+  NextToken;
 end;
 
 procedure TmwSimplePasPar.ContainsExpression;
