@@ -909,7 +909,7 @@ begin
     else
       if KeyComp('Unit') then Result := ptUnit;
     {$IFDEF D8_NEWER}
-    'H', 'h': if KeyComp('Helper') then Result := ptHelper;
+    'H', 'h': if KeyComp('Helper') then fExID := ptHelper;
     {$ENDIF}
   end;
 end;

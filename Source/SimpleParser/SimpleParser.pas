@@ -3483,9 +3483,9 @@ begin
   if TokenID = ptSemicolon then
     Exit;
 
-  if TokenID = ptHelper then
+  if ExID = ptHelper then
   begin
-    Expected(ptHelper);
+    ExpectedEx(ptHelper);
     Expected(ptFor);
     TypeId;
   end;
@@ -4101,15 +4101,16 @@ begin
       begin
         if Lexer.ExID = ptAbstract then
           Expected(ptIdentifier);
+
+        if Lexer.ExID = ptHelper then
+        begin
+          ExpectedEx(ptHelper);
+          Expected(ptFor);
+          TypeId;
+        end;
       end;
     ptSealed:
       Expected(ptSealed);
-    ptHelper:
-      begin
-        Expected(ptHelper);
-        Expected(ptFor);
-        TypeId;
-      end;
   end;
   {$ENDIF}
   case TokenID of
@@ -5601,7 +5602,7 @@ end;
 
 procedure TmwSimplePasPar.ContainsIdentifierId;
 begin
-  NextToken;
+  Expected(ptIdentifier);
 end;
 
 procedure TmwSimplePasPar.ContainsExpression;
@@ -5635,7 +5636,7 @@ end;
 
 procedure TmwSimplePasPar.RequiresIdentifierId;
 begin
-  NextToken;
+  Expected(ptIdentifier);
 end;
 
 procedure TmwSimplePasPar.InitializationSection;
