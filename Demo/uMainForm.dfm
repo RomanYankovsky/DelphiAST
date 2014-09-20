@@ -32,7 +32,7 @@ object Form1: TForm1
     end
   end
   object OpenDialog1: TOpenDialog
-    Filter = 'Delphi Unit|*.pas'
+    Filter = 'Delphi Unit|*.pas|Delphi Package|*.dpk|Delphi Project|*.dpr'
     Options = [ofHideReadOnly, ofPathMustExist, ofFileMustExist, ofEnableSizing]
     Left = 272
     Top = 96
