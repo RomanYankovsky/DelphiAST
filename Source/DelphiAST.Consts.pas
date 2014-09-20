@@ -9,6 +9,7 @@ const
   sAS           = 'as';
   sASSIGN       = 'assign';
   sCALL         = 'call';
+  sCONTAINS     = 'contains';
   sDEREF        = 'deref';
   sDIV          = 'div';
   sDOT          = 'dot';
@@ -16,6 +17,7 @@ const
   sFDIV         = 'fdiv';
   sGREATER      = 'greater';
   sGREATEREQUAL = 'greaterequal';
+  sIDENTIFIER   = 'identifier';
   sIN           = 'in';
   sINDEXED      = 'indexed';
   sIS           = 'is';
@@ -31,6 +33,7 @@ const
   sOR           = 'or';
   sPARAMETER    = 'parameter';
   sPARAMETERS   = 'parameters';
+  sREPEAT       = 'repeat';
   sROUNDCLOSE   = 'roundclose';
   sROUNDOPEN    = 'roundopen';
   sSHL          = 'shl';

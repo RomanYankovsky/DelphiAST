@@ -44,6 +44,7 @@ type
   private
     FStack: TNodeStack;
     procedure ParserMessage(Sender: TObject; const Typ: TMessageEventType; const Msg: string; X, Y: Integer);
+    function NodeListToString(NamesNode: TSyntaxNode): string;
   protected
     procedure AccessSpecifier; override;
     procedure AdditiveOperator; override;
@@ -63,6 +64,10 @@ type
     procedure ClassProperty; override;
     procedure ClassType; override;
     procedure ConstParameter; override;
+    procedure ContainsClause; override;
+    procedure ContainsIdentifier; override;
+    procedure ContainsIdentifierId; override;
+    procedure ContainsStatement; override;
     procedure Designator; override;
     procedure DirectiveBinding; override;
     procedure DotOp; override;
@@ -107,6 +112,9 @@ type
     procedure RaiseStatement; override;
     procedure RelativeOperator; override;
     procedure RepeatStatement; override;
+    procedure RequiresClause; override;
+    procedure RequiresIdentifier; override;
+    procedure RequiresIdentifierId; override;
     procedure RoundClose; override;
     procedure RoundOpen; override;
     procedure SetConstructor; override;
@@ -342,6 +350,51 @@ end;
 procedure TPasSyntaxTreeBuilder.ConstParameter;
 begin
   FStack.Push(sPARAMETERS).SetAttribute('kind', 'const');
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ContainsClause;
+begin
+  FStack.Push(sCONTAINS);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ContainsIdentifier;
+var
+  NamesNode: TSyntaxNode;
+begin
+  NamesNode := TSyntaxNode.Create(sCONTAINS);
+  try
+    FStack.Push(NamesNode);
+    try
+      inherited;
+    finally
+      FStack.Pop;
+    end;
+
+    FStack.AddChild(sNAME).SetAttribute(sVALUE, NodeListToString(NamesNode));
+  finally
+    NamesNode.Free;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ContainsIdentifierId;
+begin
+  FStack.AddChild(Lexer.Token, False);
+  inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.ContainsStatement;
+begin
+  FStack.Push(sUNIT, False);
   try
     inherited;
   finally
@@ -593,7 +646,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.Identifier;
 begin
-  FStack.AddChild('identifier').SetAttribute(sNAME, Lexer.Token);
+  FStack.AddChild(sIDENTIFIER).SetAttribute(sNAME, Lexer.Token);
   inherited;
 end;
 
@@ -868,12 +921,47 @@ end;
 
 procedure TPasSyntaxTreeBuilder.RepeatStatement;
 begin
-  FStack.Push(Lexer.Token);
+  FStack.Push(sREPEAT);
   try
     inherited;
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.RequiresClause;
+begin
+  FStack.Push('requires');
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.RequiresIdentifier;
+var
+  NamesNode: TSyntaxNode;
+begin
+  NamesNode := TSyntaxNode.Create('requires');
+  try
+    FStack.Push(NamesNode);
+    try
+      inherited;
+    finally
+      FStack.Pop;
+    end;
+
+    FStack.AddChild('package').SetAttribute(sNAME, NodeListToString(NamesNode));
+  finally
+    NamesNode.Free;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.RequiresIdentifierId;
+begin
+  FStack.AddChild(Lexer.Token, False);
+  inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.RoundClose;
@@ -906,6 +994,19 @@ begin
   end;
 
   Assert(FStack.Count = 0);
+end;
+
+function TPasSyntaxTreeBuilder.NodeListToString(NamesNode: TSyntaxNode): string;
+var
+  NamePartNode: TSyntaxNode;
+begin
+  Result := '';
+  for NamePartNode in NamesNode.ChildNodes do
+  begin
+    if Result <> '' then
+      Result := Result + '.';
+    Result := Result + NamePartNode.Name;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.SetConstructor;
@@ -1148,8 +1249,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.UnitName;
 var
-  NamesNode, NamePartNode: TSyntaxNode;
-  Name: string;
+  NamesNode: TSyntaxNode;
 begin
   NamesNode := TSyntaxNode.Create('unit');
   try
@@ -1160,18 +1260,10 @@ begin
       FStack.Pop;
     end;
 
-    Name := '';
-    for NamePartNode in NamesNode.ChildNodes do
-    begin
-      if Name <> '' then
-        Name := Name + '.';
-      Name := Name + NamePartNode.Name;
-    end;
+    FStack.Peek.SetAttribute(sNAME, NodeListToString(NamesNode));
   finally
     NamesNode.Free;
   end;
-
-  FStack.Peek.SetAttribute(sNAME, Name);
 end;
 
 procedure TPasSyntaxTreeBuilder.UsedUnitName;

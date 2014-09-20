@@ -443,6 +443,7 @@ type
     procedure RepeatStatement; virtual;
     procedure RequiresClause; virtual;
     procedure RequiresIdentifier; virtual;
+    procedure RequiresIdentifierId; virtual;
     procedure ResolutionInterfaceName; virtual;
     procedure ResourceDeclaration; virtual;
     procedure ReturnType; virtual;
@@ -5622,14 +5623,19 @@ end;
 
 procedure TmwSimplePasPar.RequiresIdentifier;
 begin
-  Expected(ptIdentifier);
+  RequiresIdentifierId;
   {$IFDEF D8_NEWER}
   while Lexer.TokenID = ptPoint do
   begin
     NextToken;
-    Expected(ptIdentifier);
+    RequiresIdentifierId;
   end;
   {$ENDIF}
+end;
+
+procedure TmwSimplePasPar.RequiresIdentifierId;
+begin
+  NextToken;
 end;
 
 procedure TmwSimplePasPar.InitializationSection;
