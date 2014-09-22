@@ -1045,10 +1045,10 @@ var
   RawStatement: TSyntaxNode;
   Node: TSyntaxNode;
   NodeList: TList<TSyntaxNode>;
-  I, AssignIdx, Col, Line: Integer;
+  I, AssignIdx: Integer;
+  Position: TTokenPoint;
 begin
-  Line := Lexer.PosXY.Y;
-  Col := Lexer.PosXY.X;
+  Position := Lexer.PosXY;
 
   RawStatement := TSyntaxNode.Create('STATEMENT');
   try
@@ -1066,8 +1066,7 @@ begin
     begin
       FStack.Push(sASSIGN, False);
       try
-        FStack.Peek.SetAttribute('line', Line.ToString);
-        FStack.Peek.SetAttribute('col', Col.ToString);
+        FStack.Peek.SetPositionAttributes(Position);
 
         NodeList := TList<TSyntaxNode>.Create;
         try
@@ -1098,8 +1097,7 @@ begin
     begin
       FStack.Push(sCALL, False);
       try
-        FStack.Peek.SetAttribute('line', Line.ToString);
-        FStack.Peek.SetAttribute('col', Col.ToString);
+        FStack.Peek.SetPositionAttributes(Position);
 
         NodeList := TList<TSyntaxNode>.Create;
         try
@@ -1279,8 +1277,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.UsedUnitName;
 var
-  NamesNode, NamePartNode, UnitNode: TSyntaxNode;
-  Name: string;
+  NamesNode, UnitNode: TSyntaxNode;
   Position: TTokenPoint;
 begin
   Position := Lexer.PosXY;
@@ -1294,20 +1291,12 @@ begin
       FStack.Pop;
     end;
 
-    Name := '';
-    for NamePartNode in NamesNode.ChildNodes do
-    begin
-      if Name <> '' then
-        Name := Name + '.';
-      Name := Name + NamePartNode.Name;
-    end;
+    UnitNode := FStack.AddChild(sUNIT);
+    UnitNode.SetAttribute(sNAME, NodeListToString(NamesNode));
+    UnitNode.SetPositionAttributes(Position);
   finally
     NamesNode.Free;
   end;
-
-  UnitNode := FStack.AddChild(sUNIT);
-  UnitNode.SetAttribute(sNAME, Name);
-  UnitNode.SetPositionAttributes(Position);
 end;
 
 procedure TPasSyntaxTreeBuilder.UsesClause;
