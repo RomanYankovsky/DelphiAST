@@ -59,16 +59,25 @@ type
     procedure CaseSelector; override;
     procedure CaseStatement; override;
     procedure ClassField; override;
+    procedure ClassForward; override;
     procedure ClassMethod; override;
     procedure ClassMethodHeading; override;
     procedure ClassProperty; override;
+    procedure ClassReferenceType; override;
     procedure ClassType; override;
     procedure ConstParameter; override;
+    procedure ConstantDeclaration; override;
+    procedure ConstantName; override;
+    procedure ConstSection; override;
+    procedure ConstantValue; override;
+    procedure ConstantValueTyped; override;
+    procedure ConstructorName; override;
     procedure ContainsClause; override;
     procedure ContainsIdentifier; override;
     procedure ContainsIdentifierId; override;
     procedure ContainsStatement; override;
     procedure Designator; override;
+    procedure DestructorName; override;
     procedure DirectiveBinding; override;
     procedure DotOp; override;
     procedure ElseStatement; override;
@@ -110,7 +119,10 @@ type
     procedure ProcedureHeading; override;
     procedure ProcedureDeclarationSection; override;
     procedure ProcedureProcedureName; override;
+    procedure PropertyName; override;
+    procedure PropertyParameterList; override;
     procedure RaiseStatement; override;
+    procedure RecordFieldConstant; override;
     procedure RelativeOperator; override;
     procedure RepeatStatement; override;
     procedure RequiresClause; override;
@@ -281,7 +293,7 @@ end;
 procedure TPasSyntaxTreeBuilder.ClassField;
 var
   Fields: TSyntaxNode;
-  Field, TypeInfo: TSyntaxNode;
+  Field, TypeInfo, TypeArgs: TSyntaxNode;
 begin
   Fields := TSyntaxNode.Create('fields');
   try
@@ -292,28 +304,33 @@ begin
       FStack.Pop;
     end;
 
-    FStack.Push('fields');
-    try
-      TypeInfo := Fields.FindNode(UpperCase(sTYPE));
-      for Field in Fields.ChildNodes do
-      begin
-        if not SameText(Field.Name, sNAME) then
-          Continue;
+    TypeInfo := Fields.FindNode(UpperCase(sTYPE));
+    TypeArgs := Fields.FindNode('TYPEARGS');
+    for Field in Fields.ChildNodes do
+    begin
+      if not SameText(Field.Name, sNAME) then
+        Continue;
 
-        FStack.Push('field', False);
-        try
-          FStack.AddChild(Field.Clone);
-          FStack.AddChild(TypeInfo.Clone);
-        finally
-          FStack.Pop;
-        end;
+      FStack.Push('field', False);
+      try
+        FStack.AddChild(Field.Clone);
+        TypeInfo := TypeInfo.Clone;
+        if assigned(TypeArgs) then
+          TypeInfo.AddChild(TypeArgs.Clone);
+        FStack.AddChild(TypeInfo);
+      finally
+        FStack.Pop;
       end;
-    finally
-      FStack.Pop;
     end;
   finally
     Fields.Free;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ClassForward;
+begin
+  FStack.Peek.SetAttribute('forwarded', 'true');
+  inherited ClassForward;
 end;
 
 procedure TPasSyntaxTreeBuilder.ClassMethod;
@@ -342,10 +359,38 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.ClassReferenceType;
+begin
+  FStack.Peek.SetAttribute(sTYPE, 'classof');
+  inherited ClassReferenceType;
+end;
+
 procedure TPasSyntaxTreeBuilder.ClassType;
+var
+  classDef, child, vis: TSyntaxNode;
+  i: integer;
+  extracted: boolean;
 begin
   FStack.Peek.SetAttribute(sTYPE, 'class');
   inherited;
+  classDef := FStack.Peek;
+  vis := nil;
+  i := 0;
+  while i < classDef.ChildNodes.Count do
+  begin
+    child := classDef.ChildNodes[i];
+    extracted := false;
+    if child.HasAttribute('Visibility') then
+      vis := child
+    else if assigned(vis) then
+    begin
+      classDef.ChildNodes.Extract(child);
+      vis.ChildNodes.Add(child);
+      extracted := true;
+    end;
+    if not extracted then
+      inc(i);
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.ConstParameter;
@@ -355,6 +400,84 @@ begin
     inherited;
   finally
     FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ConstructorName;
+begin
+  FStack.Peek.SetAttribute('constructor', 'true');
+  FStack.Peek.SetAttribute('name', Lexer.Token);
+  inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.ConstantDeclaration;
+begin
+  FStack.Push(sCONSTANT);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ConstantName;
+begin
+  FStack.AddChild(sNAME).SetAttribute(sVALUE, Lexer.Token);
+  inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.ConstantValue;
+begin
+  FStack.Push(sVALUE);
+  inherited ConstantValue;
+  FStack.Pop;
+end;
+
+procedure TPasSyntaxTreeBuilder.ConstantValueTyped;
+begin
+  FStack.Push(sVALUE);
+  inherited ConstantValueTyped;
+  FStack.Pop;
+end;
+
+procedure TPasSyntaxTreeBuilder.ConstSection;
+var
+  ConstSect: TSyntaxNode;
+  ConstList, Constant, TypeInfo, Value: TSyntaxNode;
+begin
+  ConstSect := TSyntaxNode.Create('constants');
+  try
+    FStack.Push(ConstSect);
+    try
+      inherited ConstSection;
+    finally
+      FStack.Pop;
+    end;
+
+    FStack.Push(sCONSTANTS);
+    for ConstList in ConstSect.ChildNodes do
+    begin
+      TypeInfo := ConstList.FindNode(UpperCase(sTYPE));
+      Value := ConstList.FindNode(UpperCase(sVALUE));
+      for Constant in ConstList.ChildNodes do
+      begin
+        if not SameText(Constant.Name, sNAME) then
+          Continue;
+
+        FStack.Push(sCONSTANT, False);
+        try
+          FStack.AddChild(Constant.Clone);
+          if assigned(TypeInfo) then
+             FStack.AddChild(TypeInfo.Clone);
+          FStack.AddChild(Value.Clone);
+        finally
+          FStack.Pop;
+        end;
+      end;
+    end;
+    FStack.Pop;
+  finally
+    ConstSect.Free;
   end;
 end;
 
@@ -422,6 +545,13 @@ end;
 destructor TPasSyntaxTreeBuilder.Destroy;
 begin
   FStack.Free;
+  inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.DestructorName;
+begin
+  FStack.Peek.SetAttribute('destructor', 'true');
+  FStack.Peek.SetAttribute('name', Lexer.Token);
   inherited;
 end;
 
@@ -617,13 +747,14 @@ end;
 
 procedure TPasSyntaxTreeBuilder.FunctionProcedureName;
 var
-  ChildNode: TSyntaxNode;
+  ChildNode, nameNode: TSyntaxNode;
   FullName: string;
 begin
   FStack.Push(sNAME);
+  nameNode := FStack.Peek;
   try
     inherited;
-    for ChildNode in FStack.Peek.ChildNodes do
+    for ChildNode in nameNode.ChildNodes do
     begin
       if FullName <> '' then
         FullName := FullName + '.';
@@ -632,6 +763,7 @@ begin
   finally
     FStack.Pop;
     FStack.Peek.SetAttribute(sNAME, FullName);
+    FStack.Peek.DeleteChild(nameNode);
   end;
 end;
 
@@ -876,6 +1008,22 @@ begin
   inherited;
 end;
 
+procedure TPasSyntaxTreeBuilder.PropertyName;
+begin
+  FStack.Peek.SetAttribute('name', Lexer.Token);
+  inherited PropertyName;
+end;
+
+procedure TPasSyntaxTreeBuilder.PropertyParameterList;
+begin
+  FStack.Push('Parameters');
+  try
+    inherited PropertyParameterList;
+  finally
+    FStack.Pop;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.RaiseStatement;
 begin
   FStack.Push(Lexer.Token);
@@ -884,6 +1032,17 @@ begin
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.RecordFieldConstant;
+var
+  Node: TSyntaxNode;
+begin
+  Node := FStack.Push('Field');
+  Node.SetAttribute(sTYPE, 'name');
+  Node.SetAttribute(sVALUE, Lexer.Token);
+  inherited RecordFieldConstant;
+  FStack.Pop;
 end;
 
 procedure TPasSyntaxTreeBuilder.RelativeOperator;
@@ -1203,9 +1362,42 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.TypeKind;
+var
+  compound: TSyntaxNode;
+  compoundType: string;
+  found: boolean;
+  i: integer;
 begin
-  FStack.AddChild(sTYPE).SetAttribute(sNAME, Lexer.Token);
-  inherited;
+  case TokenID of
+    ptArray, ptFile, ptSet: begin
+      compound := FStack.push(sTYPE);
+      case TokenID of
+        ptArray: compoundType := 'ArrayOf';
+        ptFile: compoundType := 'FileOf';
+        ptSet: compoundType := 'SetOf';
+      end;
+      compound.SetAttribute(sNAME, compoundType);
+      compound.SetAttribute('compound', 'true');
+    end
+    else begin
+      FStack.AddChild(sTYPE).SetAttribute(sNAME, Lexer.Token);
+      compound := nil;
+    end;
+  end;
+  try
+    inherited;
+  finally
+    if assigned(compound) then
+    begin
+      FStack.Pop;
+      found := false;
+      for i := compound.ChildNodes.Count - 1 downto 0 do
+        if compound.ChildNodes[i].name = sTYPE then
+          if found then
+            compound.ChildNodes.Delete(i)
+          else found := true;
+    end;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.TypeParams;
@@ -1327,7 +1519,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.VarParameter;
 begin
-  FStack.Push(sPARAMETERS).SetAttribute('kind', 'out');
+  FStack.Push(sPARAMETERS).SetAttribute('kind', 'var');
   try
     inherited;
   finally
@@ -1377,6 +1569,7 @@ procedure TPasSyntaxTreeBuilder.VisibilityPrivate;
 begin
   FStack.Push('private');
   try
+    FStack.Peek.SetAttribute('Visibility', 'True');
     inherited;
   finally
     FStack.Pop;
@@ -1387,6 +1580,7 @@ procedure TPasSyntaxTreeBuilder.VisibilityProtected;
 begin
   FStack.Push('protected');
   try
+    FStack.Peek.SetAttribute('Visibility', 'True');
     inherited;
   finally
     FStack.Pop;
@@ -1397,6 +1591,7 @@ procedure TPasSyntaxTreeBuilder.VisibilityPublic;
 begin
   FStack.Push('public');
   try
+    FStack.Peek.SetAttribute('Visibility', 'True');
     inherited;
   finally
     FStack.Pop;
@@ -1407,6 +1602,7 @@ procedure TPasSyntaxTreeBuilder.VisibilityPublished;
 begin
   FStack.Push('published');
   try
+    FStack.Peek.SetAttribute('Visibility', 'True');
     inherited;
   finally
     FStack.Pop;

@@ -21,10 +21,12 @@ type
     function Clone: TSyntaxNode;
 
     function GetAttribute(const Key: string): string;
+    function HasAttribute(const Key: string): boolean;
     procedure SetAttribute(const Key: string; Value: string);
 
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
     function AddChild(Name: string): TSyntaxNode; overload;
+    procedure DeleteChild(Node: TSyntaxNode);
 
     function FindNode(const Name: string): TSyntaxNode;
     procedure SetPositionAttributes(PosXY: TTokenPoint; const LineStr: string = 'line'; const ColStr: string = 'col');
@@ -353,6 +355,11 @@ begin
   FChildNodes := TObjectList<TSyntaxNode>.Create(True);
 end;
 
+procedure TSyntaxNode.DeleteChild(Node: TSyntaxNode);
+begin
+  FChildNodes.Remove(node);
+end;
+
 destructor TSyntaxNode.Destroy;
 begin
   FChildNodes.Free;
@@ -387,6 +394,11 @@ end;
 function TSyntaxNode.GetHasChildren: Boolean;
 begin
   Result := FChildNodes.Count > 0;
+end;
+
+function TSyntaxNode.HasAttribute(const Key: string): boolean;
+begin
+  result := FAttributes.ContainsKey(key);
 end;
 
 end.

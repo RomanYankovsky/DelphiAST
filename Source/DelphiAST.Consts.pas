@@ -9,6 +9,8 @@ const
   sAS           = 'as';
   sASSIGN       = 'assign';
   sCALL         = 'call';
+  sCONSTANT     = 'constant';
+  sCONSTANTS    = 'constants';
   sCONTAINS     = 'contains';
   sDEREF        = 'deref';
   sDIV          = 'div';
