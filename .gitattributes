@@ -20,3 +20,8 @@
 *.PDF	 diff=astextplain
 *.rtf	 diff=astextplain
 *.RTF	 diff=astextplain
+
+*.pas eol=crlf
+*.dpr eol=crlf
+*.dfm eol=crlf
+*.inc eol=crlf
