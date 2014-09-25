@@ -48,9 +48,6 @@ end.
   </INTERFACE>
   <IMPLEMENTATION line="9" col="0">
     <METHOD line="11" col="0" name="Sum" kind="function">
-      <NAME line="11" col="9">
-        <NAME line="11" col="9" value="Sum"/>
-      </NAME>
       <PARAMETERS line="11" col="12">
         <PARAMETER>
           <NAME line="11" col="13" value="A"/>
