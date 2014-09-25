@@ -30,9 +30,6 @@ end.
       <UNIT line="5" col="2" name="Unit2"/>
     </USES>
     <METHOD line="7" col="0" name="Sum" kind="function">
-      <NAME line="7" col="9">
-        <NAME line="7" col="9" value="Sum"/>
-      </NAME>
       <PARAMETERS line="7" col="12">
         <PARAMETER>
           <NAME line="7" col="13" value="A"/>
