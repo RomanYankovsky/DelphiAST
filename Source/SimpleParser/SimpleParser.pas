@@ -1194,7 +1194,7 @@ end;
 procedure TmwSimplePasPar.LibraryFile;
 begin
   Expected(ptLibrary);
-  Expected(ptIdentifier);
+  UnitName;
   SEMICOLON;
   ProgramBlock;
   Expected(ptPoint);
@@ -1203,16 +1203,7 @@ end;
 procedure TmwSimplePasPar.PackageFile;
 begin
   ExpectedEx(ptPackage);
-  Expected(ptIdentifier);
-
-  {$IFDEF D8_NEWER}
-  while Lexer.TokenID = ptPoint do
-  begin
-    NextToken;
-    Expected(ptIdentifier);
-  end;
-  {$ENDIF}
-
+  UnitName;
   SEMICOLON;
   case ExID of
     ptRequires:
@@ -1242,7 +1233,7 @@ procedure TmwSimplePasPar.ProgramFile;
 begin
  // DR 2002-01-11
   Expected(ptProgram);
-  QualifiedIdentifier;
+  UnitName;
   if TokenID = ptRoundOpen then
   begin
     NextToken;
