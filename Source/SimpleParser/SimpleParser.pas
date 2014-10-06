@@ -2278,7 +2278,11 @@ end;
 
 procedure TmwSimplePasPar.ObjectNameOfMethod;
 begin
-  Expected(ptIdentifier);
+  if TokenID = ptIn then
+    Expected(ptIn)
+  else
+    Expected(ptIdentifier);
+
   {$IFDEF D8_NEWER} //JThurman 2004-03-22
   if TokenId = ptLower then
     TypeParams;
