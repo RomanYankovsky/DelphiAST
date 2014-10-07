@@ -5430,7 +5430,11 @@ procedure TmwSimplePasPar.TypeParams;
 begin
   Expected(ptLower);
   TypeParamDeclList;
-  Expected(ptGreater);
+  // workaround for TSomeClass< T >= class(TObject)
+  if TokenID = ptGreaterEqual then
+    Lexer.RunPos := Lexer.RunPos - 1
+  else
+    Expected(ptGreater);
 end;
 
 procedure TmwSimplePasPar.ConstSection;
