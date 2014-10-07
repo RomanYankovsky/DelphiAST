@@ -5344,13 +5344,19 @@ procedure TmwSimplePasPar.TypeSection;
 begin
   Expected(ptType);
 
-  while ((TokenID = ptIdentifier) and (Lexer.ExID in ExTypes)) or
-        (Lexer.TokenID = ptSquareOpen) do
+  while (TokenID = ptIdentifier) or (Lexer.TokenID = ptSquareOpen) do
   begin
     if TokenID = ptSquareOpen then
       CustomAttribute
     else
     begin
+      InitAhead;
+      AheadParse.NextToken;
+      AheadParse.TypeName;
+
+      if AheadParse.TokenId <> ptEqual then
+        Break;
+
       TypeDeclaration;
       if TokenID = ptEqual then
         TypedConstant;

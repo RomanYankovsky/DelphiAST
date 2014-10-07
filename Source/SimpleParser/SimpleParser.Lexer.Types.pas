@@ -285,8 +285,6 @@ TmwPasLexStatus = record
   TokenID: TptTokenKind;
 end;
 
-const ExTypes = [ptDWORD, ptIndex, ptUnknown];
-
 function TokenName(Value: TptTokenKind): string;
 function ptTokenName(Value: TptTokenKind): string;
 function IsTokenIDJunk(const aTokenID : TptTokenKind ) :Boolean; //XM 20001210
