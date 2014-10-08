@@ -2176,10 +2176,16 @@ end;
 
 procedure TmwSimplePasPar.ParameterNameList;
 begin
+  while TokenID = ptSquareOpen do
+    CustomAttribute;
   ParameterName;
+
   while TokenID = ptComma do
   begin
     NextToken;
+
+    while TokenID = ptSquareOpen do
+      CustomAttribute;
     ParameterName;
   end;
 end;
