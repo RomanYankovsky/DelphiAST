@@ -5250,34 +5250,23 @@ begin
     end;
   end;
   if TokenID = ptSemiColon then SEMICOLON;
-  case ExID of
-    ptForward:
-      begin
-        ForwardDeclaration; //jdj added 02/07/2001
-//        NextToken;
-//        SEMICOLON;
-      end;
-    ptAssembler:
-      begin
-        NextToken;
-        SEMICOLON;
-        if Exid = ptForward then
-          ForwardDeclaration; //jdj added 02/07/2001
-      end;
-  else  //TODO: Add STATIC and FINAL
-    while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptFar,
-      ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
-      ptReintroduce, ptSafeCall, ptStdCall, ptVirtual,
-      ptDeprecated, ptLibrary, ptPlatform, // DR 2001-10-20
-      ptLocal, ptVarargs // DR 2001-11-14
-      {$IFDEF D8_NEWER}, ptStatic{$ENDIF}{$IFDEF D9_NEWER}, ptInline{$ENDIF}
-      ] do
-    begin
-      ProceduralDirective;
-      if TokenID = ptSemiColon then SEMICOLON;
+
+  //TODO: Add STATIC and FINAL
+  while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptFar,
+    ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
+    ptReintroduce, ptSafeCall, ptStdCall, ptVirtual,
+    ptDeprecated, ptLibrary, ptPlatform, // DR 2001-10-20
+    ptLocal, ptVarargs // DR 2001-11-14
+    {$IFDEF D8_NEWER}, ptStatic{$ENDIF}{$IFDEF D9_NEWER}, ptInline{$ENDIF},
+    ptAssembler, ptForward, ptDelayed] do
+  begin
+    case ExID of
+      ptAssembler: NextToken;
+      ptForward: ForwardDeclaration;
+      else
+        ProceduralDirective;
     end;
-    if ExId = ptForward then
-      ForwardDeclaration; //jdj added 02/07/2001
+    if TokenID = ptSemiColon then SEMICOLON;
   end;
 end;
 
