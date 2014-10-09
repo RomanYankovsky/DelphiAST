@@ -4138,6 +4138,7 @@ begin
           end;
         end;
       end;
+    ptSemicolon: ClassTypeEnd;
   else
     begin
       ClassMemberList; { Direct descendant of TObject }
