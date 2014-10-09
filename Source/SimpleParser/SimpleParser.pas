@@ -5384,6 +5384,10 @@ begin
       begin
         StringType;
       end;
+    ptFile:
+      begin
+        FileType;
+      end
   else
     Expected(ptIdentifier);
   end;
