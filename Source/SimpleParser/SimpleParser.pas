@@ -426,6 +426,7 @@ type
     procedure PropertyDefault; virtual;
     procedure PropertyInterface; virtual;
     procedure PropertyName; virtual;
+    procedure PropertyParameter; virtual;
     procedure PropertyParameterConst; virtual;
     procedure PropertyParameterList; virtual;
     procedure PropertySpecifiers; virtual;
@@ -1603,23 +1604,11 @@ procedure TmwSimplePasPar.PropertyParameterList;
 //changed James Jacobson on 20001221
 begin
   Expected(ptSquareOpen);
-  if TokenID = ptConst then
-  begin
-    PropertyParameterConst;
-  end;
-  IdentifierList;
-  Expected(ptColon);
-  TypeId;
+  PropertyParameter;
   while TokenID = ptSemiColon do
   begin
     SEMICOLON;
-    if TokenID = ptConst then
-    begin //jdj 12-21-2000
-      PropertyParameterConst;
-    end;
-    IdentifierList;
-    Expected(ptColon);
-    TypeId;
+    PropertyParameter;
   end;
   Expected(ptSquareClose);
 end;
@@ -1642,6 +1631,22 @@ end;
   end;
   Expected(ptSquareClose);
 end;*)
+
+procedure TmwSimplePasPar.PropertyParameter;
+begin
+  if TokenID = ptConst then
+  begin
+    PropertyParameterConst;
+  end;
+  IdentifierList;
+  Expected(ptColon);
+  TypeId;
+  if TokenID = ptEqual then
+  begin
+    Expected(ptEqual);
+    ConstantExpression;
+  end;
+end;
 
 procedure TmwSimplePasPar.PropertyParameterConst;
 begin
