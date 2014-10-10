@@ -4901,11 +4901,11 @@ end;
 
 procedure TmwSimplePasPar.TypeArgs;
 begin
-  TypeId;
+  TypeKind;
   while TokenId = ptComma do
   begin
     NextToken;
-    TypeId;
+    TypeKind;
   end;
 end;
 
