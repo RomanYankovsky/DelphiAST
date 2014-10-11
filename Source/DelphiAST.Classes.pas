@@ -42,7 +42,7 @@ type
   public
     class function ExprToReverseNotation(Expr: TList<TSyntaxNode>): TList<TSyntaxNode>; static;
     class procedure NodeListToTree(Expr: TList<TSyntaxNode>; Root: TSyntaxNode); static;
-    class function PrepareExpr(ParentNode: TSyntaxNode; ExprNodes: TList<TSyntaxNode>): TList<TSyntaxNode>; static;
+    class function PrepareExpr(ExprNodes: TList<TSyntaxNode>): TObjectList<TSyntaxNode>; static;
     class procedure RawNodeListToTree(RawParentNode: TSyntaxNode; RawNodeList: TList<TSyntaxNode>; NewRoot: TSyntaxNode); static;
   end;
 
@@ -87,9 +87,10 @@ type
   end;
 
 const
-  OperatorsInfo: array [0..26] of TOperatorInfo =
+  OperatorsInfo: array [0..27] of TOperatorInfo =
     ((Name: sADDR;         Priority: 1; Kind: okUnary;  AssocType: atRight),
      (Name: sDEREF;        Priority: 1; Kind: okUnary;  AssocType: atLeft),
+     (Name: sGENERIC;      Priority: 1; Kind: okBinary; AssocType: atRight),
      (Name: sDOT;          Priority: 1; Kind: okBinary; AssocType: atRight),
      (Name: sCALL;         Priority: 3; Kind: okBinary; AssocType: atRight),
      (Name: sINDEXED;      Priority: 4; Kind: okUnary;  AssocType: atLeft),
@@ -250,17 +251,22 @@ begin
         end;
       Stack.Push(TreeData);
     end;
-    CopyTree(Stack.Peek, Root);
+
+    TreeData := Stack.Pop;
+
+    CopyTree(TreeData, Root);
+
+    TreeData.Free;
   finally
     Stack.Free;
   end;
 end;
 
-class function TExpressionTools.PrepareExpr(ParentNode: TSyntaxNode; ExprNodes: TList<TSyntaxNode>): TList<TSyntaxNode>;
+class function TExpressionTools.PrepareExpr(ExprNodes: TList<TSyntaxNode>): TObjectList<TSyntaxNode>;
 var
   Node, PrevNode: TSyntaxNode;
 begin
-  Result := TList<TSyntaxNode>.Create;
+  Result := TObjectList<TSyntaxNode>.Create(True);
   try
     PrevNode := nil;
     for Node in ExprNodes do
@@ -271,16 +277,29 @@ begin
       if Assigned(PrevNode) and IsRoundOpen(Node.Name) then
       begin
         if not TOperators.IsOpName(PrevNode.Name) and not IsRoundOpen(PrevNode.Name) then
-          Result.Add(ParentNode.AddChild(TSyntaxNode.Create(UpperCase(sCALL))));
+          Result.Add(TSyntaxNode.Create(sCALL));
 
         if TOperators.IsOpName(PrevNode.Name)
           and (TOperators[PrevNode.Name].Kind = okUnary)
           and (TOperators[PrevNode.Name].AssocType = atLeft)
         then
-          Result.Add(ParentNode.AddChild(UpperCase(sCALL)));
+          Result.Add(TSyntaxNode.Create(sCALL));
       end;
 
-      Result.Add(Node);
+      if Assigned(PrevNode) and (Node.Name = sTYPEARGS) then
+      begin
+        if not TOperators.IsOpName(PrevNode.Name) and (PrevNode.Name <> sTYPEARGS) then
+          Result.Add(TSyntaxNode.Create(sGENERIC));
+
+        if TOperators.IsOpName(PrevNode.Name)
+          and (TOperators[PrevNode.Name].Kind = okUnary)
+          and (TOperators[PrevNode.Name].AssocType = atLeft)
+        then
+          Result.Add(TSyntaxNode.Create(sGENERIC));
+      end;
+
+      if Node.Name <> sALIGNMENTPARAM then
+        Result.Add(Node.Clone);
       PrevNode := Node;
     end;
   except
@@ -294,7 +313,7 @@ class procedure TExpressionTools.RawNodeListToTree(RawParentNode: TSyntaxNode; R
 var
   PreparedNodeList, ReverseNodeList: TList<TSyntaxNode>;
 begin
-  PreparedNodeList := PrepareExpr(RawParentNode, RawNodeList);
+  PreparedNodeList := PrepareExpr(RawNodeList);
   try
     ReverseNodeList := ExprToReverseNotation(PreparedNodeList);
     try

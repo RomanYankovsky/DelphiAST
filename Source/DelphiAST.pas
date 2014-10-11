@@ -49,6 +49,7 @@ type
     procedure AccessSpecifier; override;
     procedure AdditiveOperator; override;
     procedure AddressOp; override;
+    procedure AlignmentParameter; override;
     procedure AnonymousMethod; override;
     procedure AsmStatement; override;
     procedure AsOp; override;
@@ -199,6 +200,16 @@ end;
 procedure TPasSyntaxTreeBuilder.AddressOp;
 begin
   FStack.Push(sADDR);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.AlignmentParameter;
+begin
+  FStack.Push(sALIGNMENTPARAM);
   try
     inherited;
   finally
@@ -1343,7 +1354,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.TypeArgs;
 begin
-  FStack.Push('TYPEARGS');
+  FStack.Push(sTYPEARGS);
   try
     inherited;
   finally

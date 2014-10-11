@@ -248,6 +248,7 @@ type
     procedure AccessSpecifier; virtual;
     procedure AdditiveOperator; virtual;
     procedure AddressOp; virtual;
+    procedure AlignmentParameter; virtual;
     procedure AsOp; virtual;
     procedure AncestorIdList; virtual; // !! Added ancestorIdList back in...
     procedure AncestorId; virtual; // !! Added ancestorId back in...
@@ -3134,7 +3135,10 @@ begin
       AnonymousMethod;
   end;
 
-  if TokenID in [ptRoundOpen, ptSquareOpen, ptPointerSymbol] then
+  if TokenID = ptPointerSymbol then
+    PointerSymbol;
+
+  if TokenID in [ptRoundOpen, ptSquareOpen] then
     Factor;
 
   while TokenID = ptPoint do
@@ -3184,6 +3188,11 @@ end;
 procedure TmwSimplePasPar.AddressOp;
 begin
   Expected(ptAddressOp);
+end;
+
+procedure TmwSimplePasPar.AlignmentParameter;
+begin
+  SimpleExpression;
 end;
 
 procedure TmwSimplePasPar.Term;
@@ -3291,7 +3300,7 @@ begin
           while TokenID = ptColon do
           begin
             NextToken;
-            SimpleExpression;
+            AlignmentParameter;
           end;
       end;
     end;
