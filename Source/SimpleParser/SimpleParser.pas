@@ -5043,7 +5043,7 @@ end;
 
 procedure TmwSimplePasPar.ConstantExpression;
 begin
-  SimpleExpression;
+  Expression;
 end;
 
 procedure TmwSimplePasPar.ResourceDeclaration;
