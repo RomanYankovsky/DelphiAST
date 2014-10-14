@@ -440,15 +440,21 @@ end;
 procedure TPasSyntaxTreeBuilder.ConstantValue;
 begin
   FStack.Push(sVALUE);
-  inherited ConstantValue;
-  FStack.Pop;
+  try
+    inherited ConstantValue;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.ConstantValueTyped;
 begin
   FStack.Push(sVALUE);
-  inherited ConstantValueTyped;
-  FStack.Pop;
+  try
+    inherited ConstantValueTyped;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.ConstSection;

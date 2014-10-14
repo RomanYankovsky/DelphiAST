@@ -171,6 +171,7 @@ const
     , ptFinal
     , ptExperimental
     {$ENDIF}
+    , ptDispId
     ];  //XM 2002-01-29
 
 type
@@ -1747,14 +1748,8 @@ begin
   ReturnType;
   if TokenId = ptSemicolon then // DR 2002-01-14
     SEMICOLON;
-  if ExID = ptDispId then
-  begin
-    DispIDSpecifier; // DR 2001-07-26
-    if TokenId = ptSemicolon then // DR 2002-01-14
-      SEMICOLON;
-  end;
-  if ExID in ClassMethodDirectiveEnum     //XM 2002-01-29
-   then ClassMethodDirective; //XM 2002-01-26
+  if ExID in ClassMethodDirectiveEnum then
+    ClassMethodDirective;
 end;
 
 procedure TmwSimplePasPar.FunctionMethodName;
@@ -1886,7 +1881,10 @@ procedure TmwSimplePasPar.ClassMethodDirective;
 begin
   while ExId in ClassMethodDirectiveEnum do
   begin
-    ProceduralDirective;
+    if ExID = ptDispId then
+      DispIDSpecifier
+    else
+      ProceduralDirective;
     if TokenId = ptSemicolon then // DR 2002-01-14
       SEMICOLON;
   end;
@@ -2391,7 +2389,7 @@ begin
   case fLexer.ExID of
     ptIndex:
       begin
-        NextToken;
+        IndexSpecifier;
       end;
     ptName:
       begin
@@ -5043,7 +5041,7 @@ end;
 
 procedure TmwSimplePasPar.ConstantExpression;
 begin
-  Expression;
+  SimpleExpression;
 end;
 
 procedure TmwSimplePasPar.ResourceDeclaration;
@@ -5108,7 +5106,7 @@ end;
 
 procedure TmwSimplePasPar.ConstantValue;
 begin
-  ConstantExpression;
+  Expression;
 end;
 
 procedure TmwSimplePasPar.ConstantValueTyped;
