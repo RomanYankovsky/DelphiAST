@@ -37,6 +37,7 @@ const
   sOR             = 'or';
   sPARAMETER      = 'parameter';
   sPARAMETERS     = 'parameters';
+  sPATH           = 'path';
   sREPEAT         = 'repeat';
   sROUNDCLOSE     = 'roundclose';
   sROUNDOPEN      = 'roundopen';

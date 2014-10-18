@@ -298,10 +298,6 @@ type
     procedure ConstructorName; virtual;
     procedure ConstSection; virtual;
     procedure ContainsClause; virtual;
-    procedure ContainsExpression; virtual;
-    procedure ContainsIdentifier; virtual;
-    procedure ContainsIdentifierId; virtual;
-    procedure ContainsStatement; virtual;
     {$IFDEF D8_NEWER}
     procedure CustomAttribute; virtual; //JThurman 2004-03-03
     {$ENDIF}
@@ -5588,43 +5584,13 @@ end;
 procedure TmwSimplePasPar.ContainsClause;
 begin
   ExpectedEx(ptContains);
-  ContainsStatement;
+  MainUsedUnitStatement;
   while TokenID = ptComma do
   begin
     NextToken;
-    ContainsStatement;
+    MainUsedUnitStatement;
   end;
   SEMICOLON;
-end;
-
-procedure TmwSimplePasPar.ContainsStatement;
-begin
-  ContainsIdentifier;
-  if fLexer.TokenID = ptIn then
-  begin
-    NextToken;
-    ContainsExpression;
-  end;
-end;
-
-procedure TmwSimplePasPar.ContainsIdentifier;
-begin
-  ContainsIdentifierId;
-  while Lexer.TokenID = ptPoint do
-  begin
-    NextToken;
-    ContainsIdentifierId;
-  end;
-end;
-
-procedure TmwSimplePasPar.ContainsIdentifierId;
-begin
-  Expected(ptIdentifier);
-end;
-
-procedure TmwSimplePasPar.ContainsExpression;
-begin
-  ConstantExpression;
 end;
 
 procedure TmwSimplePasPar.RequiresClause;

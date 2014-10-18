@@ -74,9 +74,6 @@ type
     procedure ConstantValueTyped; override;
     procedure ConstructorName; override;
     procedure ContainsClause; override;
-    procedure ContainsIdentifier; override;
-    procedure ContainsIdentifierId; override;
-    procedure ContainsStatement; override;
     procedure Designator; override;
     procedure DestructorName; override;
     procedure DirectiveBinding; override;
@@ -105,6 +102,7 @@ type
     procedure InterfaceType; override;
     procedure LabelId; override;
     procedure MainUsesClause; override;
+    procedure MainUsedUnitStatement; override;
     procedure MethodKind; override;
     procedure MultiplicativeOperator; override;
     procedure NewFormalParameterType; override;
@@ -508,41 +506,6 @@ begin
   end;
 end;
 
-procedure TPasSyntaxTreeBuilder.ContainsIdentifier;
-var
-  NamesNode: TSyntaxNode;
-begin
-  NamesNode := TSyntaxNode.Create(sCONTAINS);
-  try
-    FStack.Push(NamesNode);
-    try
-      inherited;
-    finally
-      FStack.Pop;
-    end;
-
-    FStack.AddChild(sNAME).SetAttribute(sVALUE, NodeListToString(NamesNode));
-  finally
-    NamesNode.Free;
-  end;
-end;
-
-procedure TPasSyntaxTreeBuilder.ContainsIdentifierId;
-begin
-  FStack.AddChild(Lexer.Token, False);
-  inherited;
-end;
-
-procedure TPasSyntaxTreeBuilder.ContainsStatement;
-begin
-  FStack.Push(sUNIT, False);
-  try
-    inherited;
-  finally
-    FStack.Pop;
-  end;
-end;
-
 constructor TPasSyntaxTreeBuilder.Create;
 begin
   inherited;
@@ -870,6 +833,32 @@ procedure TPasSyntaxTreeBuilder.LabelId;
 begin
   FStack.AddChild('label').SetAttribute(sVALUE, Lexer.Token);
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.MainUsedUnitStatement;
+var
+  NameNode, PathNode: TSyntaxNode;
+begin
+  FStack.Push(sUNIT);
+  try
+    inherited;
+    NameNode := FStack.Peek.FindNode(sUNIT);
+    PathNode := FStack.Peek.FindNode(sLITERAL);
+
+    if Assigned(NameNode) then
+    begin
+      FStack.Peek.SetAttribute(sNAME, NameNode.GetAttribute(sNAME));
+      FStack.Peek.DeleteChild(NameNode);
+    end;
+
+    if Assigned(PathNode) then
+    begin
+      FStack.Peek.SetAttribute(sPATH, PathNode.GetAttribute(sVALUE));
+      FStack.Peek.DeleteChild(PathNode);
+    end;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.MainUsesClause;
