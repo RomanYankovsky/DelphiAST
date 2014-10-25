@@ -39,6 +39,7 @@ const
   sPARAMETERS     = 'parameters';
   sPATH           = 'path';
   sREPEAT         = 'repeat';
+  sRETURNTYPE     = 'returntype';
   sROUNDCLOSE     = 'roundclose';
   sROUNDOPEN      = 'roundopen';
   sSHL            = 'shl';

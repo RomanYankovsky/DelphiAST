@@ -127,6 +127,7 @@ type
     procedure RequiresClause; override;
     procedure RequiresIdentifier; override;
     procedure RequiresIdentifierId; override;
+    procedure ReturnType; override;
     procedure RoundClose; override;
     procedure RoundOpen; override;
     procedure SetConstructor; override;
@@ -135,6 +136,7 @@ type
     procedure StatementList; override;
     procedure StringConst; override;
     procedure StringConstSimple; override;
+    procedure StringType; override;
     procedure ThenStatement; override;
     procedure TryStatement; override;
     procedure TypeArgs; override;
@@ -1140,6 +1142,16 @@ begin
   inherited;
 end;
 
+procedure TPasSyntaxTreeBuilder.ReturnType;
+begin
+  FStack.Push(sRETURNTYPE);
+  try
+    inherited;
+  finally
+    FStack.Pop
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.RoundClose;
 begin
   FStack.AddChild(sROUNDCLOSE);
@@ -1325,6 +1337,16 @@ begin
   //TODO support ptAsciiChar
   FStack.AddChild(sLITERAL).SetAttribute(sVALUE, Lexer.Token.DeQuotedString);
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.StringType;
+begin
+  FStack.Push(sTYPE).SetAttribute(sNAME, Lexer.Token);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.ThenStatement;
