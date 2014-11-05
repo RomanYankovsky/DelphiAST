@@ -2374,7 +2374,7 @@ begin
       end;
   else
     begin
-      SimpleExpression;
+      StringConst;
       ExternalDirectiveTwo;
     end;
   end;
