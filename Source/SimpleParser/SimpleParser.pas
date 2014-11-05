@@ -4714,11 +4714,23 @@ end;
 procedure TmwSimplePasPar.ArrayConstant;
 begin
   Expected(ptRoundOpen);
+
   TypedConstant;
+  if TokenID = ptDotDot then
+  begin
+    NextToken;
+    TypedConstant;
+  end;
+
   while (TokenID = ptComma) do
   begin
     NextToken;
     TypedConstant;
+    if TokenID = ptDotDot then
+    begin
+      NextToken;
+      TypedConstant;
+    end;
   end;
   Expected(ptRoundClose);
 end;
