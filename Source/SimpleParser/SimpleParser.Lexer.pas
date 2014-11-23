@@ -2607,7 +2607,7 @@ begin
   FAheadLex.CloneDefinesFrom(Self);
 
   //FAheadLex.FTokenPos := FTokenPos;
-  while IsTokenIDJunk(fAheadLex.TokenID) do
+  while fAheadLex.IsJunk do
     fAheadLex.Next;
 end;
 

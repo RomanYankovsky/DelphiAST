@@ -305,6 +305,7 @@ function IsTokenIDJunk(const aTokenID : TptTokenKind ) :boolean; //XM 20001210
 begin
   Result := aTokenID in [ptAnsiComment, ptBorComment, ptCRLF, ptCRLFCo, ptSlashesComment, ptSpace,
     ptIfDirect,
+    ptElseDirect,
     ptIfEndDirect,
     ptElseIfDirect,
     ptIfDefDirect,

@@ -486,9 +486,11 @@ type
     procedure TypeId; virtual;
     procedure TypeKind; virtual;
     procedure TypeName; virtual;
+    procedure TypeReferenceType; virtual;
     procedure TypeSimple; virtual;
     //generics
     procedure TypeArgs; virtual;
+    procedure TypeDirective; virtual;
     procedure TypeParams; virtual;
     procedure TypeParamDecl; virtual;
     procedure TypeParamDeclList; virtual;
@@ -2374,7 +2376,7 @@ begin
       end;
   else
     begin
-      StringConst;
+      SimpleExpression;
       ExternalDirectiveTwo;
     end;
   end;
@@ -4248,7 +4250,14 @@ begin
     if (TokenID = ptIdentifier) and
       not (ExID in [ptPrivate, ptProtected, ptPublished, ptPublic]) then
     begin
-      ClassField;
+      InitAhead;
+      AheadParse.NextToken;
+
+      if AheadParse.TokenId = ptEqual then
+        ConstantDeclaration
+      else
+        ClassField;
+
       SEMICOLON;
     end
     else if TokenID in [ptClass, ptConstructor, ptDestructor, ptFunction,
@@ -4768,11 +4777,20 @@ begin
 //    TypeParams;
   //end generics
   Expected(ptEqual);
+
+  Lexer.InitAhead;
+
   if TokenID = ptType then
   begin
-    ExplicitType;
+    if Lexer.AheadTokenID = ptOf then
+    begin
+      TypeReferenceType;
+      TypeDirective;
+      Exit;
+    end else
+      ExplicitType;
   end;
-  Lexer.InitAhead;
+
   case TokenID of
     ptPointerSymbol:
       begin
@@ -4844,12 +4862,7 @@ begin
       TypeKind;
     end;
   end;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do // DR 2001-10-20
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  TypeDirective;
 end;
 
 procedure TmwSimplePasPar.TypeName;
@@ -5368,9 +5381,10 @@ begin
     begin
       InitAhead;
       AheadParse.NextToken;
-      AheadParse.TypeName;
+      if AheadParse.TokenID = ptLower then
+        AheadParse.TypeParams;
 
-      if AheadParse.TokenId <> ptEqual then
+      if AheadParse.TokenID <> ptEqual then
         Break;
 
       TypeDeclaration;
@@ -5461,6 +5475,13 @@ begin
     Lexer.RunPos := Lexer.RunPos - 1
   else
     Expected(ptGreater);
+end;
+
+procedure TmwSimplePasPar.TypeReferenceType;
+begin
+  Expected(ptType);
+  Expected(ptOf);
+  TypeId;
 end;
 
 procedure TmwSimplePasPar.ConstSection;
@@ -5731,6 +5752,8 @@ begin //updated mw 2/22/00, JThurman 6/24/2004
         case TokenID of
           ptIdentifier, ptRoundOpen:
             begin
+              if ExID in [ptIndex] then
+                Break;
               VariableReference;
             end;
           ptString: //JT
@@ -6090,6 +6113,17 @@ begin
   Result := FDefines.IndexOf(ADefine) > -1;
 end;
 
+procedure TmwSimplePasPar.TypeDirective;
+begin
+  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
+    // DR 2001-10-20
+    case ExID of
+      ptDeprecated: DirectiveDeprecated;
+      ptLibrary:    DirectiveLibrary;
+      ptPlatform:   DirectivePlatform;
+    end;
+end;
+
 procedure TmwSimplePasPar.InheritedVariableReference;
 begin
   Expected(ptInherited);
@@ -6316,7 +6350,7 @@ end;
 procedure TmwSimplePasPar.AttributeName;
 begin
   case TokenID of
-    ptIn, ptOut, ptConst, ptVar:
+    ptIn, ptOut, ptConst, ptVar, ptUnsafe:
       NextToken;
   else
     Expected(ptIdentifier);
