@@ -414,6 +414,7 @@ type
     procedure PointerSymbol; virtual;
     procedure PointerType; virtual;
     procedure ProceduralDirective; virtual;
+    procedure ProceduralDirectiveOf; virtual;
     procedure ProceduralType; virtual;
     procedure ProcedureDeclarationSection; virtual;
     procedure ProcedureHeading; virtual;
@@ -2376,7 +2377,8 @@ begin
       end;
   else
     begin
-      SimpleExpression;
+      if fLexer.ExID <> ptName then
+        SimpleExpression;
       ExternalDirectiveTwo;
     end;
   end;
@@ -4518,10 +4520,8 @@ begin
     end;
   end;
   if TokenID = ptOf then
-  begin
-    NextToken;
-    Expected(ptObject);
-  end;
+    ProceduralDirectiveOf;
+
   Lexer.InitAhead;
   case TokenID of
     ptSemiColon: TheTokenID := Lexer.AheadExID;
@@ -4544,6 +4544,9 @@ begin
       TheTokenID := ExID;
     end;
   end;
+
+  if TokenID = ptOf then
+    ProceduralDirectiveOf;
 end;
 
 procedure TmwSimplePasPar.StringConst;
@@ -6111,6 +6114,12 @@ end;
 function TmwSimplePasPar.IsDefined(const ADefine: string): Boolean;
 begin
   Result := FDefines.IndexOf(ADefine) > -1;
+end;
+
+procedure TmwSimplePasPar.ProceduralDirectiveOf;
+begin
+  NextToken;
+  Expected(ptObject);
 end;
 
 procedure TmwSimplePasPar.TypeDirective;
