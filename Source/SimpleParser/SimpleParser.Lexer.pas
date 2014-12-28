@@ -2373,7 +2373,7 @@ end;
 procedure TmwBasePasLex.Init;
 begin
   fCommentState := csNo;
-  fLineNumber := 0;
+  fLineNumber := 1;
   fLinePos := 0;
   Run := 0;
   InitDefines;
@@ -2443,7 +2443,7 @@ end;
 
 procedure TmwBasePasLex.InitLine;
 begin
-  fLineNumber := 0;
+  fLineNumber := 1;
   fLinePos := 0;
   Run := 0;
 end;
