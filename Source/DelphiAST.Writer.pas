@@ -3,7 +3,7 @@ unit DelphiAST.Writer;
 interface
 
 uses
-  DelphiAST.Classes, Xml.XMLIntf, Generics.Collections;
+  DelphiAST.Classes, XMLIntf, Generics.Collections;
 
 type
   TSyntaxTreeWriter = class
@@ -17,7 +17,7 @@ type
 implementation
 
 uses
-  System.SysUtils, Xml.XMLDoc;
+  SysUtils, XMLDoc;
 
 { TSyntaxTreeWriter }
 

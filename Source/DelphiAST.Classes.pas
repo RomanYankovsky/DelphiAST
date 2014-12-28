@@ -49,7 +49,7 @@ type
 implementation
 
 uses
-  System.SysUtils, DelphiAST.Consts;
+  SysUtils, DelphiAST.Consts;
 
 type
   TOperatorKind = (okUnary, okBinary);
@@ -184,11 +184,11 @@ begin
         if TOperators.IsOpName(Node.Name) then
         begin
           while (Stack.Count > 0) and TOperators.IsOpName(Stack.Peek.Name) and
-            (((TOperators[Node.Name].AssocType = atLeft) and
-            (TOperators[Node.Name].Priority >= TOperators[Stack.Peek.Name].Priority))
+            (((TOperators.Items[Node.Name].AssocType = atLeft) and
+            (TOperators.Items[Node.Name].Priority >= TOperators.Items[Stack.Peek.Name].Priority))
             or
-            ((TOperators[Node.Name].AssocType = atRight) and
-            (TOperators[Node.Name].Priority > TOperators[Stack.Peek.Name].Priority)))
+            ((TOperators.Items[Node.Name].AssocType = atRight) and
+            (TOperators.Items[Node.Name].Priority > TOperators.Items[Stack.Peek.Name].Priority)))
           do
             Result.Add(Stack.Pop);
 
@@ -241,7 +241,7 @@ begin
     begin
       TreeData := TTreeData.Create(Node);
       if TOperators.IsOpName(Node.Name) then
-        case TOperators[Node.Name].Kind of
+        case TOperators.Items[Node.Name].Kind of
           okUnary: TreeData.Child1 := Stack.Pop;
           okBinary:
             begin
@@ -280,8 +280,8 @@ begin
           Result.Add(TSyntaxNode.Create(sCALL));
 
         if TOperators.IsOpName(PrevNode.Name)
-          and (TOperators[PrevNode.Name].Kind = okUnary)
-          and (TOperators[PrevNode.Name].AssocType = atLeft)
+          and (TOperators.Items[PrevNode.Name].Kind = okUnary)
+          and (TOperators.Items[PrevNode.Name].AssocType = atLeft)
         then
           Result.Add(TSyntaxNode.Create(sCALL));
       end;
@@ -292,8 +292,8 @@ begin
           Result.Add(TSyntaxNode.Create(sGENERIC));
 
         if TOperators.IsOpName(PrevNode.Name)
-          and (TOperators[PrevNode.Name].Kind = okUnary)
-          and (TOperators[PrevNode.Name].AssocType = atLeft)
+          and (TOperators.Items[PrevNode.Name].Kind = okUnary)
+          and (TOperators.Items[PrevNode.Name].AssocType = atLeft)
         then
           Result.Add(TSyntaxNode.Create(sGENERIC));
       end;

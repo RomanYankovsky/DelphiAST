@@ -3,7 +3,7 @@ unit DelphiAST;
 interface
 
 uses
-  System.SysUtils, System.Classes, Generics.Collections, SimpleParser,
+  SysUtils, Classes, Generics.Collections, SimpleParser,
   SimpleParser.Lexer.Types, DelphiAST.Classes;
 
 type
@@ -1335,7 +1335,7 @@ end;
 procedure TPasSyntaxTreeBuilder.StringConstSimple;
 begin
   //TODO support ptAsciiChar
-  FStack.AddChild(sLITERAL).SetAttribute(sVALUE, Lexer.Token.DeQuotedString);
+  FStack.AddChild(sLITERAL).SetAttribute(sVALUE, AnsiDequotedStr(Lexer.Token, ''''));
   inherited;
 end;
 

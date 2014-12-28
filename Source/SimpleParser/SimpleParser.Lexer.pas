@@ -47,7 +47,7 @@ interface
 
 uses
   //!! pruned uses
-  SysUtils, Classes, System.Character, SimpleParser.Lexer.Types;
+  SysUtils, Classes, Character, SimpleParser.Lexer.Types;
 
 var
   Identifiers: array[#0..#255] of ByteBool;
@@ -1761,7 +1761,7 @@ end;
 
 function TmwBasePasLex.IsIdentifiers(AChar: Char): Boolean;
 begin
-  Result := AChar.IsLetterOrDigit or (AChar = '_');
+  Result := TCharacter.IsLetterOrDigit(AChar) or (AChar = '_');
 end;
 
 procedure TmwBasePasLex.LFProc;

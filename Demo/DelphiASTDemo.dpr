@@ -1,7 +1,7 @@
 program DelphiASTDemo;
 
 uses
-  Vcl.Forms,
+  Forms,
   uMainForm in 'uMainForm.pas' {Form1};
 
 {$R *.res}
