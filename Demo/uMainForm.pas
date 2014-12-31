@@ -3,8 +3,8 @@ unit uMainForm;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Menus, Vcl.StdCtrls;
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, Menus, StdCtrls;
 
 type
   TForm1 = class(TForm)
@@ -25,7 +25,7 @@ var
 implementation
 
 uses
-  DelphiAST, DelphiAST.Writer, DelphiAST.Classes, Xml.XmlDoc;
+  DelphiAST, DelphiAST.Writer, DelphiAST.Classes, XmlDoc;
 
 {$R *.dfm}
 
