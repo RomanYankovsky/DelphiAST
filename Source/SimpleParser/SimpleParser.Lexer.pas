@@ -16,7 +16,7 @@ Portions created by Martin Waldenburg are Copyright (C) 1998, 1999 Martin
 Waldenburg.
 All Rights Reserved.
 
-Contributor(s): Roman Yankovsky, James Jacobson _____________________________________.
+Contributor(s): LaKraven Studios Ltd, Roman Yankovsky, James Jacobson
 
 Last Modified: mm/dd/yyyy
 Current Version: 2.25
@@ -26,6 +26,11 @@ Delphi community to develop it further and to create a fully featured Object
 Pascal parser.
 
 Modification history:
+
+LaKraven Studios Ltd, January 2015:
+
+- Cleaned up version-specifics up to XE8
+- Fixed all warnings & hints
 
 Daniel Rolf between 20010723 and 20020116
 
@@ -48,7 +53,6 @@ interface
 uses
   //!! pruned uses
   SysUtils, Classes, Character, SimpleParser.Lexer.Types;
-
 var
   Identifiers: array[#0..#255] of ByteBool;
   mHashTable: array[#0..#255] of Integer;
@@ -343,9 +347,9 @@ type
     property OnIfOptDirect: TDirectiveEvent read fOnIfOptDirect write SetOnIfOptDirect;
     property OnIncludeDirect: TDirectiveEvent read fOnIncludeDirect write SetOnIncludeDirect;
     property OnIfDirect: TDirectiveEvent read fOnIfDirect write SetOnIfDirect;
-    property OnIfEndDirect: TDirectiveEvent read fOnIfEndDirect write 
+    property OnIfEndDirect: TDirectiveEvent read fOnIfEndDirect write
     SetOnIfEndDirect;
-    property OnElseIfDirect: TDirectiveEvent read fOnElseIfDirect write 
+    property OnElseIfDirect: TDirectiveEvent read fOnElseIfDirect write
     SetOnElseIfDirect;
 	property OnResourceDirect: TDirectiveEvent read fOnResourceDirect write SetOnResourceDirect;
 	property OnUnDefDirect: TDirectiveEvent read fOnUnDefDirect write SetOnUnDefDirect;
@@ -451,13 +455,14 @@ begin
   while SourceFrame <> nil do
   begin
     New(Frame);
+    New(LastFrame); // LaKraven Studios Ltd, 6th Jan 2015
     if FTopDefineRec = nil then
       FTopDefineRec := Frame
     else
       LastFrame^.Next := Frame;
     Frame^.Defined := SourceFrame^.Defined;
     Frame^.StartCount := SourceFrame^.StartCount;
-    LastFrame := Frame;
+//    LastFrame := Frame; // LaKraven Studios Ltd, 6th Jan 2015
 
     SourceFrame := SourceFrame^.Next;
   end;
@@ -993,7 +998,7 @@ begin
   {$IFDEF D12_NEWER}
   else if KeyComp('Reference') then fExID := ptReference;
   {$ENDIF}
-       
+
 end;
 
 function TmwBasePasLex.Func81: TptTokenKind;
@@ -1411,7 +1416,11 @@ begin
     while CharInSet(FOrigin[Run], ['0'..'9', 'A'..'F', 'a'..'f']) do Inc(Run);
   end else
   begin
-    while IsDigit(FOrigin[Run]) do
+    {$IFDEF D13_NEWER}
+      while Char(fOrigin[Run]).IsDigit do // LaKraven Studios Ltd, 6th Jan 2015
+    {$ELSE}
+      while IsDigit(FOrigin[Run]) do
+    {$ENDIF}
       Inc(Run);
   end;
 end;
@@ -1761,7 +1770,11 @@ end;
 
 function TmwBasePasLex.IsIdentifiers(AChar: Char): Boolean;
 begin
-  Result := TCharacter.IsLetterOrDigit(AChar) or (AChar = '_');
+  {$IFDEF D13_NEWER}
+    Result := (AChar.IsLetterOrDigit) or (AChar = '_'); // LaKraven Studios Ltd, 6th Jan 2015
+  {$ELSE}
+    Result := TCharacter.IsLetterOrDigit(AChar) or (AChar = '_');
+  {$ENDIF}
 end;
 
 procedure TmwBasePasLex.LFProc;
@@ -1834,8 +1847,8 @@ procedure TmwBasePasLex.PointerSymbolProc;
 begin
   inc(Run);
   fTokenID := ptPointerSymbol;
-  
-  //This is a wierd Pascal construct that rarely appears, but needs to be 
+
+  //This is a wierd Pascal construct that rarely appears, but needs to be
   //supported. ^M is a valid char reference (#13, in this case)
   if CharInSet(FOrigin[Run], ['a'..'z','A'..'Z']) and not IsIdentifiers(FOrigin[Run+1]) then
   begin
@@ -2787,7 +2800,7 @@ begin
 	  '\':
 		begin
 		  Inc( Run );
-		  if FOrigin[Run] in [#32..#255] then Inc( Run );
+      if CharInSet(fOrigin[Run], [#32..#255]) then Inc( Run )
 		end;
 	end;
   until FOrigin[Run] = '"';
