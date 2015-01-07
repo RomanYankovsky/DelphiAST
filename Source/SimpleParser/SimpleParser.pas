@@ -302,6 +302,7 @@ type
     procedure CustomAttribute; virtual; //JThurman 2004-03-03
     {$ENDIF}
     procedure DeclarationSection; virtual;
+    procedure DeclarationSections; virtual;
     procedure Designator; virtual;
     procedure DestructorHeading; virtual;
     procedure DestructorName; virtual;
@@ -376,6 +377,7 @@ type
     procedure LabeledStatement; virtual;
     procedure LabelId; virtual;
     procedure LibraryFile; virtual;
+    procedure LibraryBlock; virtual;
     procedure MainUsedUnitExpression; virtual;
     procedure MainUsedUnitName; virtual;
     procedure MainUsedUnitStatement; virtual;
@@ -1198,8 +1200,22 @@ begin
   Expected(ptLibrary);
   UnitName;
   SEMICOLON;
-  ProgramBlock;
+
+  LibraryBlock;
   Expected(ptPoint);
+end;
+
+procedure TmwSimplePasPar.LibraryBlock;
+begin
+  if TokenID = ptUses then
+    MainUsesClause;
+
+  DeclarationSections;
+
+  if TokenID = ptBegin then
+    CompoundStatement
+  else
+    Expected(ptEnd);
 end;
 
 procedure TmwSimplePasPar.PackageFile;
@@ -1381,12 +1397,7 @@ end;
 
 procedure TmwSimplePasPar.Block;
 begin
-  while TokenID in [ptClass, ptConst, ptConstructor, ptDestructor, ptExports,
-    ptFunction, ptLabel, ptProcedure, ptResourceString, ptThreadVar, ptType,
-    ptVar{$IFDEF D8_NEWER}, ptSquareOpen{$ENDIF}] do
-  begin
-    DeclarationSection;
-  end;
+  DeclarationSections;
   case TokenID of
     ptAsm:
       begin
@@ -6121,6 +6132,14 @@ end;
 function TmwSimplePasPar.IsDefined(const ADefine: string): Boolean;
 begin
   Result := FDefines.IndexOf(ADefine) > -1;
+end;
+
+procedure TmwSimplePasPar.DeclarationSections;
+begin
+  while TokenID in [ptClass, ptConst, ptConstructor, ptDestructor, ptExports, ptFunction, ptLabel, ptProcedure, ptResourceString, ptThreadVar, ptType, ptVar, ptSquareOpen] do
+  begin
+    DeclarationSection;
+  end;
 end;
 
 procedure TmwSimplePasPar.ProceduralDirectiveOf;
