@@ -1640,12 +1640,16 @@ begin
     PropertyParameterConst;
   end;
   IdentifierList;
-  Expected(ptColon);
-  TypeId;
-  if TokenID = ptEqual then
+  if TokenID = ptColon then
   begin
-    Expected(ptEqual);
-    ConstantExpression;
+    NextToken;
+
+    TypeId;
+    if TokenID = ptEqual then
+    begin
+      Expected(ptEqual);
+      ConstantExpression;
+    end;
   end;
 end;
 
