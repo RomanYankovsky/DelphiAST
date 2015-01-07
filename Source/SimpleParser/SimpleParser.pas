@@ -4296,7 +4296,7 @@ begin
         ClassProperty;
       end;
     {$IFDEF D8_NEWER}
-    ptVar:
+    ptVar, ptThreadVar:
       begin
         NextToken;
         while (TokenID = ptIdentifier) and (ExID = ptUnknown) do
