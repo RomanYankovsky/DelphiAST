@@ -4099,8 +4099,11 @@ end;
 
 procedure TmwSimplePasPar.InterfaceMemberList;
 begin
-  while TokenID in [ptFunction, ptProcedure, ptProperty] do
+  while TokenID in [ptSquareOpen, ptFunction, ptProcedure, ptProperty] do
   begin
+    while TokenID = ptSquareOpen do
+      CustomAttribute;
+
     ClassMethodOrProperty;
   end;
 end;
