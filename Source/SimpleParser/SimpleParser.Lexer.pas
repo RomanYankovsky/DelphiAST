@@ -1584,12 +1584,12 @@ begin
           Param := DirectiveParam;
           if Pos('DEFINED', Param) = 1 then
           begin
-            Def := Copy(Param, 9, Length(Param) - 9);
+            Def := Copy(Param, 9, Pos(')', Param) - 9);
             EnterDefineBlock(IsDefined(Def));
           end else
           if Pos('NOT DEFINED', Param) = 1 then
           begin
-            Def := Copy(Param, 13, Length(Param) - 13);
+            Def := Copy(Param, 13, Pos(')', Param) - 13);
             EnterDefineBlock(not IsDefined(Def));
           end else
             EnterDefineBlock(False);
@@ -1611,16 +1611,19 @@ begin
           if FTopDefineRec <> nil then
           begin
             if FTopDefineRec^.Defined then
-              Inc(FDefineStack)
+              FDefineStack := FTopDefineRec.StartCount + 1
             else
             begin
-              if FDefineStack > 0 then
-                Dec(FDefineStack);
+              FDefineStack := FTopDefineRec.StartCount;
+
               Param := DirectiveParam;
               if Pos('DEFINED', Param) = 1 then
               begin
-                Def := Copy(Param, 9, Length(Param) - 9);
-                EnterDefineBlock(IsDefined(Def));
+                Def := Copy(Param, 9, Pos(')', Param) - 9);
+                if IsDefined(Def) then
+                  FTopDefineRec^.Defined := True
+                else
+                  FDefineStack := FTopDefineRec.StartCount + 1
               end;
             end;
           end;
