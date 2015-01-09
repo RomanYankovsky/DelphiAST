@@ -219,8 +219,6 @@ type
     fInRound: Integer;
 
     FTopDefineRec: PDefineRec;
-//    procedure EnterDefineBlock(ADefined: Boolean); // LaKraven Studios Ltd, 6th Jan 2015
-//    procedure ExitDefineBlock; // LaKraven Studios Ltd, 6th Jan 2015
     procedure ClearDefines;
 
     procedure InitAhead;
@@ -837,9 +835,6 @@ begin
 end;
 
 procedure TmwSimplePasPar.HandlePtElseIfDirect(Sender: TmwBasePasLex);
-//var // LaKraven Studios Ltd, 6th Jan 2015
-//  Param: string; // LaKraven Studios Ltd, 6th Jan 2015
-//  Def: string; // LaKraven Studios Ltd, 6th Jan 2015
 begin
 //  if FUseDefines then
 //  begin
@@ -905,9 +900,6 @@ begin
 end;
 
 procedure TmwSimplePasPar.HandlePtIfDirect(Sender: TmwBasePasLex);
-//var // LaKraven Studios Ltd, 6th Jan 2015
-//  Def: string; // LaKraven Studios Ltd, 6th Jan 2015
-//  Param: string; // LaKraven Studios Ltd, 6th Jan 2015
 begin
 //  Param := Sender.DirectiveParam;
 //  if FUseDefines then
@@ -6214,56 +6206,6 @@ begin
 //  AddDefine('CONDITIONALEXPRESSIONS');
 //  {$ENDIF}
 end;
-{
- // LaKraven Studios Ltd, 6th Jan 2015
-procedure TmwSimplePasPar.EnterDefineBlock(ADefined: Boolean);
-var
-  StackFrame: PDefineRec;
-begin
-  Exit;
-  New(StackFrame);
-  StackFrame^.Next := FTopDefineRec;
-  StackFrame^.Defined := ADefined;
-  StackFrame^.StartCount := FDefineStack;
-  FTopDefineRec := StackFrame;
-//  if not ADefined then
-//  begin
-//    Inc(FDefineStack);
-//    repeat
-//      NextToken;
-//      if TokenID = ptNull then
-//        Break;
-//    until FDefineStack = 0;
-//  end
-//  else
-//    NextToken;
-  if not ADefined then
-    Inc(FDefineStack);
-
-//  while FDefineStack > 0 do
-//  begin
-//    NextToken;
-//    if TokenID = ptNull then
-//      Break;
-//  end;
-end;
-}
-{
- // LaKraven Studios Ltd, 6th Jan 2015
-procedure TmwSimplePasPar.ExitDefineBlock;
-var
-  StackFrame: PDefineRec;
-begin
-  Exit;
-  StackFrame := FTopDefineRec;
-  if StackFrame <> nil then
-  begin
-    FDefineStack := StackFrame^.StartCount;
-    FTopDefineRec := StackFrame^.Next;
-    Dispose(StackFrame);
-  end;
-end;
-}
 
 {$IFDEF D8_NEWER} //JThurman 2004-03-03
 
