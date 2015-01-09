@@ -1416,7 +1416,7 @@ begin
     while CharInSet(FOrigin[Run], ['0'..'9', 'A'..'F', 'a'..'f']) do Inc(Run);
   end else
   begin
-    {$IFDEF D13_NEWER}
+    {$IFDEF SUPPORTS_INTRINSIC_HELPERS}
       while Char(fOrigin[Run]).IsDigit do // LaKraven Studios Ltd, 6th Jan 2015
     {$ELSE}
       while IsDigit(FOrigin[Run]) do
@@ -1773,7 +1773,7 @@ end;
 
 function TmwBasePasLex.IsIdentifiers(AChar: Char): Boolean;
 begin
-  {$IFDEF D13_NEWER}
+  {$IFDEF SUPPORTS_INTRINSIC_HELPERS}
     Result := (AChar.IsLetterOrDigit) or (AChar = '_'); // LaKraven Studios Ltd, 6th Jan 2015
   {$ELSE}
     Result := TCharacter.IsLetterOrDigit(AChar) or (AChar = '_');
