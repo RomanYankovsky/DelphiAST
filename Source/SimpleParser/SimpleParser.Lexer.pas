@@ -453,16 +453,17 @@ begin
 
   Frame := nil;
   SourceFrame := ALexer.FTopDefineRec;
+  New(LastFrame); // LaKraven Studios Ltd, 6th Jan 2015
   while SourceFrame <> nil do
   begin
     New(Frame);
-    New(LastFrame); // LaKraven Studios Ltd, 6th Jan 2015
     if FTopDefineRec = nil then
       FTopDefineRec := Frame
     else
       LastFrame^.Next := Frame;
     Frame^.Defined := SourceFrame^.Defined;
     Frame^.StartCount := SourceFrame^.StartCount;
+    LastFrame := Frame;
 
     SourceFrame := SourceFrame^.Next;
   end;
