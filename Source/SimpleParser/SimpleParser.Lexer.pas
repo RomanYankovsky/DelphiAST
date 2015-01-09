@@ -451,8 +451,8 @@ begin
   FDefineStack := ALexer.FDefineStack;
 
   Frame := nil;
+  LastFrame := nil;
   SourceFrame := ALexer.FTopDefineRec;
-  New(LastFrame); // LaKraven Studios Ltd, 6th Jan 2015
   while SourceFrame <> nil do
   begin
     New(Frame);
