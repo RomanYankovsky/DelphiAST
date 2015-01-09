@@ -16,7 +16,8 @@ Portions created by Martin Waldenburg are Copyright (C) 1998, 1999 Martin
 Waldenburg.
 All Rights Reserved.
 
-Contributor(s): Roman Yankovsky, James Jacobson _____________________________________.
+Contributor(s):  James Jacobson, LaKraven Studios Ltd, Roman Yankovsky
+(This list is ALPHABETICAL)
 
 Last Modified: mm/dd/yyyy
 Current Version: 2.25
@@ -26,6 +27,11 @@ Delphi community to develop it further and to create a fully featured Object
 Pascal parser.
 
 Modification history:
+
+LaKraven Studios Ltd, January 2015:
+
+- Cleaned up version-specifics up to XE8
+- Fixed all warnings & hints
 
 Daniel Rolf between 20010723 and 20020116
 
@@ -48,7 +54,6 @@ interface
 uses
   //!! pruned uses
   SysUtils, Classes, Character, SimpleParser.Lexer.Types;
-
 var
   Identifiers: array[#0..#255] of ByteBool;
   mHashTable: array[#0..#255] of Integer;
@@ -343,9 +348,9 @@ type
     property OnIfOptDirect: TDirectiveEvent read fOnIfOptDirect write SetOnIfOptDirect;
     property OnIncludeDirect: TDirectiveEvent read fOnIncludeDirect write SetOnIncludeDirect;
     property OnIfDirect: TDirectiveEvent read fOnIfDirect write SetOnIfDirect;
-    property OnIfEndDirect: TDirectiveEvent read fOnIfEndDirect write 
+    property OnIfEndDirect: TDirectiveEvent read fOnIfEndDirect write
     SetOnIfEndDirect;
-    property OnElseIfDirect: TDirectiveEvent read fOnElseIfDirect write 
+    property OnElseIfDirect: TDirectiveEvent read fOnElseIfDirect write
     SetOnElseIfDirect;
 	property OnResourceDirect: TDirectiveEvent read fOnResourceDirect write SetOnResourceDirect;
 	property OnUnDefDirect: TDirectiveEvent read fOnUnDefDirect write SetOnUnDefDirect;
@@ -448,6 +453,7 @@ begin
 
   Frame := nil;
   SourceFrame := ALexer.FTopDefineRec;
+  New(LastFrame); // LaKraven Studios Ltd, 6th Jan 2015
   while SourceFrame <> nil do
   begin
     New(Frame);
@@ -993,7 +999,7 @@ begin
   {$IFDEF D12_NEWER}
   else if KeyComp('Reference') then fExID := ptReference;
   {$ENDIF}
-       
+
 end;
 
 function TmwBasePasLex.Func81: TptTokenKind;
@@ -1411,7 +1417,11 @@ begin
     while CharInSet(FOrigin[Run], ['0'..'9', 'A'..'F', 'a'..'f']) do Inc(Run);
   end else
   begin
-    while IsDigit(FOrigin[Run]) do
+    {$IFDEF D13_NEWER}
+      while Char(fOrigin[Run]).IsDigit do // LaKraven Studios Ltd, 6th Jan 2015
+    {$ELSE}
+      while IsDigit(FOrigin[Run]) do
+    {$ENDIF}
       Inc(Run);
   end;
 end;
@@ -1764,7 +1774,11 @@ end;
 
 function TmwBasePasLex.IsIdentifiers(AChar: Char): Boolean;
 begin
-  Result := TCharacter.IsLetterOrDigit(AChar) or (AChar = '_');
+  {$IFDEF D13_NEWER}
+    Result := (AChar.IsLetterOrDigit) or (AChar = '_'); // LaKraven Studios Ltd, 6th Jan 2015
+  {$ELSE}
+    Result := TCharacter.IsLetterOrDigit(AChar) or (AChar = '_');
+  {$ENDIF}
 end;
 
 procedure TmwBasePasLex.LFProc;
@@ -1837,8 +1851,8 @@ procedure TmwBasePasLex.PointerSymbolProc;
 begin
   inc(Run);
   fTokenID := ptPointerSymbol;
-  
-  //This is a wierd Pascal construct that rarely appears, but needs to be 
+
+  //This is a wierd Pascal construct that rarely appears, but needs to be
   //supported. ^M is a valid char reference (#13, in this case)
   if CharInSet(FOrigin[Run], ['a'..'z','A'..'Z']) and not IsIdentifiers(FOrigin[Run+1]) then
   begin
@@ -2397,44 +2411,95 @@ begin
   ClearDefines;
   Exit;
   //Set up the defines that are defined by the compiler
-  {$IFDEF VER130}
-  AddDefine('VER130');
+  {$IFDEF VER90}
+  AddDefine('VER90'); // 2
   {$ENDIF}
-  {$IFDEF VER140}
+  {$IFDEF VER100}
+  AddDefine('VER100'); // 3
+  {$ENDIF}
+  {$IFDEF VER120}
+  AddDefine('VER120'); // 4
+  {$ENDIF}
+  {$IFDEF VER130}
+  AddDefine('VER130'); // 5
+  {$ENDIF}
+  {$IFDEF VER140} // 6
   AddDefine('VER140');
   {$ENDIF}
-  {$IFDEF VER150}
+  {$IFDEF VER150} // 7/7.1
   AddDefine('VER150');
   {$ENDIF}
-  {$IFDEF VER160}
+  {$IFDEF VER160} // 8
   AddDefine('VER160');
   {$ENDIF}
-  {$IFDEF VER170}
+  {$IFDEF VER170} // 2005
   AddDefine('VER170');
   {$ENDIF}
-  {$IFDEF VER180}
+  {$IFDEF VER180} // 2007
   AddDefine('VER180');
   {$ENDIF}
-  {$IFDEF VER185}
+  {$IFDEF VER185} // 2007
   AddDefine('VER185');
   {$ENDIF}
-  {$IFDEF VER190}
+  {$IFDEF VER190} // 2007.NET
   AddDefine('VER190');
   {$ENDIF}
-  {$IFDEF VER200}
+  {$IFDEF VER200} // 2009
   AddDefine('VER200');
+  {$ENDIF}
+  {$IFDEF VER210} // 2010
+  AddDefine('VER210');
+  {$ENDIF}
+  {$IFDEF VER220} // XE
+  AddDefine('VER220');
+  {$ENDIF}
+  {$IFDEF VER230} // XE2
+  AddDefine('VER230');
+  {$ENDIF}
+  {$IFDEF VER240} // XE3
+  AddDefine('VER240');
+  {$ENDIF}
+  {$IFDEF VER250} // XE4
+  AddDefine('VER250');
+  {$ENDIF}
+  {$IFDEF VER260} // XE5
+  AddDefine('VER260');
+  {$ENDIF}
+  {$IFDEF VER270} // XE6
+  AddDefine('VER270');
+  {$ENDIF}
+  {$IFDEF VER280} // XE7
+  AddDefine('VER280');
+  {$ENDIF}
+  {$IFDEF VER290} // XE8
+  AddDefine('VER290');
   {$ENDIF}
   {$IFDEF WIN32}
   AddDefine('WIN32');
   {$ENDIF}
+  {$IFDEF WIN64}
+  AddDefine('WIN64');
+  {$ENDIF}
   {$IFDEF LINUX}
   AddDefine('LINUX');
+  {$ENDIF}
+  {$IFDEF POSIX}
+  AddDefine('POSIX');
   {$ENDIF}
   {$IFDEF CPU386}
   AddDefine('CPU386');
   {$ENDIF}
   {$IFDEF MSWINDOWS}
   AddDefine('MSWINDOWS');
+  {$ENDIF}
+  {$IFDEF MACOS}
+  AddDefine('MACOS');
+  {$ENDIF}
+  {$IFDEF IOS}
+  AddDefine('IOS');
+  {$ENDIF}
+  {$IFDEF ANDROID}
+  AddDefine('ANDROID');
   {$ENDIF}
   {$IFDEF CONDITIONALEXPRESSIONS}
   AddDefine('CONDITIONALEXPRESSIONS');
@@ -2790,7 +2855,7 @@ begin
 	  '\':
 		begin
 		  Inc( Run );
-		  if FOrigin[Run] in [#32..#255] then Inc( Run );
+      if CharInSet(fOrigin[Run], [#32..#255]) then Inc( Run )
 		end;
 	end;
   until FOrigin[Run] = '"';
