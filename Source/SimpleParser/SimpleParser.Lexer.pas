@@ -2407,44 +2407,95 @@ begin
   ClearDefines;
   Exit;
   //Set up the defines that are defined by the compiler
-  {$IFDEF VER130}
-  AddDefine('VER130');
+  {$IFDEF VER90}
+  AddDefine('VER90'); // 2
   {$ENDIF}
-  {$IFDEF VER140}
+  {$IFDEF VER100}
+  AddDefine('VER100'); // 3
+  {$ENDIF}
+  {$IFDEF VER120}
+  AddDefine('VER120'); // 4
+  {$ENDIF}
+  {$IFDEF VER130}
+  AddDefine('VER130'); // 5
+  {$ENDIF}
+  {$IFDEF VER140} // 6
   AddDefine('VER140');
   {$ENDIF}
-  {$IFDEF VER150}
+  {$IFDEF VER150} // 7/7.1
   AddDefine('VER150');
   {$ENDIF}
-  {$IFDEF VER160}
+  {$IFDEF VER160} // 8
   AddDefine('VER160');
   {$ENDIF}
-  {$IFDEF VER170}
+  {$IFDEF VER170} // 2005
   AddDefine('VER170');
   {$ENDIF}
-  {$IFDEF VER180}
+  {$IFDEF VER180} // 2007
   AddDefine('VER180');
   {$ENDIF}
-  {$IFDEF VER185}
+  {$IFDEF VER185} // 2007
   AddDefine('VER185');
   {$ENDIF}
-  {$IFDEF VER190}
+  {$IFDEF VER190} // 2007.NET
   AddDefine('VER190');
   {$ENDIF}
-  {$IFDEF VER200}
+  {$IFDEF VER200} // 2009
   AddDefine('VER200');
+  {$ENDIF}
+  {$IFDEF VER210} // 2010
+  AddDefine('VER210');
+  {$ENDIF}
+  {$IFDEF VER220} // XE
+  AddDefine('VER220');
+  {$ENDIF}
+  {$IFDEF VER230} // XE2
+  AddDefine('VER230');
+  {$ENDIF}
+  {$IFDEF VER240} // XE3
+  AddDefine('VER240');
+  {$ENDIF}
+  {$IFDEF VER250} // XE4
+  AddDefine('VER250');
+  {$ENDIF}
+  {$IFDEF VER260} // XE5
+  AddDefine('VER260');
+  {$ENDIF}
+  {$IFDEF VER270} // XE6
+  AddDefine('VER270');
+  {$ENDIF}
+  {$IFDEF VER280} // XE7
+  AddDefine('VER280');
+  {$ENDIF}
+  {$IFDEF VER290} // XE8
+  AddDefine('VER290');
   {$ENDIF}
   {$IFDEF WIN32}
   AddDefine('WIN32');
   {$ENDIF}
+  {$IFDEF WIN64}
+  AddDefine('WIN64');
+  {$ENDIF}
   {$IFDEF LINUX}
   AddDefine('LINUX');
+  {$ENDIF}
+  {$IFDEF POSIX}
+  AddDefine('POSIX');
   {$ENDIF}
   {$IFDEF CPU386}
   AddDefine('CPU386');
   {$ENDIF}
   {$IFDEF MSWINDOWS}
   AddDefine('MSWINDOWS');
+  {$ENDIF}
+  {$IFDEF MACOS}
+  AddDefine('MACOS');
+  {$ENDIF}
+  {$IFDEF IOS}
+  AddDefine('IOS');
+  {$ENDIF}
+  {$IFDEF ANDROID}
+  AddDefine('ANDROID');
   {$ENDIF}
   {$IFDEF CONDITIONALEXPRESSIONS}
   AddDefine('CONDITIONALEXPRESSIONS');
