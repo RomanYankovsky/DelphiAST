@@ -17,7 +17,8 @@ Waldenburg.
 All Rights Reserved.
 Portions CopyRight by Robert Zierer.
 
-Contributor(s): LaKraven Studios Ltd, Roman Yankovsky, James Jacobson, Dean Hill, Vladimir Churbanov
+Contributor(s):  Vladimir Churbanov, Dean Hill, James Jacobson, LaKraven Studios Ltd, Roman Yankovsky
+(This list is ALPHABETICAL)
 
 Last Modified: 2014/09/14
 Current Version: 1.10

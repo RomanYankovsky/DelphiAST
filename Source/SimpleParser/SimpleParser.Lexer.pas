@@ -16,7 +16,8 @@ Portions created by Martin Waldenburg are Copyright (C) 1998, 1999 Martin
 Waldenburg.
 All Rights Reserved.
 
-Contributor(s): LaKraven Studios Ltd, Roman Yankovsky, James Jacobson
+Contributor(s):  James Jacobson, LaKraven Studios Ltd, Roman Yankovsky
+(This list is ALPHABETICAL)
 
 Last Modified: mm/dd/yyyy
 Current Version: 2.25
@@ -462,7 +463,6 @@ begin
       LastFrame^.Next := Frame;
     Frame^.Defined := SourceFrame^.Defined;
     Frame^.StartCount := SourceFrame^.StartCount;
-//    LastFrame := Frame; // LaKraven Studios Ltd, 6th Jan 2015
 
     SourceFrame := SourceFrame^.Next;
   end;
