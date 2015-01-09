@@ -17,7 +17,8 @@ Waldenburg.
 All Rights Reserved.
 Portions CopyRight by Robert Zierer.
 
-Contributor(s): Roman Yankovsky, James Jacobson, Dean Hill, Vladimir Churbanov___________________.
+Contributor(s):  Vladimir Churbanov, Dean Hill, James Jacobson, LaKraven Studios Ltd, Roman Yankovsky
+(This list is ALPHABETICAL)
 
 Last Modified: 2014/09/14
 Current Version: 1.10
@@ -27,6 +28,11 @@ I'd like to invite the Delphi community to develop it further and to create
 a fully featured Object Pascal parser.
 
 Modification history:
+
+LaKraven Studios Ltd, January 2015:
+
+- Cleaned up version-specifics up to XE8
+- Fixed all warnings & hints
 
 Jacob Thurman between 20040301 and 20020401
 
@@ -213,8 +219,6 @@ type
     fInRound: Integer;
 
     FTopDefineRec: PDefineRec;
-    procedure EnterDefineBlock(ADefined: Boolean);
-    procedure ExitDefineBlock;
     procedure ClearDefines;
 
     procedure InitAhead;
@@ -553,7 +557,7 @@ type
     procedure PositionalArgument;
     procedure NamedArgumentList;
     procedure NamedArgument;
-    procedure AttributeArgumentExpression; 
+    procedure AttributeArgumentExpression;
     {$ENDIF}
     property ExID: TptTokenKind read GetExID;
     property GenID: TptTokenKind read GetGenID;
@@ -833,9 +837,6 @@ begin
 end;
 
 procedure TmwSimplePasPar.HandlePtElseIfDirect(Sender: TmwBasePasLex);
-var
-  Param: string;
-  Def: string;
 begin
 //  if FUseDefines then
 //  begin
@@ -901,9 +902,6 @@ begin
 end;
 
 procedure TmwSimplePasPar.HandlePtIfDirect(Sender: TmwBasePasLex);
-var
-  Def: string;
-  Param: string;
 begin
 //  Param := Sender.DirectiveParam;
 //  if FUseDefines then
@@ -6233,52 +6231,6 @@ begin
 //  {$IFDEF CONDITIONALEXPRESSIONS}
 //  AddDefine('CONDITIONALEXPRESSIONS');
 //  {$ENDIF}
-end;
-
-procedure TmwSimplePasPar.EnterDefineBlock(ADefined: Boolean);
-var
-  StackFrame: PDefineRec;
-begin
-  Exit;
-  New(StackFrame);
-  StackFrame^.Next := FTopDefineRec;
-  StackFrame^.Defined := ADefined;
-  StackFrame^.StartCount := FDefineStack;
-  FTopDefineRec := StackFrame;
-//  if not ADefined then
-//  begin
-//    Inc(FDefineStack);
-//    repeat
-//      NextToken;
-//      if TokenID = ptNull then
-//        Break;
-//    until FDefineStack = 0;
-//  end
-//  else
-//    NextToken;
-  if not ADefined then
-    Inc(FDefineStack);
-
-//  while FDefineStack > 0 do
-//  begin
-//    NextToken;
-//    if TokenID = ptNull then
-//      Break;
-//  end;
-end;
-
-procedure TmwSimplePasPar.ExitDefineBlock;
-var
-  StackFrame: PDefineRec;
-begin
-  Exit;
-  StackFrame := FTopDefineRec;
-  if StackFrame <> nil then
-  begin
-    FDefineStack := StackFrame^.StartCount;
-    FTopDefineRec := StackFrame^.Next;
-    Dispose(StackFrame);
-  end;
 end;
 
 {$IFDEF D8_NEWER} //JThurman 2004-03-03
