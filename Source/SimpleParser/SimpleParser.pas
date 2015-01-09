@@ -17,7 +17,7 @@ Waldenburg.
 All Rights Reserved.
 Portions CopyRight by Robert Zierer.
 
-Contributor(s): Roman Yankovsky, James Jacobson, Dean Hill, Vladimir Churbanov___________________.
+Contributor(s): LaKraven Studios Ltd, Roman Yankovsky, James Jacobson, Dean Hill, Vladimir Churbanov
 
 Last Modified: 2014/09/14
 Current Version: 1.10
@@ -27,6 +27,11 @@ I'd like to invite the Delphi community to develop it further and to create
 a fully featured Object Pascal parser.
 
 Modification history:
+
+LaKraven Studios Ltd, January 2015:
+
+- Cleaned up version-specifics up to XE8
+- Fixed all warnings & hints
 
 Jacob Thurman between 20040301 and 20020401
 
@@ -213,8 +218,8 @@ type
     fInRound: Integer;
 
     FTopDefineRec: PDefineRec;
-    procedure EnterDefineBlock(ADefined: Boolean);
-    procedure ExitDefineBlock;
+//    procedure EnterDefineBlock(ADefined: Boolean); // LaKraven Studios Ltd, 6th Jan 2015
+//    procedure ExitDefineBlock; // LaKraven Studios Ltd, 6th Jan 2015
     procedure ClearDefines;
 
     procedure InitAhead;
@@ -553,7 +558,7 @@ type
     procedure PositionalArgument;
     procedure NamedArgumentList;
     procedure NamedArgument;
-    procedure AttributeArgumentExpression; 
+    procedure AttributeArgumentExpression;
     {$ENDIF}
     property ExID: TptTokenKind read GetExID;
     property GenID: TptTokenKind read GetGenID;
@@ -833,9 +838,9 @@ begin
 end;
 
 procedure TmwSimplePasPar.HandlePtElseIfDirect(Sender: TmwBasePasLex);
-var
-  Param: string;
-  Def: string;
+//var // LaKraven Studios Ltd, 6th Jan 2015
+//  Param: string; // LaKraven Studios Ltd, 6th Jan 2015
+//  Def: string; // LaKraven Studios Ltd, 6th Jan 2015
 begin
 //  if FUseDefines then
 //  begin
@@ -901,9 +906,9 @@ begin
 end;
 
 procedure TmwSimplePasPar.HandlePtIfDirect(Sender: TmwBasePasLex);
-var
-  Def: string;
-  Param: string;
+//var // LaKraven Studios Ltd, 6th Jan 2015
+//  Def: string; // LaKraven Studios Ltd, 6th Jan 2015
+//  Param: string; // LaKraven Studios Ltd, 6th Jan 2015
 begin
 //  Param := Sender.DirectiveParam;
 //  if FUseDefines then
@@ -6234,7 +6239,8 @@ begin
 //  AddDefine('CONDITIONALEXPRESSIONS');
 //  {$ENDIF}
 end;
-
+{
+ // LaKraven Studios Ltd, 6th Jan 2015
 procedure TmwSimplePasPar.EnterDefineBlock(ADefined: Boolean);
 var
   StackFrame: PDefineRec;
@@ -6266,7 +6272,9 @@ begin
 //      Break;
 //  end;
 end;
-
+}
+{
+ // LaKraven Studios Ltd, 6th Jan 2015
 procedure TmwSimplePasPar.ExitDefineBlock;
 var
   StackFrame: PDefineRec;
@@ -6280,6 +6288,7 @@ begin
     Dispose(StackFrame);
   end;
 end;
+}
 
 {$IFDEF D8_NEWER} //JThurman 2004-03-03
 
