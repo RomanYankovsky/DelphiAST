@@ -19,7 +19,9 @@ unit SimpleParser.Types;
 
 interface
 
-uses SysUtils, TypInfo;
+uses
+  SysUtils,
+  TypInfo;
 
 type
   TmwParseError = (
@@ -59,15 +61,15 @@ type
     InvalidTypeKind,
     InvalidVariantIdentifier,
     InvalidVarSection,
-    vchInvalidClass, //vch
-    vchInvalidMethod, //vch
-    vchInvalidProcedure,//vch
-    vchInvalidCircuit, //vch
-    vchInvalidIncludeFile //vch
-    );
+    vchInvalidClass,
+    vchInvalidMethod,
+    vchInvalidProcedure,
+    vchInvalidCircuit,
+    vchInvalidIncludeFile
+  );
 
   TmwPasCodeInfo = (
-    ciNone,           //: @BUG heresy  !
+    ciNone,
     ciAccessSpecifier,
     ciAdditiveOperator,
     ciArrayConstant,
@@ -78,7 +80,7 @@ type
     ciCaseSelector,
     ciCaseStatement,
     ciCharString,
-    ciClassClass,           //DR 2001-07-16
+    ciClassClass,
     ciClassField,
     ciClassForward,
     ciClassFunctionHeading,
@@ -92,10 +94,10 @@ type
     ciClassProperty,
     ciClassReferenceType,
     ciClassType,
-    ciClassTypeEnd,			// DR 2001-07-31
+    ciClassTypeEnd,
     ciClassVisibility,
     ciCompoundStatement,
-	ciConstantColon,
+    ciConstantColon,
     ciConstantDeclaration,
     ciConstantEqual,
     ciConstantExpression,
@@ -116,17 +118,17 @@ type
     ciDestructorName,
     ciDirective16Bit,
     ciDirectiveBinding,
-	ciDirectiveCalling,
-	ciDirectiveDeprecated,	// DR 2001-10-20
-	ciDirectiveLibrary,		// DR 2001-10-20
-	ciDirectiveLocal,		// DR 2001-11-14
-	ciDirectivePlatform,	// DR 2001-10-20
-	ciDirectiveVarargs,		// DR 2001-11-14	
-	ciDispIDSpecifier,		// DR 2001-07-26
+    ciDirectiveCalling,
+    ciDirectiveDeprecated,
+    ciDirectiveLibrary,
+    ciDirectiveLocal,
+    ciDirectivePlatform,
+    ciDirectiveVarargs,
+    ciDispIDSpecifier,
     ciDispInterfaceForward,
     ciEmptyStatement,
-	ciEnumeratedType,
-	ciEnumeratedTypeItem,	// DR 2001-10-29
+    ciEnumeratedType,
+    ciEnumeratedTypeItem,
     ciExceptBlock,
     ciExceptionBlockElseBranch,
     ciExceptionClassTypeIdentifier,
@@ -150,28 +152,28 @@ type
     ciFormalParameterList,
     ciFormalParameterSection,
     ciForStatement,
-	ciForwardDeclaration, // DR 2001-07-23
+    ciForwardDeclaration,
     ciFunctionHeading,
     ciFunctionMethodDeclaration,
     ciFunctionMethodName,
-	ciFunctionProcedureBlock,
-	ciFunctionProcedureName,
-	ciHandlePtCompDirect,   //XM 20001125
-	ciHandlePtDefineDirect, //XM 20001125
-	ciHandlePtElseDirect,   //XM 20001125
-	ciHandlePtIfDefDirect,  //XM 20001125
-	ciHandlePtEndIfDirect,  //XM 20001125
-	ciHandlePtIfNDefDirect, //XM 20001125
-	ciHandlePtIfOptDirect,  //XM 20001125
-	ciHandlePtIncludeDirect,//XM 20001125
-	ciHandlePtResourceDirect,//XM 20001125
-	ciHandlePtUndefDirect, //XM 20001125
-	ciIdentifier,
+    ciFunctionProcedureBlock,
+    ciFunctionProcedureName,
+    ciHandlePtCompDirect,
+    ciHandlePtDefineDirect,
+    ciHandlePtElseDirect,
+    ciHandlePtIfDefDirect,
+    ciHandlePtEndIfDirect,
+    ciHandlePtIfNDefDirect,
+    ciHandlePtIfOptDirect,
+    ciHandlePtIncludeDirect,
+    ciHandlePtResourceDirect,
+    ciHandlePtUndefDirect,
+    ciIdentifier,
     ciIdentifierList,
     ciIfStatement,
     ciImplementationSection,
     ciIncludeFile,
-    ciIndexSpecifier,	// DR 2001-07-26
+    ciIndexSpecifier,
     ciInheritedStatement,
     ciInitializationSection,
     ciInlineStatement,
@@ -184,8 +186,8 @@ type
     ciInterfaceType,
     ciLabelDeclarationSection,
     ciLabeledStatement,
-	ciLabelId,
-	ciLibraryFile,
+    ciLabelId,
+    ciLibraryFile,
     ciMainUsedUnitExpression,
     ciMainUsedUnitName,
     ciMainUsedUnitStatement,
@@ -193,7 +195,7 @@ type
     ciMultiplicativeOperator,
     ciNewFormalParameterType,
     ciNumber,
-    ciNextToken, //XM 20002512
+    ciNextToken,
     ciObjectConstructorHeading,
     ciObjectDestructorHeading,
     ciObjectField,
@@ -205,17 +207,17 @@ type
     ciObjectMethodHeading,
     ciObjectNameOfMethod,
     ciObjectProcedureHeading,
-    ciObjectProperty,          	// DR 2001-08-07
-    ciObjectPropertySpecifiers, // DR 2001-08-07
+    ciObjectProperty,
+    ciObjectPropertySpecifiers,
     ciObjectType,
-    ciObjectTypeEnd,			// DR 2001-08-07
+    ciObjectTypeEnd,
     ciObjectVisibility,
     ciOldFormalParameterType,
     ciOrdinalIdentifier,
     ciOrdinalType,
     ciOutParameter,
-	ciPackageFile,
-	ciParameterFormal,
+    ciPackageFile,
+    ciParameterFormal,
     ciParameterName,
     ciParameterNameList,
     ciParseFile,
@@ -228,7 +230,7 @@ type
     ciProcedureMethodName,
     ciProgramBlock,
     ciProgramFile,
-    ciPropertyDefault,		// DR 2001-07-16
+    ciPropertyDefault,
     ciPropertyInterface,
     ciPropertyName,
     ciPropertyParameterConst,
@@ -244,14 +246,14 @@ type
     ciRecordFieldConstant,
     ciRecordType,
     ciRecordVariant,
-	ciRelativeOperator,
+    ciRelativeOperator,
     ciRepeatStatement,
     ciRequiresClause,
     ciRequiresIdentifier,
     ciResolutionInterfaceName,
     ciResourceDeclaration,
     ciReturnType,
-    ciSEMICOLON, //XM 20002512
+    ciSEMICOLON,
     ciSetConstructor,
     ciSetElement,
     ciSetType,
@@ -261,9 +263,9 @@ type
     ciSkipAnsiComment,
     ciSkipBorComment,
     ciSkipSlashesComment,
-    ciSkipSpace, //XM 20002511
-    ciSkipCRLFco, //XM 20002511
-    ciSkipCRLF, //XM 20002511
+    ciSkipSpace,
+    ciSkipCRLFco,
+    ciSkipCRLF,
     ciStatement,
     ciStatementList,
     ciStorageExpression,
@@ -273,7 +275,7 @@ type
     ciStorageSpecifier,
     ciStorageStored,
     ciStringIdentifier,
-	ciStringStatement,
+    ciStringStatement,
     ciStringType,
     ciStructuredType,
     ciSubrangeType,
@@ -302,7 +304,7 @@ type
     ciVariableTwo,
     ciVariantIdentifier,
     ciVariantSection,
-	ciVarParameter,
+    ciVarParameter,
     ciVarSection,
     ciVisibilityAutomated,
     ciVisibilityPrivate,
@@ -313,7 +315,7 @@ type
     ciWhileStatement,
     ciWithStatement,
     ciWriteAccessIdentifier
-    );
+  );
 
 function ParserErrorName(Value: TmwParseError): string;
 

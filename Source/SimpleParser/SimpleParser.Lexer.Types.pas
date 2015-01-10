@@ -19,7 +19,9 @@ unit SimpleParser.Lexer.Types;
 
 interface
 
-uses SysUtils, TypInfo;
+uses
+  SysUtils,
+  TypInfo;
 
 {$INCLUDE SimpleParser.inc}
 
@@ -27,20 +29,20 @@ var
   CompTable: array[#0..#255] of byte;
 
 type
+  TMessageEventType = (meError, meNotSupported);
 
-  TMessageEventType = ( meError, meNotSupported );
-
-  TMessageEvent = procedure(Sender: TObject; const Typ : TMessageEventType; const Msg: string; X, Y: Integer ) of object; //jdj 7/16/1999; DR 2001-11-06
+  TMessageEvent = procedure(Sender: TObject; const Typ: TMessageEventType;
+    const Msg: string; X, Y: Integer) of object;
 
   TCommentState = (csAnsi, csBor, csNo);
 
   TTokenPoint = packed record
-    X : Integer;
-    Y : Integer;
+    X: Integer;
+    Y: Integer;
   end;
 
   TptTokenKind = (
-    ptAbort, //JThurman 2004-11-8 (flow control routines)
+    ptAbort,
     ptAbsolute,
     ptAbstract,
     ptAdd,
@@ -62,11 +64,11 @@ type
     ptBorComment,
     ptBraceClose,
     ptBraceOpen,
-    ptBreak, //JThurman 2004-11-8 (flow control routines)
+    ptBreak,
     ptByte,
     ptByteBool,
     ptCardinal,
-	ptCase,
+    ptCase,
     ptCdecl,
     ptChar,
     ptClass,
@@ -79,14 +81,14 @@ type
     ptCompDirect,
     ptConst,
     ptConstructor,
-	ptContains,
-    ptContinue, //JThurman 2004-11-8 (flow control routines)
-	ptCRLF,
-	ptCRLFCo,
-	ptCurrency,
-	ptDefault,
-	ptDefineDirect,
-	ptDeprecated, // DR 2001-10-20
+    ptContains,
+    ptContinue,
+    ptCRLF,
+    ptCRLFCo,
+    ptCurrency,
+    ptDefault,
+    ptDefineDirect,
+    ptDeprecated,
     ptDestructor,
     ptDispid,
     ptDispinterface,
@@ -105,18 +107,16 @@ type
     ptEqual,
     ptError,
     ptExcept,
-    ptExit, //JThurman 2004-11-8 (flow control routine)
+    ptExit,
     ptExport,
     ptExports,
     ptExtended,
     ptExternal,
     ptFar,
-	ptFile,
-  {$IFDEF D8_NEWER} //JThurman 2004-03-20
-  ptFinal,
-  ptExperimental,
-  ptDelayed,
-  {$ENDIF}
+    ptFile,
+    ptFinal,
+    ptExperimental,
+    ptDelayed,
     ptFinalization,
     ptFinally,
     ptFloat,
@@ -126,10 +126,8 @@ type
     ptGoto,
     ptGreater,
     ptGreaterEqual,
-  ptHalt, //JThurman 2004-11-8 (flow control routines)
-  {$IFDEF D8_NEWER} //JThurman 2004-04-06
-  ptHelper,
-  {$ENDIF}
+    ptHalt,
+    ptHelper,
     ptIdentifier,
     ptIf,
     ptIfDirect,
@@ -152,8 +150,8 @@ type
     ptInterface,
     ptIs,
     ptLabel,
-	ptLibrary,
-	ptLocal,  // DR 2001-11-14
+    ptLibrary,
+    ptLocal,
     ptLongBool,
     ptLongint,
     ptLongword,
@@ -174,9 +172,7 @@ type
     ptOf,
     ptOleVariant,
     ptOn,
-  {$IFDEF D8_NEWER} //JThurman 2004-03-20
-  ptOperator,
-  {$ENDIF}
+    ptOperator,
     ptOr,
     ptOut,
     ptOverload,
@@ -184,8 +180,8 @@ type
     ptPackage,
     ptPacked,
     ptPascal,
-	ptPChar,
-	ptPlatform, // DR 2001-10-20
+    ptPChar,
+    ptPlatform,
     ptPlus,
     ptPoint,
     ptPointerSymbol,
@@ -202,9 +198,7 @@ type
     ptReal,
     ptReal48,
     ptRecord,
-  {$IFDEF D12_NEWER}
-    ptReference, //JThurman 2008-25-07 (anonymous methods)
-  {$ENDIF}
+    ptReference,
     ptRegister,
     ptReintroduce,
     ptRemove,
@@ -215,14 +209,12 @@ type
     ptResourcestring,
     ptRoundClose,
     ptRoundOpen,
-    ptRunError, //JThurman 2004-11-8 (flow control routines)
+    ptRunError,
     ptSafeCall,
-  {$IFDEF D8_NEWER} //JThurman 2004-03-19
-  ptSealed,
-  {$ENDIF}
+    ptSealed,
     ptSemiColon,
     ptSet,
-	ptShl,
+    ptShl,
     ptShortint,
     ptShortString,
     ptShr,
@@ -234,17 +226,13 @@ type
     ptSquareClose,
     ptSquareOpen,
     ptStar,
-  {$IFDEF D8_NEWER} //JThurman 2004-03-20
-  ptStatic,
-  {$ENDIF}
+    ptStatic,
     ptStdcall,
     ptStored,
-  {$IFDEF D8_NEWER}
-  ptStrict, //JThurman 2004-03-03
-  {$ENDIF}
+    ptStrict,
     ptString,
-	ptStringConst,
-    ptStringDQConst,	// 2002-01-14	
+    ptStringConst,
+    ptStringDQConst,
     ptStringresource,
     ptSymbol,
     ptThen,
@@ -255,13 +243,11 @@ type
     ptUndefDirect,
     ptUnit,
     ptUnknown,
-  {$IFDEF D8_NEWER} //JThurman 2004-03-2003
-  ptUnsafe,
-  {$ENDIF}
+    ptUnsafe,
     ptUntil,
     ptUses,
-	ptVar,
-	ptVarargs, // DR 2001-11-14
+    ptVar,
+    ptVarargs,
     ptVariant,
     ptVirtual,
     ptWhile,
@@ -274,25 +260,25 @@ type
     ptWriteonly,
     ptXor);
 
-TmwPasLexStatus = record
-  CommentState: TCommentState;
-  ExID: TptTokenKind;
-  LineNumber: Integer;
-  LinePos: Integer;
-  Origin: PChar;
-  RunPos: Integer;
-  TokenPos: Integer;
-  TokenID: TptTokenKind;
-end;
+  TmwPasLexStatus = record
+    CommentState: TCommentState;
+    ExID: TptTokenKind;
+    LineNumber: Integer;
+    LinePos: Integer;
+    Origin: PChar;
+    RunPos: Integer;
+    TokenPos: Integer;
+    TokenID: TptTokenKind;
+  end;
 
 function TokenName(Value: TptTokenKind): string;
 function ptTokenName(Value: TptTokenKind): string;
-function IsTokenIDJunk(const aTokenID : TptTokenKind ) :Boolean; //XM 20001210
+function IsTokenIDJunk(const aTokenID: TptTokenKind): Boolean;
 
 implementation
 
 function TokenName(Value: TptTokenKind): string;
-begin //jdj 7/18/1999
+begin
   Result := Copy(ptTokenName(Value), 3, MaxInt);
 end;
 
@@ -301,9 +287,15 @@ begin
   result := GetEnumName(TypeInfo(TptTokenKind), Integer(Value));
 end;
 
-function IsTokenIDJunk(const aTokenID : TptTokenKind ) :boolean; //XM 20001210
+function IsTokenIDJunk(const aTokenID: TptTokenKind): Boolean;
 begin
-  Result := aTokenID in [ptAnsiComment, ptBorComment, ptCRLF, ptCRLFCo, ptSlashesComment, ptSpace,
+  Result := aTokenID in [
+    ptAnsiComment,
+    ptBorComment,
+    ptCRLF,
+    ptCRLFCo,
+    ptSlashesComment,
+    ptSpace,
     ptIfDirect,
     ptElseDirect,
     ptIfEndDirect,
@@ -315,7 +307,6 @@ begin
     ptDefineDirect,
     ptUndefDirect];
 end;
-
 
 end.
 
