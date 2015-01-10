@@ -259,7 +259,6 @@ type
     function GetIsOrdinalType: Boolean;
     function GetGenID: TptTokenKind;procedure SetOnElseIfDirect(const Value: TDirectiveEvent);
 
-    function IsDefined(const ADefine: string): Boolean;
     procedure EnterDefineBlock(ADefined: Boolean);
     procedure ExitDefineBlock;
     procedure CloneDefinesFrom(ALexer: TmwBasePasLex);
@@ -295,6 +294,7 @@ type
 
     procedure AddDefine(const ADefine: string);
     procedure RemoveDefine(const ADefine: string);
+    function IsDefined(const ADefine: string): Boolean;
     procedure ClearDefines;
     procedure InitDefines;
 

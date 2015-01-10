@@ -191,13 +191,6 @@ type
     property PosXY: TTokenPoint read FPosXY write FPosXY;
   end;
 
-  PDefineRec = ^TDefineRec;
-  TDefineRec = record
-    Defined: Boolean;
-    StartCount: Integer;
-    Next: PDefineRec;
-  end;
-
   TmwSimplePasPar = class(TObject)
   private
     FOnMessage: TMessageEvent;
@@ -207,17 +200,14 @@ type
     FInterfaceOnly: Boolean;
     FLastNoJunkPos: Integer;
     FLastNoJunkLen: Integer;
-    FUseDefines: Boolean;
-    FDefines: TStrings;
     AheadParse: TmwSimplePasPar;
     FInRound: Integer;
-    FTopDefineRec: PDefineRec;
-    procedure ClearDefines;
     procedure InitAhead;
     procedure VariableTail;
     function GetInRound: Boolean;
+    function GetUseDefines: Boolean;
+    procedure SetUseDefines(const Value: Boolean);
   protected
-    FDefineStack: Integer;
     procedure Expected(Sym: TptTokenKind); virtual;
     procedure ExpectedEx(Sym: TptTokenKind); virtual;
     procedure ExpectedFatal(Sym: TptTokenKind); virtual;
@@ -555,6 +545,7 @@ type
     procedure SynError(Error: TmwParseError); virtual;
     procedure Run(UnitName: string; SourceStream: TCustomMemoryStream); virtual;
 
+    procedure ClearDefines;
     procedure InitDefines;
     procedure AddDefine(const ADefine: string);
     procedure RemoveDefine(const ADefine: string);
@@ -566,7 +557,7 @@ type
     property LastNoJunkPos: Integer read FLastNoJunkPos;
     property LastNoJunkLen: Integer read FLastNoJunkLen;
 
-    property UseDefines: Boolean read FUseDefines write FUseDefines;
+    property UseDefines: Boolean read GetUseDefines write SetUseDefines;
   end;
 
 implementation
@@ -667,22 +658,10 @@ begin
   FLexer.OnIfDirect := HandlePtIfDirect;
   FLexer.OnIfEndDirect := HandlePtIfEndDirect;
   FLexer.OnElseIfDirect := HandlePtElseIfDirect;
-
-  FDefines := TStringList.Create;
-  with TStringList(FDefines) do
-  begin
-    Sorted := True;
-    Duplicates := dupIgnore;
-  end;
-  InitDefines;
-  FDefineStack := 0;
-  FUseDefines := False;
 end;
 
 destructor TmwSimplePasPar.Destroy;
 begin
-  ClearDefines; //Must do this here to avoid a memory leak
-  FDefines.Free;
   AheadParse.Free;
 
   FLexer.Free;
@@ -947,6 +926,11 @@ begin
   Result := FLexer.TokenID;
 end;
 
+function TmwSimplePasPar.GetUseDefines: Boolean;
+begin
+  Result := FLexer.UseDefines;
+end;
+
 procedure TmwSimplePasPar.GotoStatement;
 begin
   Expected(ptGoto);
@@ -979,14 +963,7 @@ end;
 ******************************************************************************)
 
 procedure TmwSimplePasPar.ParseFile;
-var
-  I: Integer;
 begin
-  for I := 0 to FDefines.Count - 1 do
-  begin
-    Lexer.AddDefine(FDefines[I]);
-  end;
-
   SkipJunk;
   case GenID of
     ptLibrary:
@@ -3208,6 +3185,11 @@ begin
   OrdinalType;
 end;
 
+procedure TmwSimplePasPar.SetUseDefines(const Value: Boolean);
+begin
+  FLexer.UseDefines := Value;
+end;
+
 procedure TmwSimplePasPar.ArrayType;
 begin
   Expected(ptArray);
@@ -5387,21 +5369,17 @@ end;
 
 procedure TmwSimplePasPar.AddDefine(const ADefine: string);
 begin
-  FDefines.Add(ADefine);
+  FLexer.AddDefine(ADefine);
 end;
 
 procedure TmwSimplePasPar.RemoveDefine(const ADefine: string);
-var
-  I: Integer;
 begin
-  I := FDefines.IndexOf(ADefine);
-  if I > -1 then
-    FDefines.Delete(I);
+  FLexer.RemoveDefine(ADefine);
 end;
 
 function TmwSimplePasPar.IsDefined(const ADefine: string): Boolean;
 begin
-  Result := FDefines.IndexOf(ADefine) > -1;
+  Result := FLexer.IsDefined(ADefine);
 end;
 
 procedure TmwSimplePasPar.DeclarationSections;
@@ -5436,17 +5414,8 @@ begin
 end;
 
 procedure TmwSimplePasPar.ClearDefines;
-var
-  Frame: PDefineRec;
 begin
-  FDefines.Clear;
-  FDefineStack := 0;
-  while FTopDefineRec <> nil do
-  begin
-    Frame := FTopDefineRec;
-    FTopDefineRec := Frame^.Next;
-    Dispose(Frame);
-  end;
+  FLexer.ClearDefines;
 end;
 
 procedure TmwSimplePasPar.InitAhead;
@@ -5458,7 +5427,7 @@ end;
 
 procedure TmwSimplePasPar.InitDefines;
 begin
-  ClearDefines;
+  FLexer.InitDefines;
 end;
 
 procedure TmwSimplePasPar.GlobalAttributes;
@@ -5625,7 +5594,7 @@ end;
 
 procedure TmwSimplePasPar.CustomAttribute;
 begin
-  AttributeSection;//TODO: Global vs. Local attributes
+  //TODO: Global vs. Local attributes
   AttributeSections;
 end;
 
