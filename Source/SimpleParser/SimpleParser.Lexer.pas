@@ -2409,11 +2409,26 @@ begin
   {$IFDEF LINUX}
   AddDefine('LINUX');
   {$ENDIF}
+  {$IFDEF LINUX32}
+  AddDefine('LINUX32');
+  {$ENDIF}
   {$IFDEF POSIX}
   AddDefine('POSIX');
   {$ENDIF}
+  {$IFDEF POSIX32}
+  AddDefine('POSIX32');
+  {$ENDIF}
+  {$IFDEF CPUARM}
+  AddDefine('CPUARM');
+  {$ENDIF}
   {$IFDEF CPU386}
   AddDefine('CPU386');
+  {$ENDIF}
+  {$IFDEF CPUX86}
+  AddDefine('CPUX86');
+  {$ENDIF}
+  {$IFDEF CPUX64}
+  AddDefine('CPUX64');
   {$ENDIF}
   {$IFDEF MSWINDOWS}
   AddDefine('MSWINDOWS');
@@ -2421,17 +2436,62 @@ begin
   {$IFDEF MACOS}
   AddDefine('MACOS');
   {$ENDIF}
+  {$IFDEF MACOS32}
+  AddDefine('MACOS32');
+  {$ENDIF}
   {$IFDEF IOS}
   AddDefine('IOS');
   {$ENDIF}
   {$IFDEF ANDROID}
   AddDefine('ANDROID');
   {$ENDIF}
+  {$IFDEF CONSOLE}
+  AddDefine('CONSOLE');
+  {$ENDIF}
+  {$IFDEF NATIVECODE}
+  AddDefine('NATIVECODE');
+  {$ENDIF}
   {$IFDEF CONDITIONALEXPRESSIONS}
   AddDefine('CONDITIONALEXPRESSIONS');
   {$ENDIF}
   {$IFDEF UNICODE}
   AddDefine('UNICODE');
+  {$ENDIF}
+  {$IFDEF ALIGN_STACK}
+  AddDefine('ALIGN_STACK');
+  {$ENDIF}
+  {$IFDEF ASSEMBLER}
+  AddDefine('ASSEMBLER');
+  {$ENDIF}
+  {$IFDEF AUTOREFCOUNT}
+  AddDefine('AUTOREFCOUNT');
+  {$ENDIF}
+  {$IFDEF EXTERNALLINKER}
+  AddDefine('EXTERNALLINKER');
+  {$ENDIF}
+  {$IFDEF ELF}
+  AddDefine('ELF');
+  {$ENDIF}
+  {$IFDEF NEXTGEN}
+  AddDefine('NEXTGEN');
+  {$ENDIF}
+  {$IFDEF PC_MAPPED_EXCEPTIONS}
+  AddDefine('PC_MAPPED_EXCEPTIONS');
+  {$ENDIF}
+  {$IFDEF PIC}
+  AddDefine('PIC');
+  {$ENDIF}
+  {$IFDEF UNDERSCOREIMPORTNAME}
+  AddDefine('UNDERSCOREIMPORTNAME');
+  {$ENDIF}
+  {$IFDEF WEAKREF}
+  AddDefine('WEAKREF');
+  {$ENDIF}
+  {$IFDEF WEAKINSTREF}
+  AddDefine('WEAKINSTREF');
+  {$ENDIF}
+  {$IFDEF WEAKINTREF}
+  AddDefine('WEAKINTREF');
   {$ENDIF}
 end;
 
