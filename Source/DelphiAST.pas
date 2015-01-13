@@ -1569,7 +1569,7 @@ end;
 procedure TPasSyntaxTreeBuilder.VarSection;
 var
   VarSect: TSyntaxNode;
-  VarList, Variable, TypeInfo: TSyntaxNode;
+  VarList, Variable, TypeInfo, ValueInfo: TSyntaxNode;
 begin
   VarSect := TSyntaxNode.Create('variables');
   try
@@ -1584,6 +1584,7 @@ begin
     for VarList in VarSect.ChildNodes do
     begin
       TypeInfo := VarList.FindNode(UpperCase(sTYPE));
+      ValueInfo := VarList.FindNode(UpperCase(sVALUE));
       for Variable in VarList.ChildNodes do
       begin
         if not SameText(Variable.Name, sNAME) then
@@ -1593,6 +1594,9 @@ begin
         try
           FStack.AddChild(Variable.Clone);
           FStack.AddChild(TypeInfo.Clone);
+
+          if Assigned(ValueInfo) then
+            FStack.AddChild(ValueInfo.Clone);
         finally
           FStack.Pop;
         end;
