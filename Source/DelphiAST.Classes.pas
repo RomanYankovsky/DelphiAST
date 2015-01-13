@@ -14,8 +14,9 @@ type
     FAttributes: TDictionary<string, string>;
     FChildNodes: TObjectList<TSyntaxNode>;
     FName: string;
+    FParentNode: TSyntaxNode;
   public
-    constructor Create(const Name: string);
+    constructor Create(const Name: string; const AParentNode: TSyntaxNode);
     destructor Destroy; override;
 
     function Clone: TSyntaxNode;
@@ -36,6 +37,7 @@ type
     property HasAttributes: Boolean read GetHasAttributes;
     property HasChildren: Boolean read GetHasChildren;
     property Name: string read FName;
+    property ParentNode: TSyntaxNode read FParentNode;
   end;
 
   TExpressionTools = class
@@ -277,25 +279,25 @@ begin
       if Assigned(PrevNode) and IsRoundOpen(Node.Name) then
       begin
         if not TOperators.IsOpName(PrevNode.Name) and not IsRoundOpen(PrevNode.Name) then
-          Result.Add(TSyntaxNode.Create(sCALL));
+          Result.Add(TSyntaxNode.Create(sCALL, nil));
 
         if TOperators.IsOpName(PrevNode.Name)
           and (TOperators.Items[PrevNode.Name].Kind = okUnary)
           and (TOperators.Items[PrevNode.Name].AssocType = atLeft)
         then
-          Result.Add(TSyntaxNode.Create(sCALL));
+          Result.Add(TSyntaxNode.Create(sCALL, nil));
       end;
 
       if Assigned(PrevNode) and (Node.Name = sTYPEARGS) then
       begin
         if not TOperators.IsOpName(PrevNode.Name) and (PrevNode.Name <> sTYPEARGS) then
-          Result.Add(TSyntaxNode.Create(sGENERIC));
+          Result.Add(TSyntaxNode.Create(sGENERIC, nil));
 
         if TOperators.IsOpName(PrevNode.Name)
           and (TOperators.Items[PrevNode.Name].Kind = okUnary)
           and (TOperators.Items[PrevNode.Name].AssocType = atLeft)
         then
-          Result.Add(TSyntaxNode.Create(sGENERIC));
+          Result.Add(TSyntaxNode.Create(sGENERIC, nil));
       end;
 
       if Node.Name <> sALIGNMENTPARAM then
@@ -349,7 +351,7 @@ end;
 
 function TSyntaxNode.AddChild(Name: string): TSyntaxNode;
 begin
-  Result := AddChild(TSyntaxNode.Create(Name));
+  Result := AddChild(TSyntaxNode.Create(Name, Self));
 end;
 
 function TSyntaxNode.Clone: TSyntaxNode;
@@ -357,7 +359,7 @@ var
   ChildNode: TSyntaxNode;
   Attr: TPair<string, string>;
 begin
-  Result := TSyntaxNode.Create(FName);
+  Result := TSyntaxNode.Create(FName, FParentNode);
 
   for ChildNode in FChildNodes do
     Result.AddChild(ChildNode.Clone);
@@ -366,12 +368,13 @@ begin
     Result.SetAttribute(Attr.Key, Attr.Value);
 end;
 
-constructor TSyntaxNode.Create(const Name: string);
+constructor TSyntaxNode.Create(const Name: string; const AParentNode: TSyntaxNode);
 begin
   inherited Create;
   FName := Name;
   FAttributes := TDictionary<string, string>.Create;
   FChildNodes := TObjectList<TSyntaxNode>.Create(True);
+  FParentNode := AParentNode;
 end;
 
 procedure TSyntaxNode.DeleteChild(Node: TSyntaxNode);
