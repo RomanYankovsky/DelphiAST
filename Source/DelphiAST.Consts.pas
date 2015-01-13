@@ -9,6 +9,7 @@ const
   sAND            = 'and';
   sAS             = 'as';
   sASSIGN         = 'assign';
+  sBOUNDS         = 'bounds';
   sCALL           = 'call';
   sCONSTANT       = 'constant';
   sCONSTANTS      = 'constants';

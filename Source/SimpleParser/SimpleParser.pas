@@ -241,6 +241,7 @@ type
     procedure AnonymousMethod; virtual;
     procedure AnonymousMethodType; virtual;
     procedure ArrayConstant; virtual;
+    procedure ArrayBounds; virtual;
     procedure ArrayType; virtual;
     procedure AsmStatement; virtual;
     procedure AssignOp; virtual;
@@ -3193,17 +3194,7 @@ end;
 procedure TmwSimplePasPar.ArrayType;
 begin
   Expected(ptArray);
-  if TokenID = ptSquareOpen then
-  begin
-    NextToken;
-    OrdinalType;
-    while TokenID = ptComma do
-    begin
-      NextToken;
-      OrdinalType;
-    end;
-    Expected(ptSquareClose);
-  end;
+  ArrayBounds;
   Expected(ptOf);
   TypeKind;
 end;
@@ -3409,7 +3400,7 @@ begin
   if TokenID = ptDotDot then
   begin
     NextToken;
-    ConstantExpression;
+    Expression;
   end;
 end;
 
@@ -5380,6 +5371,21 @@ end;
 function TmwSimplePasPar.IsDefined(const ADefine: string): Boolean;
 begin
   Result := FLexer.IsDefined(ADefine);
+end;
+
+procedure TmwSimplePasPar.ArrayBounds;
+begin
+  if TokenID = ptSquareOpen then
+  begin
+    NextToken;
+    OrdinalType;
+    while TokenID = ptComma do
+    begin
+      NextToken;
+      OrdinalType;
+    end;
+    Expected(ptSquareClose);
+  end;
 end;
 
 procedure TmwSimplePasPar.DeclarationSections;

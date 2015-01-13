@@ -51,6 +51,7 @@ type
     procedure AddressOp; override;
     procedure AlignmentParameter; override;
     procedure AnonymousMethod; override;
+    procedure ArrayBounds; override;
     procedure AsmStatement; override;
     procedure AsOp; override;
     procedure AssignOp; override;
@@ -220,6 +221,16 @@ end;
 procedure TPasSyntaxTreeBuilder.AnonymousMethod;
 begin
   FStack.Push('anonymousmethod');
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ArrayBounds;
+begin
+  FStack.Push(sBOUNDS);
   try
     inherited;
   finally
