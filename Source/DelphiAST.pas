@@ -317,7 +317,7 @@ var
   Fields: TSyntaxNode;
   Field, TypeInfo, TypeArgs: TSyntaxNode;
 begin
-  Fields := TSyntaxNode.Create('fields', FStack.Peek);
+  Fields := TSyntaxNode.Create('fields');
   try
     FStack.Push(Fields);
     try
@@ -473,7 +473,7 @@ var
   ConstSect: TSyntaxNode;
   ConstList, Constant, TypeInfo, Value: TSyntaxNode;
 begin
-  ConstSect := TSyntaxNode.Create('constants', FStack.Peek);
+  ConstSect := TSyntaxNode.Create('constants');
   try
     FStack.Push(ConstSect);
     try
@@ -612,7 +612,7 @@ begin
   Line := Lexer.PosXY.Y;
   Col := Lexer.PosXY.X;
 
-  RawExprNode := TSyntaxNode.Create('expression', FStack.Peek);
+  RawExprNode := TSyntaxNode.Create('expression');
   try
     FStack.Push(RawExprNode);
     try
@@ -680,7 +680,7 @@ var
 begin
   Position := Lexer.PosXY;
 
-  Params := TSyntaxNode.Create('params', FStack.Peek);
+  Params := TSyntaxNode.Create('params');
   try
     FStack.Push(Params);
     try
@@ -1132,7 +1132,7 @@ procedure TPasSyntaxTreeBuilder.RequiresIdentifier;
 var
   NamesNode: TSyntaxNode;
 begin
-  NamesNode := TSyntaxNode.Create('requires', FStack.Peek);
+  NamesNode := TSyntaxNode.Create('requires');
   try
     FStack.Push(NamesNode);
     try
@@ -1177,7 +1177,7 @@ end;
 
 function TPasSyntaxTreeBuilder.Run(SourceStream: TCustomMemoryStream): TSyntaxNode;
 begin
-  Result := TSyntaxNode.Create(sUNIT, nil);
+  Result := TSyntaxNode.Create(sUNIT);
   try
     FStack.Clear;
     FStack.Push(Result);
@@ -1238,7 +1238,7 @@ var
 begin
   Position := Lexer.PosXY;
 
-  RawStatement := TSyntaxNode.Create('STATEMENT', FStack.Peek);
+  RawStatement := TSyntaxNode.Create('STATEMENT');
   try
     FStack.Push(RawStatement);
     try
@@ -1322,7 +1322,7 @@ var
   Literal, Node: TSyntaxNode;
   Str: string;
 begin
-  StrConst := TSyntaxNode.Create('StringConst', FStack.Peek);
+  StrConst := TSyntaxNode.Create('StringConst');
   try
     FStack.Push(StrConst);
     try
@@ -1491,7 +1491,7 @@ procedure TPasSyntaxTreeBuilder.UnitName;
 var
   NamesNode: TSyntaxNode;
 begin
-  NamesNode := TSyntaxNode.Create('unit', FStack.Peek);
+  NamesNode := TSyntaxNode.Create('unit');
   try
     FStack.Push(NamesNode);
     try
@@ -1513,7 +1513,7 @@ var
 begin
   Position := Lexer.PosXY;
 
-  NamesNode := TSyntaxNode.Create('unit', FStack.Peek);
+  NamesNode := TSyntaxNode.Create('unit');
   try
     FStack.Push(NamesNode);
     try
@@ -1571,7 +1571,7 @@ var
   VarSect: TSyntaxNode;
   VarList, Variable, TypeInfo, ValueInfo: TSyntaxNode;
 begin
-  VarSect := TSyntaxNode.Create('variables', FStack.Peek);
+  VarSect := TSyntaxNode.Create('variables');
   try
     FStack.Push(VarSect);
     try
@@ -1677,7 +1677,7 @@ end;
 function TNodeStack.AddChild(const Name: string;
   SetPositionAttributes: Boolean): TSyntaxNode;
 begin
-  Result := FStack.Peek.AddChild(TSyntaxNode.Create(Name, FStack.Peek));
+  Result := FStack.Peek.AddChild(TSyntaxNode.Create(Name));
 
   if SetPositionAttributes then
     Result.SetPositionAttributes(FParser.Lexer.PosXY);
@@ -1731,7 +1731,7 @@ end;
 
 function TNodeStack.Push(const Name: string; SetPositionAttributes: Boolean = True): TSyntaxNode;
 begin
-  Result := FStack.Peek.AddChild(TSyntaxNode.Create(Name, FStack.Peek));
+  Result := FStack.Peek.AddChild(TSyntaxNode.Create(Name));
   Push(Result, SetPositionAttributes);
 end;
 
