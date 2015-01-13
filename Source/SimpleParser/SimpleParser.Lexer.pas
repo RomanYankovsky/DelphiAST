@@ -1505,7 +1505,6 @@ begin
           FOnIfOptDirect(Self);
       end;
     PtIfDirect:
-
       begin
         if FUseDefines then
           EnterDefineBlock(EvaluateConditionalExpression(DirectiveParam));
@@ -1530,16 +1529,10 @@ begin
             else
             begin
               FDefineStack := FTopDefineRec.StartCount;
-
-              Param := DirectiveParam;
-              if Pos('DEFINED', Param) = 1 then
-              begin
-                Def := Copy(Param, 9, Pos(')', Param) - 9);
-                if IsDefined(Def) then
+                if EvaluateConditionalExpression(DirectiveParam) then
                   FTopDefineRec^.Defined := True
                 else
                   FDefineStack := FTopDefineRec.StartCount + 1
-              end;
             end;
           end;
         end;
