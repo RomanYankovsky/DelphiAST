@@ -265,6 +265,7 @@ type
     procedure DoProcTable(AChar: Char);
     function IsIdentifiers(AChar: Char): Boolean; inline;
     function HashValue(AChar: Char): Integer;
+    function EvaluateConditionalExpression(const AParams: String): Boolean;
   protected
     procedure SetLine(const Value: string); virtual;
     procedure SetOrigin(NewValue: PChar); virtual;
@@ -381,6 +382,9 @@ type
   end;
 
 implementation
+
+type
+  TmwPasLexExpressionEvaluation = (leeNone, leeAnd, leeOr);
 
 procedure MakeIdentTable;
 var
@@ -1503,20 +1507,7 @@ begin
     PtIfDirect:
       begin
         if FUseDefines then
-        begin
-          Param := DirectiveParam;
-          if Pos('DEFINED', Param) = 1 then
-          begin
-            Def := Copy(Param, 9, Pos(')', Param) - 9);
-            EnterDefineBlock(IsDefined(Def));
-          end else
-          if Pos('NOT DEFINED', Param) = 1 then
-          begin
-            Def := Copy(Param, 13, Pos(')', Param) - 13);
-            EnterDefineBlock(not IsDefined(Def));
-          end else
-            EnterDefineBlock(False);
-        end;
+          EnterDefineBlock(EvaluateConditionalExpression(DirectiveParam));
         if Assigned(FOnIfDirect) then
           FOnIfDirect(Self);
       end;
@@ -1538,16 +1529,10 @@ begin
             else
             begin
               FDefineStack := FTopDefineRec.StartCount;
-
-              Param := DirectiveParam;
-              if Pos('DEFINED', Param) = 1 then
-              begin
-                Def := Copy(Param, 9, Pos(')', Param) - 9);
-                if IsDefined(Def) then
+                if EvaluateConditionalExpression(DirectiveParam) then
                   FTopDefineRec^.Defined := True
                 else
                   FDefineStack := FTopDefineRec.StartCount + 1
-              end;
             end;
           end;
         end;
@@ -1572,6 +1557,56 @@ begin
           FOnUnDefDirect(Self);
       end;
   end;
+end;
+
+function TmwBasePasLex.EvaluateConditionalExpression(const AParams: String): Boolean;
+var
+  LParams: String;
+  LDefine: String;
+  LEvaluation: TmwPasLexExpressionEvaluation;
+begin
+  { TODO : Expand support for <=> evaluations (complicated to do). Expand support for NESTED expressions }
+  LEvaluation := leeNone;
+  if (Pos('DEFINED(', AParams) = 1) or (Pos('NOT DEFINED(', AParams) = 1) then
+  begin
+    LParams := AParams;
+    Result := True; // Optimistic
+    while (Pos('DEFINED(', LParams) = 1) or (Pos('NOT DEFINED(', LParams) = 1) do
+    begin
+      if Pos('DEFINED(', LParams) = 1 then
+      begin
+        LDefine := Copy(LParams, 9, Pos(')', LParams) - 9);
+        LParams := TrimLeft(Copy(LParams, 10 + Length(LDefine), Length(AParams) - (9 + Length(LDefine))));
+        case LEvaluation of
+          leeNone: Result := IsDefined(LDefine);
+          leeAnd: Result := Result and IsDefined(LDefine);
+          leeOr: Result := Result or IsDefined(LDefine);
+        end;
+      end
+      else if Pos('NOT DEFINED(', LParams) = 1 then
+      begin
+        LDefine := Copy(LParams, 13, Pos(')', LParams) - 13);
+        LParams := TrimLeft(Copy(LParams, 14 + Length(LDefine), Length(AParams) - (13 + Length(LDefine))));
+        case LEvaluation of
+          leeNone: Result := (not IsDefined(LDefine));
+          leeAnd: Result := Result and (not IsDefined(LDefine));
+          leeOr: Result := Result or (not IsDefined(LDefine));
+        end;
+      end;
+      // Determine next Evaluation
+      if Pos('AND ', LParams) = 1 then
+      begin
+        LEvaluation := leeAnd;
+        LParams := TrimLeft(Copy(LParams, 4, Length(LParams) - 3));
+      end
+      else if Pos('OR ', LParams) = 1 then
+      begin
+        LEvaluation := leeOr;
+        LParams := TrimLeft(Copy(LParams, 3, Length(LParams) - 2));
+      end;
+    end;
+  end else
+    Result := False;
 end;
 
 procedure TmwBasePasLex.ColonProc;
@@ -2367,11 +2402,26 @@ begin
   {$IFDEF LINUX}
   AddDefine('LINUX');
   {$ENDIF}
+  {$IFDEF LINUX32}
+  AddDefine('LINUX32');
+  {$ENDIF}
   {$IFDEF POSIX}
   AddDefine('POSIX');
   {$ENDIF}
+  {$IFDEF POSIX32}
+  AddDefine('POSIX32');
+  {$ENDIF}
+  {$IFDEF CPUARM}
+  AddDefine('CPUARM');
+  {$ENDIF}
   {$IFDEF CPU386}
   AddDefine('CPU386');
+  {$ENDIF}
+  {$IFDEF CPUX86}
+  AddDefine('CPUX86');
+  {$ENDIF}
+  {$IFDEF CPUX64}
+  AddDefine('CPUX64');
   {$ENDIF}
   {$IFDEF MSWINDOWS}
   AddDefine('MSWINDOWS');
@@ -2379,17 +2429,62 @@ begin
   {$IFDEF MACOS}
   AddDefine('MACOS');
   {$ENDIF}
+  {$IFDEF MACOS32}
+  AddDefine('MACOS32');
+  {$ENDIF}
   {$IFDEF IOS}
   AddDefine('IOS');
   {$ENDIF}
   {$IFDEF ANDROID}
   AddDefine('ANDROID');
   {$ENDIF}
+  {$IFDEF CONSOLE}
+  AddDefine('CONSOLE');
+  {$ENDIF}
+  {$IFDEF NATIVECODE}
+  AddDefine('NATIVECODE');
+  {$ENDIF}
   {$IFDEF CONDITIONALEXPRESSIONS}
   AddDefine('CONDITIONALEXPRESSIONS');
   {$ENDIF}
   {$IFDEF UNICODE}
   AddDefine('UNICODE');
+  {$ENDIF}
+  {$IFDEF ALIGN_STACK}
+  AddDefine('ALIGN_STACK');
+  {$ENDIF}
+  {$IFDEF ASSEMBLER}
+  AddDefine('ASSEMBLER');
+  {$ENDIF}
+  {$IFDEF AUTOREFCOUNT}
+  AddDefine('AUTOREFCOUNT');
+  {$ENDIF}
+  {$IFDEF EXTERNALLINKER}
+  AddDefine('EXTERNALLINKER');
+  {$ENDIF}
+  {$IFDEF ELF}
+  AddDefine('ELF');
+  {$ENDIF}
+  {$IFDEF NEXTGEN}
+  AddDefine('NEXTGEN');
+  {$ENDIF}
+  {$IFDEF PC_MAPPED_EXCEPTIONS}
+  AddDefine('PC_MAPPED_EXCEPTIONS');
+  {$ENDIF}
+  {$IFDEF PIC}
+  AddDefine('PIC');
+  {$ENDIF}
+  {$IFDEF UNDERSCOREIMPORTNAME}
+  AddDefine('UNDERSCOREIMPORTNAME');
+  {$ENDIF}
+  {$IFDEF WEAKREF}
+  AddDefine('WEAKREF');
+  {$ENDIF}
+  {$IFDEF WEAKINSTREF}
+  AddDefine('WEAKINSTREF');
+  {$ENDIF}
+  {$IFDEF WEAKINTREF}
+  AddDefine('WEAKINTREF');
   {$ENDIF}
 end;
 
