@@ -1411,8 +1411,6 @@ begin
 end;
 
 procedure TmwBasePasLex.BraceOpenProc;
-var
-  Param, Def: string;
 begin
   case FOrigin[Run + 1] of
     '$': FTokenID := GetDirectiveKind;

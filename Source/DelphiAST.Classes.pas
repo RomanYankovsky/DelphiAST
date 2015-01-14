@@ -14,6 +14,7 @@ type
     FAttributes: TDictionary<string, string>;
     FChildNodes: TObjectList<TSyntaxNode>;
     FName: string;
+    FParentNode: TSyntaxNode;
   public
     constructor Create(const Name: string);
     destructor Destroy; override;
@@ -36,6 +37,7 @@ type
     property HasAttributes: Boolean read GetHasAttributes;
     property HasChildren: Boolean read GetHasChildren;
     property Name: string read FName;
+    property ParentNode: TSyntaxNode read FParentNode;
   end;
 
   TExpressionTools = class
@@ -344,6 +346,8 @@ begin
   Assert(Assigned(Node));
 
   FChildNodes.Add(Node);
+  Node.FParentNode := Self;
+
   Result := Node;
 end;
 
@@ -372,11 +376,12 @@ begin
   FName := Name;
   FAttributes := TDictionary<string, string>.Create;
   FChildNodes := TObjectList<TSyntaxNode>.Create(True);
+  FParentNode := nil;
 end;
 
 procedure TSyntaxNode.DeleteChild(Node: TSyntaxNode);
 begin
-  FChildNodes.Remove(node);
+  FChildNodes.Remove(Node);
 end;
 
 destructor TSyntaxNode.Destroy;
