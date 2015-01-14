@@ -305,9 +305,6 @@ type
     property IsJunk: Boolean read GetIsJunk;
     property IsSpace: Boolean read GetIsSpace;
     property Line: string write SetLine;
-    //Note: setting the following two properties does not GO to that line, it just sets the internal counters
-    property LineNumber: Integer read FLineNumber write FLineNumber;
-    property LinePos: Integer read FLinePos write FLinePos;
     property Origin: PChar read FOrigin write SetOrigin;
     property PosXY: TTokenPoint read GetPosXY;
     property RunPos: Integer read Run write SetRunPos;
@@ -458,8 +455,8 @@ end;
 
 function TmwBasePasLex.GetPosXY: TTokenPoint;
 begin
-  Result.X := FTokenPos - FLinePos;
-  Result.Y := FLineNumber;
+  Result.X := FTokenPos - FLinePos + 1;
+  Result.Y := FLineNumber + 1;
 end;
 
 procedure TmwBasePasLex.InitIdent;
@@ -2307,7 +2304,7 @@ end;
 procedure TmwBasePasLex.Init;
 begin
   FCommentState := csNo;
-  FLineNumber := 1;
+  FLineNumber := 0;
   FLinePos := 0;
   Run := 0;
   InitDefines;
@@ -2488,7 +2485,7 @@ end;
 
 procedure TmwBasePasLex.InitLine;
 begin
-  FLineNumber := 1;
+  FLineNumber := 0;
   FLinePos := 0;
   Run := 0;
 end;
