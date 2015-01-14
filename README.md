@@ -24,48 +24,52 @@ end.
 
 #### Sample outcome
 ```xml
-<UNIT line="0" col="0" name="Unit1">
-  <INTERFACE line="2" col="0">
-    <USES line="4" col="0">
-      <UNIT line="5" col="2" name="Unit2"/>
+<UNIT line="1" col="1" name="Unit1">
+  <INTERFACE line="3" col="1">
+    <USES line="5" col="1">
+      <UNIT line="6" col="3" name="Unit2"/>
     </USES>
-    <METHOD line="7" col="0" name="Sum" kind="function">
-      <PARAMETERS line="7" col="12">
+    <METHOD line="8" col="1" name="Sum" kind="function">
+      <PARAMETERS line="8" col="13">
         <PARAMETER>
-          <NAME line="7" col="13" value="A"/>
-          <TYPE line="7" col="19" name="Integer"/>
+          <NAME line="8" col="14" value="A"/>
+          <TYPE line="8" col="20" name="Integer"/>
         </PARAMETER>
         <PARAMETER>
-          <NAME line="7" col="16" value="B"/>
-          <TYPE line="7" col="19" name="Integer"/>
+          <NAME line="8" col="17" value="B"/>
+          <TYPE line="8" col="20" name="Integer"/>
         </PARAMETER>
       </PARAMETERS>
-      <TYPE line="7" col="29" name="Integer"/>
+      <RETURNTYPE line="8" col="30">
+        <TYPE line="8" col="30" name="Integer"/>
+      </RETURNTYPE>
     </METHOD>
   </INTERFACE>
-  <IMPLEMENTATION line="9" col="0">
-    <METHOD line="11" col="0" name="Sum" kind="function">
-      <PARAMETERS line="11" col="12">
+  <IMPLEMENTATION line="10" col="1">
+    <METHOD line="12" col="1" name="Sum" kind="function">
+      <PARAMETERS line="12" col="13">
         <PARAMETER>
-          <NAME line="11" col="13" value="A"/>
-          <TYPE line="11" col="19" name="Integer"/>
+          <NAME line="12" col="14" value="A"/>
+          <TYPE line="12" col="20" name="Integer"/>
         </PARAMETER>
         <PARAMETER>
-          <NAME line="11" col="16" value="B"/>
-          <TYPE line="11" col="19" name="Integer"/>
+          <NAME line="12" col="17" value="B"/>
+          <TYPE line="12" col="20" name="Integer"/>
         </PARAMETER>
       </PARAMETERS>
-      <TYPE line="11" col="29" name="Integer"/>
-      <STATEMENTS end_line="14" begin_line="13" end_col="0" begin_col="2">
-        <ASSIGN line="13" col="2">
+      <RETURNTYPE line="12" col="30">
+        <TYPE line="12" col="30" name="Integer"/>
+      </RETURNTYPE>
+      <STATEMENTS end_line="15" begin_line="14" end_col="1" begin_col="3">
+        <ASSIGN line="14" col="3">
           <LHS>
-            <IDENTIFIER line="13" col="2" name="Result"/>
+            <IDENTIFIER line="14" col="3" name="Result"/>
           </LHS>
           <RHS>
-            <EXPRESSION line="13" col="12">
-              <ADD line="13" col="14">
-                <IDENTIFIER line="13" col="12" name="A"/>
-                <IDENTIFIER line="13" col="16" name="B"/>
+            <EXPRESSION line="14" col="13">
+              <ADD line="14" col="15">
+                <IDENTIFIER line="14" col="13" name="A"/>
+                <IDENTIFIER line="14" col="17" name="B"/>
               </ADD>
             </EXPRESSION>
           </RHS>
@@ -77,7 +81,7 @@ end.
 ```
 
 #### Copyright
-Copyright (c) 2014 Roman Yankovsky (roman@yankovsky.me)
+Copyright (c) 2014-2015 Roman Yankovsky (roman@yankovsky.me)
 
 DelphiAST is released under the Mozilla Public License, v. 2.0
 
