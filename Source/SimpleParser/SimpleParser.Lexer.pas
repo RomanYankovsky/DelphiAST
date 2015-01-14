@@ -2307,7 +2307,6 @@ begin
   FLineNumber := 0;
   FLinePos := 0;
   Run := 0;
-  ClearDefines;
 end;
 
 procedure TmwBasePasLex.InitFrom(ALexer: TmwBasePasLex);
