@@ -547,7 +547,7 @@ type
     procedure Run(UnitName: string; SourceStream: TCustomMemoryStream); virtual;
 
     procedure ClearDefines;
-    procedure InitDefines;
+    procedure InitDefinesDefinedByCompiler;
     procedure AddDefine(const ADefine: string);
     procedure RemoveDefine(const ADefine: string);
     function IsDefined(const ADefine: string): Boolean;
@@ -5431,9 +5431,9 @@ begin
   AheadParse.Lexer.InitFrom(Lexer);
 end;
 
-procedure TmwSimplePasPar.InitDefines;
+procedure TmwSimplePasPar.InitDefinesDefinedByCompiler;
 begin
-  FLexer.InitDefines;
+  FLexer.InitDefinesDefinedByCompiler;
 end;
 
 procedure TmwSimplePasPar.GlobalAttributes;

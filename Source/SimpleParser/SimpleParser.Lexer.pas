@@ -297,7 +297,7 @@ type
     procedure RemoveDefine(const ADefine: string);
     function IsDefined(const ADefine: string): Boolean;
     procedure ClearDefines;
-    procedure InitDefines;
+    procedure InitDefinesDefinedByCompiler;
 
     property CommentState: Pointer read GetCommentState write SetCommentState;
     property CompilerDirective: string read GetCompilerDirective;
@@ -1286,7 +1286,7 @@ begin
   FUseDefines := True;
   FDefines := TStringList.Create;
   FTopDefineRec := nil;
-  InitDefines;
+  ClearDefines;
 end;
 
 destructor TmwBasePasLex.Destroy;
@@ -2307,7 +2307,7 @@ begin
   FLineNumber := 0;
   FLinePos := 0;
   Run := 0;
-  InitDefines;
+  ClearDefines;
 end;
 
 procedure TmwBasePasLex.InitFrom(ALexer: TmwBasePasLex);
@@ -2320,10 +2320,8 @@ begin
   CloneDefinesFrom(ALexer);
 end;
 
-procedure TmwBasePasLex.InitDefines;
+procedure TmwBasePasLex.InitDefinesDefinedByCompiler;
 begin
-  ClearDefines;
-  Exit;
   //Set up the defines that are defined by the compiler
   {$IFDEF VER90}
   AddDefine('VER90'); // 2
