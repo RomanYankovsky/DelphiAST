@@ -1450,7 +1450,7 @@ begin
       end;
     PtDefineDirect:
       begin
-        if FUseDefines then
+        if FUseDefines and (FDefineStack = 0) then
           AddDefine(DirectiveParam);
         if Assigned(FOnDefineDirect) then
           FOnDefineDirect(Self);
@@ -1546,7 +1546,7 @@ begin
       end;
     PtUndefDirect:
       begin
-        if FUseDefines then
+        if FUseDefines and (FDefineStack = 0) then
           RemoveDefine(DirectiveParam);
         if Assigned(FOnUnDefDirect) then
           FOnUnDefDirect(Self);
@@ -1562,9 +1562,9 @@ var
 begin
   { TODO : Expand support for <=> evaluations (complicated to do). Expand support for NESTED expressions }
   LEvaluation := leeNone;
-  if (Pos('DEFINED(', AParams) = 1) or (Pos('NOT DEFINED(', AParams) = 1) then
+  LParams := TrimLeft(AParams);
+  if (Pos('DEFINED(', LParams) = 1) or (Pos('NOT DEFINED(', LParams) = 1) then
   begin
-    LParams := AParams;
     Result := True; // Optimistic
     while (Pos('DEFINED(', LParams) = 1) or (Pos('NOT DEFINED(', LParams) = 1) do
     begin
