@@ -43,8 +43,7 @@ begin
 
     ASTBuilder := TPasSyntaxTreeBuilder.Create;
     try
-      ASTBuilder.AddDefine('MSWINDOWS');
-      ASTBuilder.AddDefine('WIN32');
+      ASTBuilder.InitDefinesDefinedByCompiler;
 
       SyntaxTree := ASTBuilder.Run(StringStream);
       try
