@@ -4114,22 +4114,16 @@ begin
       end;
     ptIdentifier:
       begin
-        FLexer.InitAhead;
-        case Lexer.AheadTokenID of
-          ptPoint, ptSemiColon:
-            begin
-              TypeID;
-            end;
-        else
-          begin
-            SimpleExpression;
-            if FLexer.TokenID = ptDotDot then
-            begin
-              NextToken;
-              SimpleExpression;
-            end;
-          end;
-        end;
+        InitAhead;
+        AheadParse.NextToken;
+        AheadParse.SimpleExpression;
+        if AheadParse.TokenID = ptDotDot then
+        begin
+          SimpleExpression;
+          Expected(ptDotDot);
+          SimpleExpression;
+        end else
+          TypeId;
       end;
     ptRoundOpen:
       begin
@@ -4335,22 +4329,16 @@ begin
       end;
     ptIdentifier:
       begin
-        Lexer.InitAhead;
-        case Lexer.AheadTokenID of
-          ptPoint, ptSemiColon, ptLower:
-            begin
-              TypeId;
-            end;
-        else
-          begin
-            SimpleExpression;
-            if Lexer.TokenID = ptDotDot then
-            begin
-              NextToken;
-              SimpleExpression;
-            end;
-          end;
-        end;
+        InitAhead;
+        AheadParse.NextToken;
+        AheadParse.SimpleExpression;
+        if AheadParse.TokenID = ptDotDot then
+        begin
+          SimpleExpression;
+          Expected(ptDotDot);
+          SimpleExpression;
+        end else
+          TypeId;
       end;
     ptPointerSymbol:
       begin
@@ -4454,6 +4442,13 @@ begin
       TypeArgs;
       Expected(ptGreater);
     end;
+  end;
+
+  if TokenID = ptRoundOpen then
+  begin
+    Expected(ptRoundOpen);
+    SimpleExpression;
+    Expected(ptRoundClose);
   end;
 end;
 
