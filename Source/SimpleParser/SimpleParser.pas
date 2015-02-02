@@ -4378,6 +4378,8 @@ begin
 end;
 
 procedure TmwSimplePasPar.TypedConstant;
+var
+  RoundBrackets: Integer;
 begin
   case TokenID of
     ptRoundOpen:
@@ -4390,18 +4392,19 @@ begin
               ptXor: Break;
             ptRoundOpen:
               begin
+                RoundBrackets := 0;
                 repeat
                   case Lexer.AheadTokenID of
                     ptBegin, ptCase, ptEnd, ptElse, ptIf, ptNull, ptWhile, ptWith: Break;
-                    ptRoundClose:
-                      begin
-                        NextToken;
-                        Break;
-                      end;
                   else
+                    if Lexer.AheadTokenID = ptRoundOpen then
+                      Inc(RoundBrackets);
+                    if Lexer.AheadTokenID = ptRoundClose then
+                      Dec(RoundBrackets);
+
                     Lexer.AheadNext;
                   end;
-                until Lexer.AheadTokenID = ptRoundClose;
+                until RoundBrackets = 0;
               end;
           else
             Lexer.AheadNext;
