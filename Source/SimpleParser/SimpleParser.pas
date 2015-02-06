@@ -2486,7 +2486,7 @@ end;
 procedure TmwSimplePasPar.SimpleStatement;
 begin
   case TokenID of
-    ptAddressOp, ptDoubleAddressOp, ptIdentifier, ptRoundOpen:
+    ptAddressOp, ptDoubleAddressOp, ptIdentifier, ptRoundOpen, ptString:
       begin
         Designator;
         if TokenID = ptAssign then
@@ -2573,10 +2573,6 @@ begin
     ptSemiColon:
       begin
         EmptyStatement;
-      end;
-    ptString:
-      begin
-        StringStatement;
       end;
     ptTry:
       begin
