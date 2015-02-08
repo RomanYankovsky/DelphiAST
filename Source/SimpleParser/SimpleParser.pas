@@ -4958,7 +4958,7 @@ begin
   if FLexer.ExID = ptName then
   begin
     NextToken;
-    CharString;
+    SimpleExpression;
   end;
   if FLexer.ExID = ptResident then
   begin
