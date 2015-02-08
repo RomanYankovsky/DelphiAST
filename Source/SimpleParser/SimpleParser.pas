@@ -412,6 +412,8 @@ type
     procedure PropertyName; virtual;
     procedure PropertyParameter; virtual;
     procedure PropertyParameterConst; virtual;
+    procedure PropertyParameterOut; virtual;
+    procedure PropertyParameterVar; virtual;
     procedure PropertyParameterList; virtual;
     procedure PropertySpecifiers; virtual;
     procedure QualifiedIdentifier; virtual;
@@ -1404,11 +1406,26 @@ begin
   Expected(ptSquareClose);
 end;
 
+procedure TmwSimplePasPar.PropertyParameterOut;
+begin
+  ExpectedEx(ptOut);
+end;
+
+procedure TmwSimplePasPar.PropertyParameterVar;
+begin
+  Expected(ptVar);
+end;
+
 procedure TmwSimplePasPar.PropertyParameter;
 begin
-  if TokenID = ptConst then
-  begin
-    PropertyParameterConst;
+  case TokenID of
+    ptConst: PropertyParameterConst;
+    ptVar: PropertyParameterVar;
+    ptIdentifier:
+      begin
+        if ExID = ptOut then
+          PropertyParameterOut;
+      end;
   end;
   IdentifierList;
   if TokenID = ptColon then
