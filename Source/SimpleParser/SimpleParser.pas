@@ -3407,13 +3407,13 @@ begin
       end;
   else
     begin
-      Expression;
+      ConstantExpression;
     end;
   end;
   if TokenID = ptDotDot then
   begin
     NextToken;
-    Expression;
+    ConstantExpression;
   end;
 end;
 

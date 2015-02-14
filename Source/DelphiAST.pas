@@ -41,8 +41,11 @@ type
   end;
 
   TPasSyntaxTreeBuilder = class(TmwSimplePasPar)
+  private type
+    TExpressionMethod = reference to procedure;
   private
     FStack: TNodeStack;
+    procedure BuildExpressionTree(ExpressionMethod: TExpressionMethod);
     procedure ParserMessage(Sender: TObject; const Typ: TMessageEventType; const Msg: string; X, Y: Integer);
     function NodeListToString(NamesNode: TSyntaxNode): string;
   protected
@@ -69,6 +72,7 @@ type
     procedure ClassType; override;
     procedure ConstParameter; override;
     procedure ConstantDeclaration; override;
+    procedure ConstantExpression; override;
     procedure ConstantName; override;
     procedure ConstSection; override;
     procedure ConstantValue; override;
@@ -272,6 +276,52 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.BuildExpressionTree(
+  ExpressionMethod: TExpressionMethod);
+var
+  RawExprNode: TSyntaxNode;
+  ExprNode: TSyntaxNode;
+
+  NodeList: TList<TSyntaxNode>;
+  Node: TSyntaxNode;
+  Col, Line: Integer;
+begin
+  Line := Lexer.PosXY.Y;
+  Col := Lexer.PosXY.X;
+
+  RawExprNode := TSyntaxNode.Create('expression');
+  try
+    FStack.Push(RawExprNode);
+    try
+      ExpressionMethod;
+    finally
+      FStack.Pop;
+    end;
+
+    if RawExprNode.HasChildren then
+    begin
+      ExprNode := FStack.Push('EXPRESSION', False);
+      try
+        ExprNode.SetAttribute('line', IntToStr(Line));
+        ExprNode.SetAttribute('col', IntToStr(Col));
+
+        NodeList := TList<TSyntaxNode>.Create;
+        try
+          for Node in RawExprNode.ChildNodes do
+            NodeList.Add(Node);
+          TExpressionTools.RawNodeListToTree(RawExprNode, NodeList, ExprNode);
+        finally
+          NodeList.Free;
+        end;
+      finally
+        FStack.Pop;
+      end;
+    end;
+  finally
+    RawExprNode.Free;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.CaseElseStatement;
 begin
   FStack.Push('caseelse');
@@ -442,6 +492,15 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.ConstantExpression;
+begin
+  BuildExpressionTree(
+    procedure
+    begin
+      inherited ConstantExpression;
+    end);
+end;
+
 procedure TPasSyntaxTreeBuilder.ConstantName;
 begin
   FStack.AddChild(sNAME).SetAttribute(sVALUE, Lexer.Token);
@@ -601,48 +660,12 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.Expression;
-var
-  RawExprNode: TSyntaxNode;
-  ExprNode: TSyntaxNode;
-
-  NodeList: TList<TSyntaxNode>;
-  Node: TSyntaxNode;
-  Col, Line: Integer;
 begin
-  Line := Lexer.PosXY.Y;
-  Col := Lexer.PosXY.X;
-
-  RawExprNode := TSyntaxNode.Create('expression');
-  try
-    FStack.Push(RawExprNode);
-    try
-      inherited;
-    finally
-      FStack.Pop;
-    end;
-
-    if RawExprNode.HasChildren then
+  BuildExpressionTree(
+    procedure
     begin
-      ExprNode := FStack.Push('EXPRESSION', False);
-      try
-        ExprNode.SetAttribute('line', IntToStr(Line));
-        ExprNode.SetAttribute('col', IntToStr(Col));
-
-        NodeList := TList<TSyntaxNode>.Create;
-        try
-          for Node in RawExprNode.ChildNodes do
-            NodeList.Add(Node);
-          TExpressionTools.RawNodeListToTree(RawExprNode, NodeList, ExprNode);
-        finally
-          NodeList.Free;
-        end;
-      finally
-        FStack.Pop;
-      end;
-    end;
-  finally
-    RawExprNode.Free;
-  end;
+      inherited Expression
+    end);
 end;
 
 procedure TPasSyntaxTreeBuilder.ExpressionList;
