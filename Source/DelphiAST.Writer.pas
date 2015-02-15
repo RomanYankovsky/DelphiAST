@@ -3,52 +3,109 @@ unit DelphiAST.Writer;
 interface
 
 uses
-  DelphiAST.Classes, XMLIntf, Generics.Collections;
+  DelphiAST.Classes, SysUtils;
 
 type
   TSyntaxTreeWriter = class
   private
-    class procedure NodeToXML(const XMLDoc: IXMLDocument; const ParentXMLNode: IXMLNode;
-      Node: TSyntaxNode); static;
+    class procedure NodeToXML(const Builder: TStringBuilder;
+      const Node: TSyntaxNode; Formatted: Boolean); static;
   public
-    class function ToXML(Root: TSyntaxNode): string; static;
+    class function ToXML(const Root: TSyntaxNode;
+      Formatted: Boolean = False): string; static;
   end;
 
 implementation
 
 uses
-  SysUtils, XMLDoc;
+  Generics.Collections;
+
+{$I SimpleParser.inc}
+{$IFDEF D18_NEWER}
+  {$ZEROBASEDSTRINGS OFF}
+{$ENDIF}
 
 { TSyntaxTreeWriter }
 
-class procedure TSyntaxTreeWriter.NodeToXML(const XMLDoc: IXMLDocument;
-  const ParentXMLNode: IXMLNode; Node: TSyntaxNode);
-var
-  NewXMLNode: IXMLNode;
-  ChildNode: TSyntaxNode;
-  Attr: TPair<string, string>;
+class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder; 
+  const Node: TSyntaxNode; Formatted: Boolean);
+
+  function XMLEncode(const Data: string): string;
+  var
+    i, n: Integer;
+
+    procedure Encode(const s: string);
+    begin
+      Move(s[1], Result[n], Length(s) * SizeOf(Char));
+      Inc(n, Length(s));
+    end;
+
+  begin
+    SetLength(Result, Length(Data) * 6);
+    n := 1;
+    for i := 1 to Length(Data) do
+      case Data[i] of
+        '<': Encode('&lt;');
+        '>': Encode('&gt;');
+        '&': Encode('&amp;');
+        '"': Encode('&quot;');
+        '''': Encode('&apos;');
+      else
+        Result[n] := Data[i];
+        Inc(n);
+      end;
+    SetLength(Result, n - 1);
+  end;
+
+  procedure NodeToXMLInternal(const Node: TSyntaxNode; const Indent: string);
+  var
+    HasChildren: Boolean;
+    NewIndent: string;
+    Attr: TPair<string, string>;
+    ChildNode: TSyntaxNode;
+  begin
+    HasChildren := Node.HasChildren;
+    if Formatted then
+    begin
+      NewIndent := Indent + '  ';
+      Builder.Append(Indent);
+    end;
+    Builder.Append('<' + UpperCase(Node.Name));  
+    for Attr in Node.Attributes do
+      Builder.Append(' ' + Attr.Key + '="' + XMLEncode(Attr.Value) + '"');
+    if HasChildren then
+      Builder.Append('>')
+    else
+      Builder.Append('/>');
+    if Formatted then
+      Builder.AppendLine;
+    for ChildNode in Node.ChildNodes do
+      NodeToXMLInternal(ChildNode, NewIndent);
+    if HasChildren then
+    begin
+      if Formatted then
+        Builder.Append(Indent); 
+      Builder.Append('</' + UpperCase(Node.Name) + '>');
+      if Formatted then
+        Builder.AppendLine;
+    end;
+  end;
+  
 begin
-  if Assigned(ParentXMLNode) then
-    NewXMLNode := ParentXMLNode.AddChild(UpperCase(Node.Name))
-  else
-    NewXMLNode := XMLDoc.AddChild(UpperCase(Node.Name));
-
-  for Attr in Node.Attributes do
-    NewXMLNode.Attributes[Attr.Key] := Attr.Value;
-
-  for ChildNode in Node.ChildNodes do
-    NodeToXML(XMLDoc, NewXMLNode, ChildNode);
+  NodeToXMLInternal(Node, '');
 end;
 
-class function TSyntaxTreeWriter.ToXML(Root: TSyntaxNode): string;
+class function TSyntaxTreeWriter.ToXML(const Root: TSyntaxNode; 
+  Formatted: Boolean): string;
 var
-  XMLDoc: IXMLDocument;
+  Builder: TStringBuilder;
 begin
-  XMLDoc := NewXmlDocument;
+  Builder := TStringBuilder.Create;
   try
-    NodeToXML(XMLDoc, nil, Root);
+    NodeToXml(Builder, Root, Formatted);
+    Result := '<?xml version="1.0"?>' + sLineBreak + Builder.ToString;
   finally
-    XmlDoc.SaveToXML(Result);
+    Builder.Free;
   end;
 end;
 
