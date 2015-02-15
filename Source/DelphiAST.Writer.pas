@@ -8,10 +8,10 @@ uses
 type
   TSyntaxTreeWriter = class
   private
-    class procedure NodeToXML(const Builder: TStringBuilder; 
+    class procedure NodeToXML(const Builder: TStringBuilder;
       const Node: TSyntaxNode; Formatted: Boolean); static;
   public
-    class function ToXML(const Root: TSyntaxNode; 
+    class function ToXML(const Root: TSyntaxNode;
       Formatted: Boolean = False): string; static;
   end;
 
@@ -20,14 +20,46 @@ implementation
 uses
   Generics.Collections;
 
+{$I SimpleParser.inc}
+{$IFDEF D18_NEWER}
+  {$ZEROBASEDSTRINGS OFF}
+{$ENDIF}
+
 { TSyntaxTreeWriter }
 
 class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder; 
   const Node: TSyntaxNode; Formatted: Boolean);
 
+  function XMLEncode(const Data: string): string;
+  var
+    i, n: Integer;
+
+    procedure Encode(const s: string);
+    begin
+      Move(s[1], Result[n], Length(s) * SizeOf(Char));
+      Inc(n, Length(s));
+    end;
+
+  begin
+    SetLength(Result, Length(Data) * 6);
+    n := 1;
+    for i := 1 to Length(Data) do
+      case Data[i] of
+        '<': Encode('&lt;');
+        '>': Encode('&gt;');
+        '&': Encode('&amp;');
+        '"': Encode('&quot;');
+        '''': Encode('&apos;');
+      else
+        Result[n] := Data[i];
+        Inc(n);
+      end;
+    SetLength(Result, n - 1);
+  end;
+
   procedure NodeToXMLInternal(const Node: TSyntaxNode; const Indent: string);
   var
-    HasChildren: Boolean;  
+    HasChildren: Boolean;
     NewIndent: string;
     Attr: TPair<string, string>;
     ChildNode: TSyntaxNode;
@@ -40,7 +72,7 @@ class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
     end;
     Builder.Append('<' + UpperCase(Node.Name));  
     for Attr in Node.Attributes do
-      Builder.Append(' ' + Attr.Key + '="' + Attr.Value + '"');  
+      Builder.Append(' ' + Attr.Key + '="' + XMLEncode(Attr.Value) + '"');
     if HasChildren then
       Builder.Append('>')
     else
