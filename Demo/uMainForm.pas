@@ -25,7 +25,7 @@ var
 implementation
 
 uses
-  DelphiAST, DelphiAST.Writer, DelphiAST.Classes, XmlDoc;
+  DelphiAST, DelphiAST.Writer, DelphiAST.Classes;
 
 {$R *.dfm}
 
@@ -47,7 +47,7 @@ begin
 
       SyntaxTree := ASTBuilder.Run(StringStream);
       try
-        Result := TSyntaxTreeWriter.ToXML(SyntaxTree);
+        Result := TSyntaxTreeWriter.ToXML(SyntaxTree, True);
       finally
         SyntaxTree.Free;
       end;
@@ -70,7 +70,7 @@ begin
       SL.LoadFromFile(OpenDialog1.FileName);
 
       try
-        Memo1.Lines.Text := FormatXMLData(Parse(SL.Text));
+        Memo1.Lines.Text := Parse(SL.Text);
       except
         on E: EParserException do
           Memo1.Lines.Add(Format('[%d, %d] %s', [E.Line, E.Col, E.Message]));
