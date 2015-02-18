@@ -18,6 +18,7 @@ const
   sDIV            = 'div';
   sDOT            = 'dot';
   sEQUAL          = 'equal';
+  sEXPRESSION     = 'expression';
   sFDIV           = 'fdiv';
   sGENERIC        = 'generic';
   sGREATER        = 'greater';

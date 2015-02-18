@@ -300,7 +300,7 @@ begin
 
     if RawExprNode.HasChildren then
     begin
-      ExprNode := FStack.Push('EXPRESSION', False);
+      ExprNode := FStack.Push(sEXPRESSION, False);
       try
         ExprNode.SetAttribute('line', IntToStr(Line));
         ExprNode.SetAttribute('col', IntToStr(Col));
@@ -879,7 +879,9 @@ begin
   try
     inherited;
     NameNode := FStack.Peek.FindNode(sUNIT);
-    PathNode := FStack.Peek.FindNode(sLITERAL);
+    PathNode := FStack.Peek.FindNode(sEXPRESSION);
+    if Assigned(PathNode) then
+      PathNode := PathNode.FindNode(sLITERAL);
 
     if Assigned(NameNode) then
     begin
