@@ -498,7 +498,6 @@ type
     procedure VarEqual; virtual;
     procedure VarDeclaration; virtual;
     procedure Variable; virtual;
-    procedure VariableList; virtual;
     procedure VariableReference; virtual;
     procedure VariantIdentifier; virtual;
     procedure VariantSection; virtual;
@@ -513,6 +512,7 @@ type
     procedure VisibilityPublished; virtual;
     procedure VisibilityUnknown; virtual;
     procedure WhileStatement; virtual;
+    procedure WithExpressionList; virtual;
     procedure WithStatement; virtual;
     procedure WriteAccessIdentifier; virtual;
     //JThurman 2004-03-21
@@ -2473,18 +2473,18 @@ end;
 procedure TmwSimplePasPar.WithStatement;
 begin
   Expected(ptWith);
-  VariableList;
+  WithExpressionList;
   Expected(ptDo);
   Statement;
 end;
 
-procedure TmwSimplePasPar.VariableList;
+procedure TmwSimplePasPar.WithExpressionList;
 begin
-  VariableReference; (* acessing func.recordfield not allowed here;as well as UNITNAMEID *)
+  Expression;
   while FLexer.TokenID = ptComma do
   begin
     NextToken;
-    VariableReference;
+    Expression;
   end;
 end;
 
