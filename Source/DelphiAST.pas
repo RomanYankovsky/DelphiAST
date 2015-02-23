@@ -61,6 +61,7 @@ type
     procedure AtExpression; override;
     procedure CaseElseStatement; override;
     procedure CaseLabel; override;
+    procedure CaseLabelList; override;
     procedure CaseSelector; override;
     procedure CaseStatement; override;
     procedure ClassField; override;
@@ -165,6 +166,7 @@ type
     procedure VisibilityPublic; override;
     procedure VisibilityPublished; override;
     procedure WhileStatement; override;
+    procedure WithExpressionList; override;
     procedure WithStatement; override;
   public
     constructor Create;
@@ -335,6 +337,16 @@ end;
 procedure TPasSyntaxTreeBuilder.CaseLabel;
 begin
   FStack.Push('caselabel');
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.CaseLabelList;
+begin
+  FStack.Push('caselabels');
   try
     inherited;
   finally
@@ -763,8 +775,8 @@ end;
 
 procedure TPasSyntaxTreeBuilder.FunctionProcedureName;
 var
-  ChildNode, nameNode: TSyntaxNode;
-  FullName: string;
+  ChildNode, nameNode, TypeParam: TSyntaxNode;
+  FullName, TypeParams: string;
 begin
   FStack.Push(sNAME);
   nameNode := FStack.Peek;
@@ -772,6 +784,21 @@ begin
     inherited;
     for ChildNode in nameNode.ChildNodes do
     begin
+      if SameText(ChildNode.Name, sTYPEPARAMS) then
+      begin
+        TypeParams := '';
+
+        for TypeParam in ChildNode.ChildNodes do
+        begin
+          if TypeParams <> '' then
+            TypeParams := TypeParams + ',';
+          TypeParams := TypeParams + TypeParam.GetAttribute(sNAME);
+        end;
+
+        FullName := FullName + '<' + TypeParams + '>';
+        Continue;
+      end;
+
       if FullName <> '' then
         FullName := FullName + '.';
       FullName := FullName + ChildNode.GetAttribute(sVALUE);
@@ -1466,7 +1493,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.TypeParams;
 begin
-  FStack.Push('TYPEPARAMS');
+  FStack.Push(sTYPEPARAMS);
   try
     inherited;
   finally
@@ -1680,6 +1707,16 @@ end;
 procedure TPasSyntaxTreeBuilder.WhileStatement;
 begin
   FStack.Push(Lexer.Token);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.WithExpressionList;
+begin
+  FStack.Push('expressions');
   try
     inherited;
   finally

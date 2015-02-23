@@ -49,6 +49,7 @@ const
   sSUB            = 'sub';
   sTYPE           = 'type';
   sTYPEARGS       = 'typeargs';
+  sTYPEPARAMS     = 'typeparams';
   sVALUE          = 'value';
   sVARIABLE       = 'variable';
   sVARIABLES      = 'variables';

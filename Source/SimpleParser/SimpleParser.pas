@@ -249,6 +249,7 @@ type
     procedure Block; virtual;
     procedure CaseElseStatement; virtual;
     procedure CaseLabel; virtual;
+    procedure CaseLabelList; virtual;
     procedure CaseSelector; virtual;
     procedure CaseStatement; virtual;
     procedure CharString; virtual;
@@ -2241,12 +2242,7 @@ end;
 
 procedure TmwSimplePasPar.CaseSelector;
 begin
-  CaseLabel;
-  while TokenID = ptComma do
-  begin
-    NextToken;
-    CaseLabel;
-  end;
+  CaseLabelList;
   Expected(ptColon);
   case TokenID of
     ptSemiColon: ;
@@ -5382,6 +5378,16 @@ end;
 function TmwSimplePasPar.IsDefined(const ADefine: string): Boolean;
 begin
   Result := FLexer.IsDefined(ADefine);
+end;
+
+procedure TmwSimplePasPar.CaseLabelList;
+begin
+  CaseLabel;
+  while TokenID = ptComma do
+  begin
+    NextToken;
+    CaseLabel;
+  end;
 end;
 
 procedure TmwSimplePasPar.ArrayBounds;
