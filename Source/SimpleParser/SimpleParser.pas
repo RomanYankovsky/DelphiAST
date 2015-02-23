@@ -3588,6 +3588,8 @@ begin
         if Lexer.ExID = ptHelper then
         begin
           ExpectedEx(ptHelper);
+          if TokenID = ptRoundOpen then
+            ClassHeritage;
           Expected(ptFor);
           TypeId;
         end;
