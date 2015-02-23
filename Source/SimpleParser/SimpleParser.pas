@@ -1625,7 +1625,7 @@ begin
   begin
     FormalParameterList;
   end;
-  Semicolon;
+  if TokenID = ptSemiColon then Semicolon;
   ClassMethodDirective;
 end;
 
@@ -1642,7 +1642,7 @@ begin
   begin
     FormalParameterList;
   end;
-  Semicolon;
+  if TokenID = ptSemiColon then Semicolon;
   ClassMethodDirective;
 end;
 
