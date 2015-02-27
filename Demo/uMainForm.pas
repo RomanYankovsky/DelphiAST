@@ -31,31 +31,14 @@ uses
 
 function Parse(const FileName: string): string;
 var
-  ASTBuilder: TPasSyntaxTreeBuilder;
-  StringStream: TStringStream;
   SyntaxTree: TSyntaxNode;
 begin
   Result := '';
-
-  StringStream := TStringStream.Create;
+  SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName);
   try
-    StringStream.LoadFromFile(FileName);
-
-    ASTBuilder := TPasSyntaxTreeBuilder.Create;
-    try
-      ASTBuilder.InitDefinesDefinedByCompiler;
-
-      SyntaxTree := ASTBuilder.Run(StringStream);
-      try
-        Result := TSyntaxTreeWriter.ToXML(SyntaxTree, True);
-      finally
-        SyntaxTree.Free;
-      end;
-    finally
-      ASTBuilder.Free;
-    end;
+    Result := TSyntaxTreeWriter.ToXML(SyntaxTree, True);
   finally
-    StringStream.Free;
+    SyntaxTree.Free;
   end;
 end;
 

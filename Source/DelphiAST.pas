@@ -175,7 +175,8 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function Run(SourceStream: TStream): TSyntaxNode; reintroduce;
+    function Run(SourceStream: TStream): TSyntaxNode; reintroduce; overload;
+    class function Run(const FileName: string): TSyntaxNode; reintroduce; overload; static;
   end;
 
 implementation
@@ -1239,6 +1240,26 @@ procedure TPasSyntaxTreeBuilder.RoundOpen;
 begin
   FStack.AddChild(sROUNDOPEN);
   inherited;
+end;
+
+class function TPasSyntaxTreeBuilder.Run(const FileName: string): TSyntaxNode;
+var
+  Stream: TStringStream;
+  Builder: TPasSyntaxTreeBuilder;
+begin
+  Stream := TStringStream.Create;
+  try
+    Stream.LoadFromFile(FileName);
+    Builder := TPasSyntaxTreeBuilder.Create;
+    try
+      Builder.InitDefinesDefinedByCompiler;
+      Result := Builder.Run(Stream);
+    finally
+      Builder.Free;
+    end;
+  finally
+    Stream.Free;
+  end;
 end;
 
 function TPasSyntaxTreeBuilder.Run(SourceStream: TStream): TSyntaxNode;
