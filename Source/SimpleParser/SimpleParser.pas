@@ -195,8 +195,6 @@ type
   private
     FOnMessage: TMessageEvent;
     FLexer: TmwPasLex;
-    FOwnStream: Boolean;
-    FStream: TCustomMemoryStream;
     FInterfaceOnly: Boolean;
     FLastNoJunkPos: Integer;
     FLastNoJunkLen: Integer;
@@ -226,7 +224,6 @@ type
     procedure HandlePtElseIfDirect(Sender: TmwBasePasLex); virtual;
     procedure NextToken; virtual;
     procedure SkipJunk; virtual;
-    procedure TerminateStream; virtual;
     procedure Semicolon; virtual;
     function GetExID: TptTokenKind; virtual;
     function GetTokenID: TptTokenKind; virtual;
@@ -547,7 +544,7 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure SynError(Error: TmwParseError); virtual;
-    procedure Run(UnitName: string; SourceStream: TCustomMemoryStream); virtual;
+    procedure Run(const UnitName: string; SourceStream: TStream); virtual;
 
     procedure ClearDefines;
     procedure InitDefinesDefinedByCompiler;
@@ -633,16 +630,23 @@ begin
   Semicolon;
 end;
 
-procedure TmwSimplePasPar.Run(UnitName: string; SourceStream: TCustomMemoryStream);
+procedure TmwSimplePasPar.Run(const UnitName: string; SourceStream: TStream);
+var
+  StringStream: TStringStream;
+  OwnStream: Boolean;
 begin
-  FStream := nil;
-  FOwnStream := False;
-  FStream := SourceStream;
-  TerminateStream;
-  FLexer.Origin := FStream.Memory;
+  OwnStream := not (SourceStream is TStringStream);
+  if OwnStream then
+  begin
+    StringStream := TStringStream.Create;
+    StringStream.LoadFromStream(SourceStream);
+  end
+  else
+    StringStream := TStringStream(SourceStream);
+  FLexer.Origin := PChar(StringStream.DataString);
   ParseFile;
-  if FOwnStream then
-    FStream.Free;
+  if OwnStream then
+    StringStream.Free;
 end;
 
 constructor TmwSimplePasPar.Create;
@@ -894,15 +898,6 @@ end;
 procedure TmwSimplePasPar.SkipSlashesComment;
 begin
   Expected(ptSlashesComment);
-end;
-
-procedure TmwSimplePasPar.TerminateStream;
-var
-  aChar: Char;
-begin
-  FStream.Position := FStream.Size;
-  aChar := #0;
-  FStream.Write(aChar, sizeof(char));
 end;
 
 procedure TmwSimplePasPar.ThenStatement;

@@ -175,7 +175,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function Run(SourceStream: TCustomMemoryStream): TSyntaxNode; reintroduce;
+    function Run(SourceStream: TStream): TSyntaxNode; reintroduce;
   end;
 
 implementation
@@ -1241,7 +1241,7 @@ begin
   inherited;
 end;
 
-function TPasSyntaxTreeBuilder.Run(SourceStream: TCustomMemoryStream): TSyntaxNode;
+function TPasSyntaxTreeBuilder.Run(SourceStream: TStream): TSyntaxNode;
 begin
   Result := TSyntaxNode.Create(sUNIT);
   try

@@ -29,7 +29,7 @@ uses
 
 {$R *.dfm}
 
-function Parse(const Content: string): string;
+function Parse(const FileName: string): string;
 var
   ASTBuilder: TPasSyntaxTreeBuilder;
   StringStream: TStringStream;
@@ -37,9 +37,9 @@ var
 begin
   Result := '';
 
-  StringStream := TStringStream.Create(Content, TEncoding.Unicode);
+  StringStream := TStringStream.Create;
   try
-    StringStream.Position := 0;
+    StringStream.LoadFromFile(FileName);
 
     ASTBuilder := TPasSyntaxTreeBuilder.Create;
     try
@@ -60,23 +60,14 @@ begin
 end;
 
 procedure TForm1.OpenDelphiUnit1Click(Sender: TObject);
-var
-  SL: TStringList;
 begin
   if OpenDialog1.Execute then
   begin
-    SL := TStringList.Create;
     try
-      SL.LoadFromFile(OpenDialog1.FileName);
-
-      try
-        Memo1.Lines.Text := Parse(SL.Text);
-      except
-        on E: EParserException do
-          Memo1.Lines.Add(Format('[%d, %d] %s', [E.Line, E.Col, E.Message]));
-      end;
-    finally
-      SL.Free;
+      Memo1.Lines.Text := Parse(OpenDialog1.FileName);
+    except
+      on E: EParserException do
+        Memo1.Lines.Add(Format('[%d, %d] %s', [E.Line, E.Col, E.Message]));
     end;
   end;
 end;
