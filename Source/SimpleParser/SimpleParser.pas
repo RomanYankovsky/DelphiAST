@@ -2819,7 +2819,7 @@ begin
       end;
     ptString:
       begin
-        TypeSimple;
+        StringType;
       end;
     ptFunction, ptProcedure:
       AnonymousMethod;
@@ -4436,23 +4436,11 @@ end;
 procedure TmwSimplePasPar.TypeId;
 begin
   TypeSimple;
-  if TokenId = ptLower then
-  begin
-    Expected(ptLower);
-    TypeArgs;
-    Expected(ptGreater);
-  end;
 
   while TokenID = ptPoint do
   begin
     Expected(ptPoint);
     TypeSimple;
-    if TokenId = ptLower then
-    begin
-      Expected(ptLower);
-      TypeArgs;
-      Expected(ptGreater);
-    end;
   end;
 
   if TokenID = ptRoundOpen then
@@ -4811,6 +4799,13 @@ begin
       end
   else
     Expected(ptIdentifier);
+  end;
+
+  if TokenId = ptLower then
+  begin
+    Expected(ptLower);
+    TypeArgs;
+    Expected(ptGreater);
   end;
 end;
 
