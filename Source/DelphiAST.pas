@@ -546,6 +546,8 @@ var
 begin
   ConstSect := TSyntaxNode.Create('constants');
   try
+    FStack.Push(sCONSTANTS);
+
     FStack.Push(ConstSect);
     try
       inherited ConstSection;
@@ -553,7 +555,6 @@ begin
       FStack.Pop;
     end;
 
-    FStack.Push(sCONSTANTS);
     for ConstList in ConstSect.ChildNodes do
     begin
       TypeInfo := ConstList.FindNode(UpperCase(sTYPE));
