@@ -121,6 +121,7 @@ type
     procedure ParameterName; override;
     procedure PointerSymbol; override;
     procedure PointerType; override;
+    procedure ProceduralType; override;
     procedure ProcedureHeading; override;
     procedure ProcedureDeclarationSection; override;
     procedure ProcedureProcedureName; override;
@@ -139,10 +140,12 @@ type
     procedure SetConstructor; override;
     procedure SetElement; override;
     procedure SimpleStatement; override;
+    procedure SimpleType; override;
     procedure StatementList; override;
     procedure StringConst; override;
     procedure StringConstSimple; override;
     procedure StringType; override;
+    procedure StructuredType; override;
     procedure ThenStatement; override;
     procedure TryStatement; override;
     procedure TypeArgs; override;
@@ -1058,6 +1061,16 @@ begin
   inherited;
 end;
 
+procedure TPasSyntaxTreeBuilder.ProceduralType;
+begin
+  FStack.Push(sTYPE).SetAttribute(sNAME, Lexer.Token);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.ProcedureDeclarationSection;
 begin
   FStack.Push('method');
@@ -1357,6 +1370,16 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.SimpleType;
+begin
+  FStack.Push(sTYPE).SetAttribute(sNAME, Lexer.Token);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.StatementList;
 begin
   FStack.Push('statements', False);
@@ -1404,6 +1427,16 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.StringType;
+begin
+  FStack.Push(sTYPE).SetAttribute(sNAME, Lexer.Token);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.StructuredType;
 begin
   FStack.Push(sTYPE).SetAttribute(sNAME, Lexer.Token);
   try
@@ -1471,10 +1504,8 @@ begin
       compound.SetAttribute(sNAME, compoundType);
       compound.SetAttribute('compound', 'true');
     end
-    else begin
-      FStack.AddChild(sTYPE).SetAttribute(sNAME, Lexer.Token);
+    else
       compound := nil;
-    end;
   end;
   try
     inherited;
