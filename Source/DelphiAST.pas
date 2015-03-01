@@ -1657,6 +1657,8 @@ var
 begin
   VarSect := TSyntaxNode.Create('variables');
   try
+    FStack.Push(sVARIABLES);
+
     FStack.Push(VarSect);
     try
       inherited VarSection;
@@ -1664,7 +1666,6 @@ begin
       FStack.Pop;
     end;
 
-    FStack.Push(sVARIABLES);
     for VarList in VarSect.ChildNodes do
     begin
       TypeInfo := VarList.FindNode(UpperCase(sTYPE));
@@ -1686,6 +1687,7 @@ begin
         end;
       end;
     end;
+
     FStack.Pop;
   finally
     VarSect.Free;
