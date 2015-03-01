@@ -630,6 +630,36 @@ begin
   Semicolon;
 end;
 
+type
+  TBytesStreamHelper = class helper for TBytesStream
+    function GetBytes: TBytes;
+    property Bytes: TBytes read GetBytes;
+  end;
+
+  TStringStreamHelper = class helper for TStringStream
+    function GetDataString: string;
+    property DataString: string read GetDataString;
+  end;
+
+function TBytesStreamHelper.GetBytes: TBytes;
+begin
+  Result := Self.FBytes;
+end;
+
+function TStringStreamHelper.GetDataString: string;
+begin
+  // try to read a bom from the buffer to create the correct encoding
+  // but only if the encoding is still the default encoding
+  if Self.FEncoding = TEncoding.Default then
+  begin
+    Self.FEncoding := nil;
+    TEncoding.GetBufferEncoding(Bytes, Self.FEncoding);
+    Result := Self.FEncoding.GetString(Bytes, Length(Self.FEncoding.GetPreamble), Size);
+  end
+  else
+    Result := Self.FEncoding.GetString(Bytes, 0, Size);
+end;
+
 procedure TmwSimplePasPar.Run(const UnitName: string; SourceStream: TStream);
 var
   StringStream: TStringStream;
