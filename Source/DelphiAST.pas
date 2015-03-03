@@ -175,7 +175,8 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function Run(SourceStream: TCustomMemoryStream): TSyntaxNode; reintroduce;
+    function Run(SourceStream: TStream): TSyntaxNode; reintroduce; overload;
+    class function Run(const FileName: string): TSyntaxNode; reintroduce; overload; static;
   end;
 
 implementation
@@ -1241,7 +1242,27 @@ begin
   inherited;
 end;
 
-function TPasSyntaxTreeBuilder.Run(SourceStream: TCustomMemoryStream): TSyntaxNode;
+class function TPasSyntaxTreeBuilder.Run(const FileName: string): TSyntaxNode;
+var
+  Stream: TStringStream;
+  Builder: TPasSyntaxTreeBuilder;
+begin
+  Stream := TStringStream.Create;
+  try
+    Stream.LoadFromFile(FileName);
+    Builder := TPasSyntaxTreeBuilder.Create;
+    try
+      Builder.InitDefinesDefinedByCompiler;
+      Result := Builder.Run(Stream);
+    finally
+      Builder.Free;
+    end;
+  finally
+    Stream.Free;
+  end;
+end;
+
+function TPasSyntaxTreeBuilder.Run(SourceStream: TStream): TSyntaxNode;
 begin
   Result := TSyntaxNode.Create(sUNIT);
   try

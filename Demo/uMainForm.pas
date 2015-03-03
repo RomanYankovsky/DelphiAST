@@ -29,54 +29,28 @@ uses
 
 {$R *.dfm}
 
-function Parse(const Content: string): string;
+function Parse(const FileName: string): string;
 var
-  ASTBuilder: TPasSyntaxTreeBuilder;
-  StringStream: TStringStream;
   SyntaxTree: TSyntaxNode;
 begin
   Result := '';
-
-  StringStream := TStringStream.Create(Content, TEncoding.Unicode);
+  SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName);
   try
-    StringStream.Position := 0;
-
-    ASTBuilder := TPasSyntaxTreeBuilder.Create;
-    try
-      ASTBuilder.InitDefinesDefinedByCompiler;
-
-      SyntaxTree := ASTBuilder.Run(StringStream);
-      try
-        Result := TSyntaxTreeWriter.ToXML(SyntaxTree, True);
-      finally
-        SyntaxTree.Free;
-      end;
-    finally
-      ASTBuilder.Free;
-    end;
+    Result := TSyntaxTreeWriter.ToXML(SyntaxTree, True);
   finally
-    StringStream.Free;
+    SyntaxTree.Free;
   end;
 end;
 
 procedure TForm1.OpenDelphiUnit1Click(Sender: TObject);
-var
-  SL: TStringList;
 begin
   if OpenDialog1.Execute then
   begin
-    SL := TStringList.Create;
     try
-      SL.LoadFromFile(OpenDialog1.FileName);
-
-      try
-        Memo1.Lines.Text := Parse(SL.Text);
-      except
-        on E: EParserException do
-          Memo1.Lines.Add(Format('[%d, %d] %s', [E.Line, E.Col, E.Message]));
-      end;
-    finally
-      SL.Free;
+      Memo1.Lines.Text := Parse(OpenDialog1.FileName);
+    except
+      on E: EParserException do
+        Memo1.Lines.Add(Format('[%d, %d] %s', [E.Line, E.Col, E.Message]));
     end;
   end;
 end;
