@@ -523,19 +523,21 @@ type
     procedure GlobalAttributeTargetSpecifier;
     procedure GlobalAttributeTarget;
     procedure Attributes;
-    procedure AttributeSections;
+    procedure AttributeSections; virtual;
     procedure AttributeSection;
     procedure AttributeTargetSpecifier;
     procedure AttributeTarget;
     procedure AttributeList;
-    procedure Attribute;
-    procedure AttributeName;
-    procedure AttributeArguments;
+    procedure Attribute; virtual;
+    procedure AttributeName; virtual;
+    procedure AttributeArguments; virtual;
     procedure PositionalArgumentList;
-    procedure PositionalArgument;
+    procedure PositionalArgument; virtual;
     procedure NamedArgumentList;
-    procedure NamedArgument;
-    procedure AttributeArgumentExpression;
+    procedure NamedArgument; virtual;
+    procedure AttributeArgumentName; virtual;
+    procedure AttributeArgumentExpression; virtual;
+
     property ExID: TptTokenKind read GetExID;
     property GenID: TptTokenKind read GetGenID;
     property TokenID: TptTokenKind read GetTokenID;
@@ -5402,6 +5404,11 @@ begin
   Result := FLexer.IsDefined(ADefine);
 end;
 
+procedure TmwSimplePasPar.AttributeArgumentName;
+begin
+  Expected(ptIdentifier);
+end;
+
 procedure TmwSimplePasPar.CaseLabelList;
 begin
   CaseLabel;
@@ -5627,7 +5634,7 @@ end;
 
 procedure TmwSimplePasPar.NamedArgument;
 begin
-  Expected(ptIdentifier);
+  AttributeArgumentName;
   Expected(ptEqual);
   AttributeArgumentExpression;
 end;

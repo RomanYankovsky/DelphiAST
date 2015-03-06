@@ -7,8 +7,11 @@ const
   sADDR           = 'addr';
   sALIGNMENTPARAM = 'alignmentparam';
   sAND            = 'and';
+  sARGUMENTS      = 'arguments';
   sAS             = 'as';
   sASSIGN         = 'assign';
+  sATTRIBUTE      = 'attribute';
+  sATTRIBUTES     = 'attributes';
   sBOUNDS         = 'bounds';
   sCALL           = 'call';
   sCONSTANT       = 'constant';
@@ -33,6 +36,7 @@ const
   sMETHOD         = 'method';
   sMUL            = 'mul';
   sNAME           = 'name';
+  sNAMEDARGUMENT  = 'namedargument';
   sNOTEQUAL       = 'notequal';
   sMOD            = 'mod';
   sNOT            = 'not';
@@ -40,6 +44,7 @@ const
   sPARAMETER      = 'parameter';
   sPARAMETERS     = 'parameters';
   sPATH           = 'path';
+  sPOSITIONALARG  = 'positionalargument';
   sREPEAT         = 'repeat';
   sRETURNTYPE     = 'returntype';
   sROUNDCLOSE     = 'roundclose';

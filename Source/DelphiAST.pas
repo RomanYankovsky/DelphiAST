@@ -171,6 +171,15 @@ type
     procedure WhileStatement; override;
     procedure WithExpressionList; override;
     procedure WithStatement; override;
+
+    procedure AttributeSections; override;
+    procedure Attribute; override;
+    procedure AttributeName; override;
+    procedure AttributeArguments; override;
+    procedure PositionalArgument; override;
+    procedure NamedArgument; override;
+    procedure AttributeArgumentName; override;
+    procedure AttributeArgumentExpression; override;
   public
     constructor Create;
     destructor Destroy; override;
@@ -275,6 +284,58 @@ end;
 procedure TPasSyntaxTreeBuilder.AtExpression;
 begin
   FStack.Push(Lexer.Token);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.Attribute;
+begin
+  FStack.Push(sATTRIBUTE);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.AttributeArgumentExpression;
+begin
+  FStack.Push(sVALUE);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.AttributeArgumentName;
+begin
+  FStack.AddChild(sNAME).SetAttribute(sVALUE, Lexer.Token);
+  inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.AttributeArguments;
+begin
+  FStack.Push(sARGUMENTS);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.AttributeName;
+begin
+  FStack.AddChild(sNAME).SetAttribute(sVALUE, Lexer.Token);
+  inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.AttributeSections;
+begin
+  FStack.Push(sATTRIBUTES);
   try
     inherited;
   finally
@@ -983,6 +1044,16 @@ begin
   inherited;
 end;
 
+procedure TPasSyntaxTreeBuilder.NamedArgument;
+begin
+  FStack.Push(sNAMEDARGUMENT);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.NewFormalParameterType;
 begin
   FStack.AddChild(sTYPE).SetAttribute(sNAME, Lexer.Token);
@@ -1060,6 +1131,16 @@ procedure TPasSyntaxTreeBuilder.PointerType;
 begin
   FStack.Peek.SetAttribute(sTYPE, 'pointer');
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.PositionalArgument;
+begin
+  FStack.Push(sPOSITIONALARG);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.ProceduralType;
