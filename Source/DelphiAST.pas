@@ -775,7 +775,7 @@ end;
 procedure TPasSyntaxTreeBuilder.FormalParameterList;
 var
   Params: TSyntaxNode;
-  ParamList, Param, TypeInfo: TSyntaxNode;
+  ParamList, Param, TypeInfo, ParamExpr: TSyntaxNode;
   ParamKind: string;
   Position: TTokenPoint;
 begin
@@ -795,6 +795,8 @@ begin
     begin
       TypeInfo := ParamList.FindNode(sTYPE);
       ParamKind := ParamList.GetAttribute('kind');
+      ParamExpr := ParamList.FindNode(sEXPRESSION);
+
       for Param in ParamList.ChildNodes do
       begin
         if not SameText(Param.Name, sNAME) then
@@ -807,6 +809,9 @@ begin
         FStack.AddChild(Param.Clone);
         if Assigned(TypeInfo) then
           FStack.AddChild(TypeInfo.Clone);
+
+        if Assigned(ParamExpr) then
+          FStack.AddChild(ParamExpr.Clone);
 
         FStack.Pop;
       end;
