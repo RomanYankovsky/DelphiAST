@@ -55,6 +55,8 @@ type
     procedure AlignmentParameter; override;
     procedure AnonymousMethod; override;
     procedure ArrayBounds; override;
+    procedure ArrayConstant; override;
+    procedure ArrayDimension; override;
     procedure AsmStatement; override;
     procedure AsOp; override;
     procedure AssignOp; override;
@@ -254,6 +256,26 @@ end;
 procedure TPasSyntaxTreeBuilder.ArrayBounds;
 begin
   FStack.Push(sBOUNDS);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ArrayConstant;
+begin
+  FStack.Push(sEXPRESSIONS);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ArrayDimension;
+begin
+  FStack.Push(sDIMENSION);
   try
     inherited;
   finally
@@ -752,7 +774,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ExpressionList;
 begin
-  FStack.Push('expressions', False);
+  FStack.Push(sEXPRESSIONS, False);
   try
     inherited;
   finally
@@ -1901,7 +1923,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.WithExpressionList;
 begin
-  FStack.Push('expressions');
+  FStack.Push(sEXPRESSIONS);
   try
     inherited;
   finally

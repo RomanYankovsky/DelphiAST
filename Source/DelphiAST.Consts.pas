@@ -18,10 +18,12 @@ const
   sCONSTANTS      = 'constants';
   sCONTAINS       = 'contains';
   sDEREF          = 'deref';
+  sDIMENSION      = 'dimension';
   sDIV            = 'div';
   sDOT            = 'dot';
   sEQUAL          = 'equal';
   sEXPRESSION     = 'expression';
+  sEXPRESSIONS    = 'expressions';
   sFDIV           = 'fdiv';
   sFROM           = 'from';
   sGENERIC        = 'generic';

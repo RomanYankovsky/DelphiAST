@@ -239,6 +239,7 @@ type
     procedure AnonymousMethodType; virtual;
     procedure ArrayConstant; virtual;
     procedure ArrayBounds; virtual;
+    procedure ArrayDimension; virtual;
     procedure ArrayType; virtual;
     procedure AsmStatement; virtual;
     procedure AssignOp; virtual;
@@ -4238,6 +4239,11 @@ begin
   Expected(ptRoundClose);
 end;
 
+procedure TmwSimplePasPar.ArrayDimension;
+begin
+  OrdinalType;
+end;
+
 procedure TmwSimplePasPar.ClassForward;
 begin
   Expected(ptClass);
@@ -5440,11 +5446,11 @@ begin
   if TokenID = ptSquareOpen then
   begin
     NextToken;
-    OrdinalType;
+    ArrayDimension;
     while TokenID = ptComma do
     begin
       NextToken;
-      OrdinalType;
+      ArrayDimension;
     end;
     Expected(ptSquareClose);
   end;
