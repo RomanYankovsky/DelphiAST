@@ -2097,55 +2097,48 @@ end;
 
 procedure TmwSimplePasPar.FunctionProcedureBlock;
 var
-  NoExternal: Boolean;
+  HasBlock: Boolean;
 begin
-  NoExternal := True;
-  if TokenID = ptSemiColon
-    then Semicolon;
-  case ExID of
-    ptForward:
-      ForwardDeclaration;
-  else
-    while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptDelayed, ptFar,
-      ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
-      ptReintroduce, ptSafeCall, ptStdCall, ptVirtual, ptDeprecated, ptLibrary,
-      ptPlatform,  ptLocal, ptVarargs, ptAssembler, ptStatic, ptInline] do
-      begin
-        case ExId of
-          ptExternal:
-            begin
-              ProceduralDirective;
-              if TokenID = ptSemiColon then Semicolon;
-              NoExternal := False;
-            end;
-        else
-          begin
-            ProceduralDirective;
-            if TokenID = ptSemiColon then Semicolon;
-          end;
-        end;
-      end;
-    if ExID = ptForward then
-      ForwardDeclaration
-    else if NoExternal then
-    begin
-      if ExId = ptAssembler then
-      begin
-        NextToken;
-        Semicolon;
-      end;
-      case TokenID of
-        ptAsm:
-          begin
-            AsmStatement;
-          end;
-      else
+  HasBlock := True;
+  if TokenID = ptSemiColon then Semicolon;
+
+  while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptDelayed, ptFar,
+    ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
+    ptReintroduce, ptSafeCall, ptStdCall, ptVirtual, ptDeprecated, ptLibrary,
+    ptPlatform, ptLocal, ptVarargs, ptAssembler, ptStatic, ptInline, ptForward] do
+  begin
+    case ExId of
+      ptExternal:
         begin
-          Block;
+          ProceduralDirective;
+          HasBlock := False;
         end;
+      ptForward:
+        begin
+          ForwardDeclaration;
+          HasBlock := False;
+        end
+    else
+      begin
+        ProceduralDirective;
       end;
-      Semicolon;
     end;
+    if TokenID = ptSemiColon then Semicolon;
+  end;
+
+  if HasBlock then
+  begin
+    case TokenID of
+      ptAsm:
+        begin
+          AsmStatement;
+        end;
+    else
+      begin
+        Block;
+      end;
+    end;
+    Semicolon;
   end;
 end;
 
