@@ -23,6 +23,7 @@ const
   sEQUAL          = 'equal';
   sEXPRESSION     = 'expression';
   sFDIV           = 'fdiv';
+  sFROM           = 'from';
   sGENERIC        = 'generic';
   sGREATER        = 'greater';
   sGREATEREQUAL   = 'greaterequal';

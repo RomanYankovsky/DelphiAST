@@ -94,6 +94,10 @@ type
     procedure FinallyBlock; override;
     procedure FormalParameterList; override;
     procedure ForStatement; override;
+    procedure ForStatementDownTo; override;
+    procedure ForStatementFrom; override;
+    procedure ForStatementIn; override;
+    procedure ForStatementTo; override;
     procedure FunctionHeading; override;
     procedure FunctionMethodName; override;
     procedure FunctionProcedureName; override;
@@ -823,6 +827,46 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.ForStatement;
+begin
+  FStack.Push(Lexer.Token);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ForStatementDownTo;
+begin
+  FStack.Push(Lexer.Token);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ForStatementFrom;
+begin
+  FStack.Push(sFROM);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ForStatementIn;
+begin
+  FStack.Push(Lexer.Token);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ForStatementTo;
 begin
   FStack.Push(Lexer.Token);
   try

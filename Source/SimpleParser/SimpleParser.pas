@@ -328,6 +328,10 @@ type
     procedure FormalParameterList; virtual;
     procedure FormalParameterSection; virtual;
     procedure ForStatement; virtual;
+    procedure ForStatementDownTo; virtual;
+    procedure ForStatementFrom; virtual;
+    procedure ForStatementIn; virtual;
+    procedure ForStatementTo; virtual;
     procedure ForwardDeclaration; virtual;
     procedure FunctionHeading; virtual;
     procedure FunctionMethodDeclaration; virtual;
@@ -2205,30 +2209,49 @@ begin
   if Lexer.TokenID = ptAssign then
   begin
     Expected(ptAssign);
-    Expression;
+    ForStatementFrom;
     case TokenID of
       ptTo:
         begin
-          NextToken;
+          ForStatementTo;
         end;
       ptDownTo:
         begin
-          NextToken;
+          ForStatementDownTo;
         end;
     else
       begin
         SynError(InvalidForStatement);
       end;
     end;
-    Expression;
   end else
   if Lexer.TokenID = ptIn then
-  begin
-    Expected(ptIn);
-    Expression;
-  end;
+    ForStatementIn;
   Expected(ptDo);
   Statement;
+end;
+
+procedure TmwSimplePasPar.ForStatementDownTo;
+begin
+  Expected(ptDownTo);
+  Expression;
+end;
+
+procedure TmwSimplePasPar.ForStatementFrom;
+begin
+  Expression;
+end;
+
+procedure TmwSimplePasPar.ForStatementIn;
+begin
+  Expected(ptIn);
+  Expression;
+end;
+
+procedure TmwSimplePasPar.ForStatementTo;
+begin
+  Expected(ptTo);
+  Expression;
 end;
 
 procedure TmwSimplePasPar.WhileStatement;
