@@ -4180,14 +4180,6 @@ begin
         end else
           TypeId;
       end;
-    ptRoundOpen:
-      begin
-        EnumeratedType;
-      end;
-    ptSquareOpen:
-      begin
-        SubrangeType;
-      end;
   else
     begin
       VariableReference;
@@ -4374,10 +4366,17 @@ end;
 procedure TmwSimplePasPar.TypeKind;
 begin
   case TokenID of
-    ptAsciiChar, ptFloat, ptIntegerConst, ptMinus, ptNil, ptPlus, ptRoundOpen,
-      ptSquareOpen, ptStringConst:
+    ptAsciiChar, ptFloat, ptIntegerConst, ptMinus, ptNil, ptPlus, ptStringConst:
       begin
         SimpleType;
+      end;
+    ptRoundOpen:
+      begin
+        EnumeratedType;
+      end;
+    ptSquareOpen:
+      begin
+        SubrangeType;
       end;
     ptArray, ptFile, ptPacked, ptRecord, ptSet:
       begin

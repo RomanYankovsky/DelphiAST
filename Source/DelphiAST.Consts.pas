@@ -21,6 +21,7 @@ const
   sDIMENSION      = 'dimension';
   sDIV            = 'div';
   sDOT            = 'dot';
+  sENUM           = 'enum';
   sEQUAL          = 'equal';
   sEXPRESSION     = 'expression';
   sEXPRESSIONS    = 'expressions';
@@ -55,6 +56,7 @@ const
   sSHL            = 'shl';
   sSHR            = 'shr';
   sSUB            = 'sub';
+  sSUBRANGE       = 'subrange';
   sTYPE           = 'type';
   sTYPEARGS       = 'typeargs';
   sTYPEPARAMS     = 'typeparams';

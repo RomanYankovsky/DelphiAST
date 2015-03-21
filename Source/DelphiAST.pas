@@ -87,6 +87,7 @@ type
     procedure DirectiveBinding; override;
     procedure DotOp; override;
     procedure ElseStatement; override;
+    procedure EnumeratedType; override;
     procedure ExceptBlock; override;
     procedure ExceptionHandler; override;
     procedure ExportedHeading; override;
@@ -152,6 +153,7 @@ type
     procedure StringConstSimple; override;
     procedure StringType; override;
     procedure StructuredType; override;
+    procedure SubrangeType; override;
     procedure ThenStatement; override;
     procedure TryStatement; override;
     procedure TypeArgs; override;
@@ -726,6 +728,16 @@ end;
 procedure TPasSyntaxTreeBuilder.ElseStatement;
 begin
   FStack.Push(Lexer.Token);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.EnumeratedType;
+begin
+  FStack.Push(sTYPE).SetAttribute(sNAME, sENUM);
   try
     inherited;
   finally
@@ -1612,6 +1624,16 @@ end;
 procedure TPasSyntaxTreeBuilder.StructuredType;
 begin
   FStack.Push(sTYPE).SetAttribute(sNAME, Lexer.Token);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.SubrangeType;
+begin
+  FStack.Push(sTYPE).SetAttribute(sNAME, sSUBRANGE);
   try
     inherited;
   finally
