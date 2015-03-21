@@ -344,6 +344,7 @@ type
     procedure IdentifierList; virtual;
     procedure IfStatement; virtual;
     procedure ImplementationSection; virtual;
+    procedure ImplementsSpecifier; virtual;
     procedure IncludeFile; virtual;
     procedure IndexSpecifier; virtual;
     procedure IndexOp; virtual;
@@ -420,7 +421,6 @@ type
     procedure PropertyParameterList; virtual;
     procedure PropertySpecifiers; virtual;
     procedure QualifiedIdentifier; virtual;
-    procedure QualifiedIdentifierList; virtual;
     procedure RaiseStatement; virtual;
     procedure ReadAccessIdentifier; virtual;
     procedure RealIdentifier; virtual;
@@ -1499,8 +1499,7 @@ begin
   end;
   if ExID = ptImplements then
   begin
-    NextToken;
-    QualifiedIdentifierList;
+    ImplementsSpecifier;
   end;
   Semicolon;
 end;
@@ -5133,16 +5132,6 @@ begin
   end;
 end;
 
-procedure TmwSimplePasPar.QualifiedIdentifierList;
-begin
-  QualifiedIdentifier;
-  while (TokenID = ptComma) do
-  begin
-    NextToken;
-    QualifiedIdentifier;
-  end;
-end;
-
 procedure TmwSimplePasPar.CharString;
 begin
   case TokenID of
@@ -5423,6 +5412,18 @@ end;
 function TmwSimplePasPar.IsDefined(const ADefine: string): Boolean;
 begin
   Result := FLexer.IsDefined(ADefine);
+end;
+
+procedure TmwSimplePasPar.ImplementsSpecifier;
+begin
+  ExpectedEx(ptImplements);
+
+  TypeSimple;
+  while (TokenID = ptComma) do
+  begin
+    NextToken;
+    TypeSimple;
+  end;
 end;
 
 procedure TmwSimplePasPar.AttributeArgumentName;

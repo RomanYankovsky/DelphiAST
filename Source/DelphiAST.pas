@@ -108,6 +108,7 @@ type
     procedure IfStatement; override;
     procedure Identifier; override;
     procedure ImplementationSection; override;
+    procedure ImplementsSpecifier; override;
     procedure IndexOp; override;
     procedure InheritedStatement; override;
     procedure InheritedVariableReference; override;
@@ -986,6 +987,16 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.ImplementationSection;
+begin
+  FStack.Push(Lexer.Token);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ImplementsSpecifier;
 begin
   FStack.Push(Lexer.Token);
   try
