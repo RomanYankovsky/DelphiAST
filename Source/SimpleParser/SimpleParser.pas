@@ -2289,7 +2289,7 @@ begin
   CaseLabelList;
   Expected(ptColon);
   case TokenID of
-    ptSemiColon: ;
+    ptSemiColon: EmptyStatement;
   else
     Statement;
   end;

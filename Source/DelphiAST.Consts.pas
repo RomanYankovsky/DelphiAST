@@ -21,6 +21,7 @@ const
   sDIMENSION      = 'dimension';
   sDIV            = 'div';
   sDOT            = 'dot';
+  sEMPTYSTATEMENT = 'EMPTYSTATEMENT';
   sENUM           = 'enum';
   sEQUAL          = 'equal';
   sEXPRESSION     = 'expression';

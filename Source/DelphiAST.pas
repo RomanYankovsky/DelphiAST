@@ -87,6 +87,7 @@ type
     procedure DirectiveBinding; override;
     procedure DotOp; override;
     procedure ElseStatement; override;
+    procedure EmptyStatement; override;
     procedure EnumeratedType; override;
     procedure ExceptBlock; override;
     procedure ExceptionHandler; override;
@@ -729,6 +730,16 @@ end;
 procedure TPasSyntaxTreeBuilder.ElseStatement;
 begin
   FStack.Push(Lexer.Token);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.EmptyStatement;
+begin
+  FStack.Push(sEMPTYSTATEMENT);
   try
     inherited;
   finally
