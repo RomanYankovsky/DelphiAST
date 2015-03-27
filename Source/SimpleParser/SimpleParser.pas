@@ -3216,8 +3216,7 @@ begin
   ClassMemberList;
   Expected(ptEnd);
 
-  if ExID in [ptExperimental, ptDeprecated] then
-    NextToken;
+  ClassTypeEnd;
 end;
 
 procedure TmwSimplePasPar.FileType;
@@ -5297,8 +5296,15 @@ end;
 
 procedure TmwSimplePasPar.ClassTypeEnd;
 begin
-  if ExID in [ptExperimental, ptDeprecated] then
-    NextToken;
+  case ExID of
+    ptExperimental: NextToken;
+    ptDeprecated:
+      begin
+        NextToken;
+        if TokenID = ptStringConst then
+          NextToken;
+      end;
+  end;
 end;
 
 procedure TmwSimplePasPar.ObjectTypeEnd;

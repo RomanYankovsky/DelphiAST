@@ -9,6 +9,12 @@ type
   TBar = record
   end deprecated;
 
+  TFooClass = class
+  end deprecated 'Use TBarClass';
+
+  TBarClass = class
+  end deprecated;
+
 implementation
 
 end.
