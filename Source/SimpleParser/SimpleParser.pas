@@ -2105,7 +2105,8 @@ begin
   while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptDelayed, ptFar,
     ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
     ptReintroduce, ptSafeCall, ptStdCall, ptVirtual, ptDeprecated, ptLibrary,
-    ptPlatform, ptLocal, ptVarargs, ptAssembler, ptStatic, ptInline, ptForward] do
+    ptPlatform, ptLocal, ptVarargs, ptAssembler, ptStatic, ptInline, ptForward,
+    ptExperimental, ptDeprecated] do
   begin
     case ExId of
       ptExternal:
