@@ -3427,7 +3427,7 @@ begin
             begin
               Expression;
             end;
-          ptRoundOpen:
+          ptRoundOpen, ptDotDot:
             begin
               ConstantExpression;
             end;
