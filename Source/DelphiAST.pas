@@ -584,7 +584,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ConstructorName;
 begin
-  FStack.Peek.SetAttribute('constructor', 'true');
+  FStack.Peek.SetAttribute('kind', 'constructor');
   FStack.Peek.SetAttribute('name', Lexer.Token);
   inherited;
 end;
@@ -710,7 +710,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.DestructorName;
 begin
-  FStack.Peek.SetAttribute('destructor', 'true');
+  FStack.Peek.SetAttribute('kind', 'destructor');
   FStack.Peek.SetAttribute('name', Lexer.Token);
   inherited;
 end;
