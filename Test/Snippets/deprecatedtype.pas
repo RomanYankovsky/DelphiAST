@@ -1,4 +1,4 @@
-unit deprecatedtype;
+unit deprecatedtype deprecated;
 
 interface
 

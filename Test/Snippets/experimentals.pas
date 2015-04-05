@@ -1,4 +1,4 @@
-unit experimentals;
+unit experimentals experimental;
 
 interface
 

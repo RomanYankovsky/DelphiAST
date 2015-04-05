@@ -1102,12 +1102,12 @@ procedure TmwSimplePasPar.UnitFile;
 begin
   Expected(ptUnit);
   UnitName;
-
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
+  while ExID in [ptDeprecated, ptLibrary, ptPlatform, ptExperimental] do
     case ExID of
       ptDeprecated: DirectiveDeprecated;
       ptLibrary: DirectiveLibrary;
       ptPlatform: DirectivePlatform;
+      ptExperimental: NextToken;
     end;
 
   Semicolon;
@@ -5298,12 +5298,7 @@ procedure TmwSimplePasPar.ClassTypeEnd;
 begin
   case ExID of
     ptExperimental: NextToken;
-    ptDeprecated:
-      begin
-        NextToken;
-        if TokenID = ptStringConst then
-          NextToken;
-      end;
+    ptDeprecated: DirectiveDeprecated;
   end;
 end;
 
