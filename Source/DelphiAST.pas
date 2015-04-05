@@ -114,6 +114,7 @@ type
     procedure IndexOp; override;
     procedure InheritedStatement; override;
     procedure InheritedVariableReference; override;
+    procedure InterfaceGUID; override;
     procedure InterfaceSection; override;
     procedure InterfaceType; override;
     procedure LabelId; override;
@@ -1043,6 +1044,16 @@ end;
 procedure TPasSyntaxTreeBuilder.InheritedVariableReference;
 begin
   FStack.Push(ntInherited);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.InterfaceGUID;
+begin
+  FStack.Push(ntGuid);
   try
     inherited;
   finally
