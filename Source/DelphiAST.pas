@@ -44,11 +44,12 @@ type
   private type
     TExpressionMethod = reference to procedure;
   private
-    FStack: TNodeStack;
     procedure BuildExpressionTree(ExpressionMethod: TExpressionMethod);
     procedure ParserMessage(Sender: TObject; const Typ: TMessageEventType; const Msg: string; X, Y: Integer);
     function NodeListToString(NamesNode: TSyntaxNode): string;
   protected
+    FStack: TNodeStack;
+
     procedure AccessSpecifier; override;
     procedure AdditiveOperator; override;
     procedure AddressOp; override;
@@ -191,10 +192,10 @@ type
     procedure AttributeArgumentName; override;
     procedure AttributeArgumentExpression; override;
   public
-    constructor Create;
+    constructor Create; override;
     destructor Destroy; override;
 
-    function Run(SourceStream: TStream): TSyntaxNode; reintroduce; overload;
+    function Run(SourceStream: TStream): TSyntaxNode; reintroduce; overload; virtual;
     class function Run(const FileName: string): TSyntaxNode; reintroduce; overload; static;
   end;
 

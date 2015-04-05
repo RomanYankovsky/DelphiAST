@@ -548,7 +548,7 @@ type
     property TokenID: TptTokenKind read GetTokenID;
     property InRound: Boolean read GetInRound;
   public
-    constructor Create;
+    constructor Create; virtual;
     destructor Destroy; override;
     procedure SynError(Error: TmwParseError); virtual;
     procedure Run(const UnitName: string; SourceStream: TStream); virtual;
