@@ -3,7 +3,7 @@ unit DelphiAST.Classes;
 interface
 
 uses
-  Generics.Collections, SimpleParser.Lexer.Types;
+  Generics.Collections, SimpleParser.Lexer.Types, DelphiAST.Consts;
 
 type
   TSyntaxNode = class
@@ -13,10 +13,10 @@ type
   protected
     FAttributes: TDictionary<string, string>;
     FChildNodes: TObjectList<TSyntaxNode>;
-    FName: string;
+    FTyp: TSyntaxNodeType;
     FParentNode: TSyntaxNode;
   public
-    constructor Create(const Name: string);
+    constructor Create(Typ: TSyntaxNodeType);
     destructor Destroy; override;
 
     function Clone: TSyntaxNode;
@@ -26,17 +26,17 @@ type
     procedure SetAttribute(const Key: string; Value: string);
 
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
-    function AddChild(Name: string): TSyntaxNode; overload;
+    function AddChild(Typ: TSyntaxNodeType): TSyntaxNode; overload;
     procedure DeleteChild(Node: TSyntaxNode);
 
-    function FindNode(const Name: string): TSyntaxNode;
+    function FindNode(Typ: TSyntaxNodeType): TSyntaxNode;
     procedure SetPositionAttributes(PosXY: TTokenPoint; const LineStr: string = 'line'; const ColStr: string = 'col');
 
     property Attributes: TDictionary<string, string> read FAttributes;
     property ChildNodes: TObjectList<TSyntaxNode> read FChildNodes;
     property HasAttributes: Boolean read GetHasAttributes;
     property HasChildren: Boolean read GetHasChildren;
-    property Name: string read FName;
+    property Typ: TSyntaxNodeType read FTyp;
     property ParentNode: TSyntaxNode read FParentNode;
   end;
 
@@ -51,14 +51,14 @@ type
 implementation
 
 uses
-  SysUtils, DelphiAST.Consts;
+  SysUtils;
 
 type
   TOperatorKind = (okUnary, okBinary);
   TOperatorAssocType = (atLeft, atRight);
 
   TOperatorInfo = record
-    Name: string;
+    Typ: TSyntaxNodeType;
     Priority: Byte;
     Kind: TOperatorKind;
     AssocType: TOperatorAssocType;
@@ -66,13 +66,13 @@ type
 
   TOperators = class
   strict private
-    class var FOps: TDictionary<string, TOperatorInfo>;
+    class var FOps: TDictionary<TSyntaxNodeType, TOperatorInfo>;
     class constructor Create;
     class destructor Destroy;
-    class function GetItem(const Name: string): TOperatorInfo; static;
+    class function GetItem(Typ: TSyntaxNodeType): TOperatorInfo; static;
   public
-    class function IsOpName(const Name: string): Boolean;
-    class property Items[const Name: string]: TOperatorInfo read GetItem; default;
+    class function IsOpName(Typ: TSyntaxNodeType): Boolean;
+    class property Items[Typ: TSyntaxNodeType]: TOperatorInfo read GetItem; default;
   end;
 
   TTreeData = class
@@ -90,34 +90,34 @@ type
 
 const
   OperatorsInfo: array [0..27] of TOperatorInfo =
-    ((Name: sADDR;         Priority: 1; Kind: okUnary;  AssocType: atRight),
-     (Name: sDEREF;        Priority: 1; Kind: okUnary;  AssocType: atLeft),
-     (Name: sGENERIC;      Priority: 1; Kind: okBinary; AssocType: atRight),
-     (Name: sINDEXED;      Priority: 1; Kind: okUnary;  AssocType: atLeft),
-     (Name: sDOT;          Priority: 2; Kind: okBinary; AssocType: atRight),
-     (Name: sCALL;         Priority: 3; Kind: okBinary; AssocType: atRight),
-     (Name: sUNARYMINUS;   Priority: 5; Kind: okUnary;  AssocType: atRight),
-     (Name: sNOT;          Priority: 6; Kind: okUnary;  AssocType: atRight),
-     (Name: sMUL;          Priority: 7; Kind: okBinary; AssocType: atRight),
-     (Name: sFDIV;         Priority: 7; Kind: okBinary; AssocType: atRight),
-     (Name: sDIV;          Priority: 7; Kind: okBinary; AssocType: atRight),
-     (Name: sMOD;          Priority: 7; Kind: okBinary; AssocType: atRight),
-     (Name: sAND;          Priority: 7; Kind: okBinary; AssocType: atRight),
-     (Name: sSHL;          Priority: 7; Kind: okBinary; AssocType: atRight),
-     (Name: sSHR;          Priority: 7; Kind: okBinary; AssocType: atRight),
-     (Name: sAS;           Priority: 7; Kind: okBinary; AssocType: atRight),
-     (Name: sADD;          Priority: 8; Kind: okBinary; AssocType: atRight),
-     (Name: sSUB;          Priority: 8; Kind: okBinary; AssocType: atRight),
-     (Name: sOR;           Priority: 8; Kind: okBinary; AssocType: atRight),
-     (Name: sXOR;          Priority: 8; Kind: okBinary; AssocType: atRight),
-     (Name: sEQUAL;        Priority: 9; Kind: okBinary; AssocType: atRight),
-     (Name: sNOTEQUAL;     Priority: 9; Kind: okBinary; AssocType: atRight),
-     (Name: sLOWER;        Priority: 9; Kind: okBinary; AssocType: atRight),
-     (Name: sGREATER;      Priority: 9; Kind: okBinary; AssocType: atRight),
-     (Name: sLOWEREQUAL;   Priority: 9; Kind: okBinary; AssocType: atRight),
-     (Name: sGREATEREQUAL; Priority: 9; Kind: okBinary; AssocType: atRight),
-     (Name: sIN;           Priority: 9; Kind: okBinary; AssocType: atRight),
-     (Name: sIS;           Priority: 9; Kind: okBinary; AssocType: atRight));
+    ((Typ: ntAddr;         Priority: 1; Kind: okUnary;  AssocType: atRight),
+     (Typ: ntDeref;        Priority: 1; Kind: okUnary;  AssocType: atLeft),
+     (Typ: ntGeneric;      Priority: 1; Kind: okBinary; AssocType: atRight),
+     (Typ: ntIndexed;      Priority: 1; Kind: okUnary;  AssocType: atLeft),
+     (Typ: ntDot;          Priority: 2; Kind: okBinary; AssocType: atRight),
+     (Typ: ntCall;         Priority: 3; Kind: okBinary; AssocType: atRight),
+     (Typ: ntUnaryMinus;   Priority: 5; Kind: okUnary;  AssocType: atRight),
+     (Typ: ntNot;          Priority: 6; Kind: okUnary;  AssocType: atRight),
+     (Typ: ntMul;          Priority: 7; Kind: okBinary; AssocType: atRight),
+     (Typ: ntFDiv;         Priority: 7; Kind: okBinary; AssocType: atRight),
+     (Typ: ntDiv;          Priority: 7; Kind: okBinary; AssocType: atRight),
+     (Typ: ntMod;          Priority: 7; Kind: okBinary; AssocType: atRight),
+     (Typ: ntAnd;          Priority: 7; Kind: okBinary; AssocType: atRight),
+     (Typ: ntShl;          Priority: 7; Kind: okBinary; AssocType: atRight),
+     (Typ: ntShr;          Priority: 7; Kind: okBinary; AssocType: atRight),
+     (Typ: ntAs;           Priority: 7; Kind: okBinary; AssocType: atRight),
+     (Typ: ntAdd;          Priority: 8; Kind: okBinary; AssocType: atRight),
+     (Typ: ntSub;          Priority: 8; Kind: okBinary; AssocType: atRight),
+     (Typ: ntOr;           Priority: 8; Kind: okBinary; AssocType: atRight),
+     (Typ: ntXor;          Priority: 8; Kind: okBinary; AssocType: atRight),
+     (Typ: ntEqual;        Priority: 9; Kind: okBinary; AssocType: atRight),
+     (Typ: ntNotEqual;     Priority: 9; Kind: okBinary; AssocType: atRight),
+     (Typ: ntLower;        Priority: 9; Kind: okBinary; AssocType: atRight),
+     (Typ: ntGreater;      Priority: 9; Kind: okBinary; AssocType: atRight),
+     (Typ: ntLowerEqual;   Priority: 9; Kind: okBinary; AssocType: atRight),
+     (Typ: ntGreaterEqual; Priority: 9; Kind: okBinary; AssocType: atRight),
+     (Typ: ntIn;           Priority: 9; Kind: okBinary; AssocType: atRight),
+     (Typ: ntIs;           Priority: 9; Kind: okBinary; AssocType: atRight));
 
 { TOperators }
 
@@ -125,10 +125,10 @@ class constructor TOperators.Create;
 var
   I: Integer;
 begin
-  FOps := TDictionary<string, TOperatorInfo>.Create;
+  FOps := TDictionary<TSyntaxNodeType, TOperatorInfo>.Create;
 
   for I := Low(OperatorsInfo) to High(OperatorsInfo) do
-    FOps.Add(UpperCase(OperatorsInfo[I].Name), OperatorsInfo[I]);
+    FOps.Add(OperatorsInfo[I].Typ, OperatorsInfo[I]);
 end;
 
 class destructor TOperators.Destroy;
@@ -136,24 +136,24 @@ begin
   FOps.Free;
 end;
 
-class function TOperators.GetItem(const Name: string): TOperatorInfo;
+class function TOperators.GetItem(Typ: TSyntaxNodeType): TOperatorInfo;
 begin
-  Result := FOps[UpperCase(Name)];
+  Result := FOps[Typ];
 end;
 
-class function TOperators.IsOpName(const Name: string): Boolean;
+class function TOperators.IsOpName(Typ: TSyntaxNodeType): Boolean;
 begin
-  Result := FOps.ContainsKey(UpperCase(Name));
+  Result := FOps.ContainsKey(Typ);
 end;
 
-function IsRoundClose(const Name: string): Boolean; inline;
+function IsRoundClose(Typ: TSyntaxNodeType): Boolean; inline;
 begin
-  Result := SameText(Name, sROUNDCLOSE);
+  Result := Typ = ntRoundClose;
 end;
 
-function IsRoundOpen(const Name: string): Boolean; inline;
+function IsRoundOpen(Typ: TSyntaxNodeType): Boolean; inline;
 begin
-  Result := SameText(Name, sROUNDOPEN);
+  Result := Typ = ntRoundOpen;
 end;
 
 { TTreeData }
@@ -183,27 +183,27 @@ begin
     Stack := TStack<TSyntaxNode>.Create;
     try
       for Node in Expr do
-        if TOperators.IsOpName(Node.Name) then
+        if TOperators.IsOpName(Node.Typ) then
         begin
-          while (Stack.Count > 0) and TOperators.IsOpName(Stack.Peek.Name) and
-            (((TOperators.Items[Node.Name].AssocType = atLeft) and
-            (TOperators.Items[Node.Name].Priority >= TOperators.Items[Stack.Peek.Name].Priority))
+          while (Stack.Count > 0) and TOperators.IsOpName(Stack.Peek.Typ) and
+            (((TOperators.Items[Node.Typ].AssocType = atLeft) and
+            (TOperators.Items[Node.Typ].Priority >= TOperators.Items[Stack.Peek.Typ].Priority))
             or
-            ((TOperators.Items[Node.Name].AssocType = atRight) and
-            (TOperators.Items[Node.Name].Priority > TOperators.Items[Stack.Peek.Name].Priority)))
+            ((TOperators.Items[Node.Typ].AssocType = atRight) and
+            (TOperators.Items[Node.Typ].Priority > TOperators.Items[Stack.Peek.Typ].Priority)))
           do
             Result.Add(Stack.Pop);
 
           Stack.Push(Node);
         end
-        else if IsRoundOpen(Node.Name) then
+        else if IsRoundOpen(Node.Typ) then
           Stack.Push(Node)
-        else if IsRoundClose(Node.Name) then
+        else if IsRoundClose(Node.Typ) then
         begin
-          while not IsRoundOpen(Stack.Peek.Name) do
+          while not IsRoundOpen(Stack.Peek.Typ) do
             Result.Add(Stack.Pop);
           Stack.Pop;
-          if (Stack.Count > 0) and TOperators.IsOpName(Stack.Peek.Name) then
+          if (Stack.Count > 0) and TOperators.IsOpName(Stack.Peek.Typ) then
             Result.Add(Stack.Pop);
         end else
           Result.Add(Node);
@@ -242,8 +242,8 @@ begin
     for Node in Expr do
     begin
       TreeData := TTreeData.Create(Node);
-      if TOperators.IsOpName(Node.Name) then
-        case TOperators.Items[Node.Name].Kind of
+      if TOperators.IsOpName(Node.Typ) then
+        case TOperators.Items[Node.Typ].Kind of
           okUnary: TreeData.Child1 := Stack.Pop;
           okBinary:
             begin
@@ -273,34 +273,34 @@ begin
     PrevNode := nil;
     for Node in ExprNodes do
     begin
-      if SameText(Node.Name, sCALL) then
+      if Node.Typ = ntCall then
         Continue;
 
-      if Assigned(PrevNode) and IsRoundOpen(Node.Name) then
+      if Assigned(PrevNode) and IsRoundOpen(Node.Typ) then
       begin
-        if not TOperators.IsOpName(PrevNode.Name) and not IsRoundOpen(PrevNode.Name) then
-          Result.Add(TSyntaxNode.Create(sCALL));
+        if not TOperators.IsOpName(PrevNode.Typ) and not IsRoundOpen(PrevNode.Typ) then
+          Result.Add(TSyntaxNode.Create(ntCall));
 
-        if TOperators.IsOpName(PrevNode.Name)
-          and (TOperators.Items[PrevNode.Name].Kind = okUnary)
-          and (TOperators.Items[PrevNode.Name].AssocType = atLeft)
+        if TOperators.IsOpName(PrevNode.Typ)
+          and (TOperators.Items[PrevNode.Typ].Kind = okUnary)
+          and (TOperators.Items[PrevNode.Typ].AssocType = atLeft)
         then
-          Result.Add(TSyntaxNode.Create(sCALL));
+          Result.Add(TSyntaxNode.Create(ntCall));
       end;
 
-      if Assigned(PrevNode) and (Node.Name = sTYPEARGS) then
+      if Assigned(PrevNode) and (Node.Typ = ntTypeArgs) then
       begin
-        if not TOperators.IsOpName(PrevNode.Name) and (PrevNode.Name <> sTYPEARGS) then
-          Result.Add(TSyntaxNode.Create(sGENERIC));
+        if not TOperators.IsOpName(PrevNode.Typ) and (PrevNode.Typ <> ntTypeArgs) then
+          Result.Add(TSyntaxNode.Create(ntGeneric));
 
-        if TOperators.IsOpName(PrevNode.Name)
-          and (TOperators.Items[PrevNode.Name].Kind = okUnary)
-          and (TOperators.Items[PrevNode.Name].AssocType = atLeft)
+        if TOperators.IsOpName(PrevNode.Typ)
+          and (TOperators.Items[PrevNode.Typ].Kind = okUnary)
+          and (TOperators.Items[PrevNode.Typ].AssocType = atLeft)
         then
-          Result.Add(TSyntaxNode.Create(sGENERIC));
+          Result.Add(TSyntaxNode.Create(ntGeneric));
       end;
 
-      if Node.Name <> sALIGNMENTPARAM then
+      if Node.Typ <> ntAlignmentParam then
         Result.Add(Node.Clone);
       PrevNode := Node;
     end;
@@ -351,9 +351,9 @@ begin
   Result := Node;
 end;
 
-function TSyntaxNode.AddChild(Name: string): TSyntaxNode;
+function TSyntaxNode.AddChild(Typ: TSyntaxNodeType): TSyntaxNode;
 begin
-  Result := AddChild(TSyntaxNode.Create(Name));
+  Result := AddChild(TSyntaxNode.Create(Typ));
 end;
 
 function TSyntaxNode.Clone: TSyntaxNode;
@@ -361,7 +361,7 @@ var
   ChildNode: TSyntaxNode;
   Attr: TPair<string, string>;
 begin
-  Result := TSyntaxNode.Create(FName);
+  Result := TSyntaxNode.Create(FTyp);
 
   for ChildNode in FChildNodes do
     Result.AddChild(ChildNode.Clone);
@@ -370,10 +370,10 @@ begin
     Result.SetAttribute(Attr.Key, Attr.Value);
 end;
 
-constructor TSyntaxNode.Create(const Name: string);
+constructor TSyntaxNode.Create(Typ: TSyntaxNodeType);
 begin
   inherited Create;
-  FName := Name;
+  FTyp := Typ;
   FAttributes := TDictionary<string, string>.Create;
   FChildNodes := TObjectList<TSyntaxNode>.Create(True);
   FParentNode := nil;
@@ -391,13 +391,13 @@ begin
   inherited;
 end;
 
-function TSyntaxNode.FindNode(const Name: string): TSyntaxNode;
+function TSyntaxNode.FindNode(Typ: TSyntaxNodeType): TSyntaxNode;
 var
   Node: TSyntaxNode;
 begin
   Result := nil;
   for Node in FChildNodes do
-    if SameText(Node.Name, Name) then
+    if Node.Typ = Typ then
     begin
       Result := Node;
       Break;

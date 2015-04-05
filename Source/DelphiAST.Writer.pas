@@ -18,7 +18,7 @@ type
 implementation
 
 uses
-  Generics.Collections;
+  Generics.Collections, DelphiAST.Consts;
 
 {$I SimpleParser.inc}
 {$IFDEF D18_NEWER}
@@ -70,7 +70,7 @@ class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
       NewIndent := Indent + '  ';
       Builder.Append(Indent);
     end;
-    Builder.Append('<' + UpperCase(Node.Name));  
+    Builder.Append('<' + UpperCase(SyntaxNodeNames[Node.Typ]));
     for Attr in Node.Attributes do
       Builder.Append(' ' + Attr.Key + '="' + XMLEncode(Attr.Value) + '"');
     if HasChildren then
@@ -85,7 +85,7 @@ class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
     begin
       if Formatted then
         Builder.Append(Indent); 
-      Builder.Append('</' + UpperCase(Node.Name) + '>');
+      Builder.Append('</' + UpperCase(SyntaxNodeNames[Node.Typ]) + '>');
       if Formatted then
         Builder.AppendLine;
     end;
