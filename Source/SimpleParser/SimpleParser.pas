@@ -4751,8 +4751,11 @@ begin
   begin
     FormalParameterList;
   end;
-  Expected(ptColon);
-  ReturnType;
+  if TokenID = ptColon then
+  begin
+    Expected(ptColon);
+    ReturnType;
+  end;
 end;
 
 procedure TmwSimplePasPar.ProcedureHeading;
