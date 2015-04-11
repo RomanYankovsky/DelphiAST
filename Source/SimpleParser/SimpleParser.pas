@@ -1516,6 +1516,9 @@ end;
 
 procedure TmwSimplePasPar.ClassMethodHeading;
 begin
+  if TokenID = ptClass then
+    ClassClass;
+
   InitAhead;
   AheadParse.NextToken;
   AheadParse.FunctionProcedureName;
@@ -3788,16 +3791,27 @@ begin
 end;
 
 procedure TmwSimplePasPar.ClassMethodOrProperty;
+var
+  CurToken: TptTokenKind;
 begin
-  if TokenID = ptClass
-    then ClassClass;
-  case TokenID of
+  if TokenID = ptClass then
+  begin
+    InitAhead;
+    AheadParse.NextToken;
+    CurToken := AheadParse.TokenID;
+  end else
+    CurToken := TokenID;
+
+  case CurToken of
     ptProperty:
       begin
         ClassProperty;
       end;
     ptVar, ptThreadVar:
       begin
+        if TokenID = ptClass then
+          ClassClass;
+
         NextToken;
         while (TokenID = ptIdentifier) and (ExID = ptUnknown) do
         begin
@@ -3807,6 +3821,9 @@ begin
       end;
     ptConst:
       begin
+        if TokenID = ptClass then
+          ClassClass;
+
         NextToken;
         while (TokenID = ptIdentifier) and (ExID = ptUnknown) do
         begin
@@ -3823,6 +3840,9 @@ end;
 
 procedure TmwSimplePasPar.ClassProperty;
 begin
+  if TokenID = ptClass then
+    ClassClass;
+
   Expected(ptProperty);
   PropertyName;
   case TokenID of

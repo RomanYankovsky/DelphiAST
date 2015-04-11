@@ -67,6 +67,7 @@ type
     procedure CaseLabelList; override;
     procedure CaseSelector; override;
     procedure CaseStatement; override;
+    procedure ClassClass; override;
     procedure ClassField; override;
     procedure ClassForward; override;
     procedure ClassMethod; override;
@@ -473,6 +474,12 @@ begin
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ClassClass;
+begin
+  FStack.Peek.SetAttribute('class', 'true');
+  inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.ClassField;
