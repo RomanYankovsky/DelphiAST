@@ -565,7 +565,7 @@ begin
   begin
     child := classDef.ChildNodes[i];
     extracted := false;
-    if child.HasAttribute('Visibility') then
+    if child.HasAttribute('visibility') then
       vis := child
     else if assigned(vis) then
     begin
