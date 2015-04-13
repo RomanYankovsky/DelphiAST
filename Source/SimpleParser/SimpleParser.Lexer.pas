@@ -55,8 +55,8 @@ uses
   SysUtils, Classes, Character, SimpleParser.Lexer.Types;
 
 var
-  Identifiers: array[#0..#255] of ByteBool;
-  mHashTable: array[#0..#255] of Integer;
+  Identifiers: array[#0..#127] of ByteBool;
+  mHashTable: array[#0..#127] of Integer;
 
 type
   TmwBasePasLex = class;
@@ -73,7 +73,7 @@ type
   private
     FCommentState: TCommentState;
     FOrigin: PChar;
-    FProcTable: array[#0..#255] of procedure of object;
+    FProcTable: array[#0..#127] of procedure of object;
     Run: Integer;
     RunAhead: Integer;
     TempRun: Integer;
@@ -387,7 +387,7 @@ procedure MakeIdentTable;
 var
   I, J: Char;
 begin
-  for I := #0 to #255 do
+  for I := #0 to #127 do
   begin
     case I of
       '_', '0'..'9', 'a'..'z', 'A'..'Z': Identifiers[I] := True;
@@ -1231,7 +1231,7 @@ procedure TmwBasePasLex.MakeMethodTables;
 var
   I: Char;
 begin
-  for I := #0 to #255 do
+  for I := #0 to #127 do
     case I of
       #0: FProcTable[I] := NullProc;
       #10: FProcTable[I] := LFProc;
@@ -1299,7 +1299,7 @@ end;
 
 procedure TmwBasePasLex.DoProcTable(AChar: Char);
 begin
-  if Ord(AChar) <= 255 then
+  if Ord(AChar) <= 127 then
     FProcTable[AChar]
   else
   begin
@@ -1693,7 +1693,7 @@ end;
 
 function TmwBasePasLex.HashValue(AChar: Char): Integer;
 begin
-  if AChar <= #255 then
+  if AChar <= #127 then
     Result := mHashTable[FOrigin[Run]]
   else
     Result := Ord(AChar);
@@ -2815,7 +2815,7 @@ begin
       '\':
         begin
           Inc(Run);
-          if CharInSet(FOrigin[Run], [#32..#255]) then Inc(Run);
+          if CharInSet(FOrigin[Run], [#32..#127]) then Inc(Run);
         end;
     end;
   until FOrigin[Run] = '"';
