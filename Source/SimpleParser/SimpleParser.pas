@@ -4906,13 +4906,13 @@ procedure TmwSimplePasPar.TypeParamList;
 begin
   if TokenId = ptSquareOpen then
     AttributeSection;
-  Identifier;
+  TypeSimple;
   while TokenId = ptComma do
   begin
     NextToken;
     if TokenId = ptSquareOpen then
       AttributeSection;
-    Identifier;
+    TypeSimple;
   end;
 end;
 
