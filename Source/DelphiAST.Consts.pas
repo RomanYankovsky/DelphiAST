@@ -236,12 +236,13 @@ const
 
 
 const
-  sENUM     = 'enum';
-  sNAME     = 'name';
-  sPATH     = 'path';
-  sSUBRANGE = 'subrange';
-  sTYPE     = 'type';
-  sVALUE    = 'value';
+  sCALLINGCONVENTION = 'callingconvention';
+  sENUM              = 'enum';
+  sNAME              = 'name';
+  sPATH              = 'path';
+  sSUBRANGE          = 'subrange';
+  sTYPE              = 'type';
+  sVALUE             = 'value';
 
 implementation
 

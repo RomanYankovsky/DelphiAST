@@ -87,6 +87,7 @@ type
     procedure Designator; override;
     procedure DestructorName; override;
     procedure DirectiveBinding; override;
+    procedure DirectiveCalling; override;
     procedure DotOp; override;
     procedure ElseStatement; override;
     procedure EmptyStatement; override;
@@ -731,6 +732,12 @@ end;
 procedure TPasSyntaxTreeBuilder.DirectiveBinding;
 begin
   FStack.Peek.SetAttribute(Lexer.Token, 'true');
+  inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.DirectiveCalling;
+begin
+  FStack.Peek.SetAttribute(sCALLINGCONVENTION, Lexer.Token);
   inherited;
 end;
 
