@@ -70,8 +70,10 @@ type
     procedure ClassClass; override;
     procedure ClassField; override;
     procedure ClassForward; override;
+    procedure ClassFunctionHeading; override;
     procedure ClassMethod; override;
     procedure ClassMethodHeading; override;
+    procedure ClassProcedureHeading; override;
     procedure ClassProperty; override;
     procedure ClassReferenceType; override;
     procedure ClassType; override;
@@ -530,6 +532,12 @@ begin
   inherited ClassForward;
 end;
 
+procedure TPasSyntaxTreeBuilder.ClassFunctionHeading;
+begin
+  FStack.Peek.SetAttribute('kind', 'function');
+  inherited;
+end;
+
 procedure TPasSyntaxTreeBuilder.ClassMethod;
 begin
   FStack.Peek.SetAttribute('class', 'true');
@@ -544,6 +552,12 @@ begin
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ClassProcedureHeading;
+begin
+  FStack.Peek.SetAttribute('kind', 'procedure');
+  inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.ClassProperty;
