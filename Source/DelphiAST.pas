@@ -95,9 +95,12 @@ type
     procedure ExceptBlock; override;
     procedure ExceptionHandler; override;
     procedure ExportedHeading; override;
+    procedure ExportsClause; override;
+    procedure ExportsElement; override;
     procedure Expression; override;
     procedure ExpressionList; override;
     procedure FieldName; override;
+    procedure FinalizationSection; override;
     procedure FinallyBlock; override;
     procedure FormalParameterList; override;
     procedure ForStatement; override;
@@ -116,6 +119,7 @@ type
     procedure IndexOp; override;
     procedure InheritedStatement; override;
     procedure InheritedVariableReference; override;
+    procedure InitializationSection; override;
     procedure InterfaceGUID; override;
     procedure InterfaceSection; override;
     procedure InterfaceType; override;
@@ -807,6 +811,26 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.ExportsClause;
+begin
+  FStack.Push(ntExports);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ExportsElement;
+begin
+  FStack.Push(ntElement).SetAttribute('name', Lexer.Token);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.Expression;
 begin
   BuildExpressionTree(
@@ -830,6 +854,16 @@ procedure TPasSyntaxTreeBuilder.FieldName;
 begin
   FStack.AddChild(ntName).SetAttribute(sVALUE, Lexer.Token);
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.FinalizationSection;
+begin
+  FStack.Push(ntFinalization);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.FinallyBlock;
@@ -1058,6 +1092,16 @@ end;
 procedure TPasSyntaxTreeBuilder.InheritedVariableReference;
 begin
   FStack.Push(ntInherited);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.InitializationSection;
+begin
+  FStack.Push(ntInitialization);
   try
     inherited;
   finally

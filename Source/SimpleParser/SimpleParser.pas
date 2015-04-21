@@ -325,6 +325,7 @@ type
     procedure FieldNameList; virtual;
     procedure FieldName; virtual;
     procedure FileType; virtual;
+    procedure FinalizationSection; virtual;
     procedure FinallyBlock; virtual;
     procedure FormalParameterList; virtual;
     procedure FormalParameterSection; virtual;
@@ -1115,7 +1116,24 @@ begin
   if not InterfaceOnly then
   begin
     ImplementationSection;
-    InitializationSection;
+    case TokenID of
+      ptInitialization:
+        begin
+          InitializationSection;
+          if TokenID = ptFinalization then
+            FinalizationSection;
+          Expected(ptEnd);
+        end;
+      ptBegin:
+        begin
+          CompoundStatement;
+        end;
+      ptEnd:
+        begin
+          NextToken;
+        end;
+    end;
+
     Expected(ptPoint);
   end;
 end;
@@ -3232,6 +3250,12 @@ begin
   end;
 end;
 
+procedure TmwSimplePasPar.FinalizationSection;
+begin
+  Expected(ptFinalization);
+  StatementList;
+end;
+
 procedure TmwSimplePasPar.FinallyBlock;
 begin
   StatementList;
@@ -5092,31 +5116,8 @@ end;
 
 procedure TmwSimplePasPar.InitializationSection;
 begin
-  case TokenID of
-    ptInitialization:
-      begin
-        NextToken;
-        StatementList;
-        if TokenID = ptFinalization then
-        begin
-          NextToken;
-          StatementList;
-        end;
-        Expected(ptEnd);
-      end;
-    ptBegin:
-      begin
-        CompoundStatement;
-      end;
-    ptEnd:
-      begin
-        NextToken;
-      end;
-  else
-    begin
-      SynError(InvalidInitializationSection);
-    end;
-  end;
+  Expected(ptInitialization);
+  StatementList;
 end;
 
 procedure TmwSimplePasPar.ImplementationSection;
