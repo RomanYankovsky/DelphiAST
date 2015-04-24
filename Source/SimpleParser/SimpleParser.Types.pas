@@ -35,6 +35,7 @@ type
     InvalidDirective16Bit,
     InvalidDirectiveBinding,
     InvalidDirectiveCalling,
+    InvalidDirectiveExternal,
     InvalidExportedHeading,
     InvalidForStatement,
     InvalidInitializationSection,
@@ -327,4 +328,3 @@ begin
 end;
 
 end.
-
