@@ -43,18 +43,20 @@ type
     aValue = 2, //Lexer.Token
     aType = 3, //asm
     aKind = 4, //const, constructor
-    aPath = 4, //For pathnames in uses clause
-    aExternal = 5, aName = 6, //Lexer.Token
-  {TODO -oJ -cValidate : Make sure a combination of external 'user.dll' name 'test' index 2 is illegal}
-    aIndex = 6, //External, does not combine with name
+    aExternal = 5,
+    aName = 6, //Lexer.Token
     aDeprecated = 7, //Has an optional description string.
-    aMessage = 6, //dynamic, but with extra info for the message
-    aDispid = 6, //Has a numeric id
-    aRead = 2, //for properties only
-    aWrite = 3, aDefault = 4, aImplements = 5, aLastValue = 7,
-
+    aRead = 2+8, //for properties only
+    aWrite = 3+8,
+    aDefault = 4+8,
+    aImplements = 5+8,
+    aIndex = 6+8, //External, does not combine with name
+    aPath = 4+16, //For pathnames in uses clause
+    aDispid = 5+16, //Has a numeric id
+    aMessage = 6+16, //dynamic, but with extra info for the message
+    aLastValue = 7+16,
   //The following attributes have no Value associated with them.
-    aFirstBoolean = 8, aStored = 8, aNoDefault, aClassForward, //true
+    aFirstBoolean = aLastValue+1, aStored = aFirstBoolean, aNoDefault, aClassForward, //true
     aClass, //Class and record members
     aSealed, //Only for classes
     aAutomated, //Class members
@@ -82,11 +84,74 @@ type
     //For dispinterface only
     aReadOnly, aWriteOnly, aLastBoolean = aWriteOnly, aInvalid);
 
+const
+  AttributeNames: array [TAttribute] of string = (
+    'Line',       //0
+    'Col',        //1
+    'Value',      //2
+    'Type',       //3
+    'Kind',       //4
+    'External',   //5
+    'Name',       //6
+    'Deprecated', //7
+    'Invalid0+8',   //
+    'Invalid1+8',   //
+    'Read',       // = 2+8, //for properties only
+    'Write',      //  = 3+8,
+    'Default',    // = 4+8,
+    'Implements', // = 5+8,
+    'Index',      // = 6+8, //External, does not combine with name
+    'Invalid7+8',
+    'Invalid0+16',
+    'Invalid1+16',
+    'Invalid2+16',
+    'Invalid3+16',
+    'Path',       // = 4+16, //For pathnames in uses clause
+    'Dispid',     // = 5+16, //Has a numeric id
+    'Message',    // = 6+16, //dynamic, but with extra info for the message
+    'Invalid7+16',  //  = 7+16,
+  //The following attributes have no Value associated with them.
+    //FirstBoolean = aLastValue+1,
+    'Stored',     //= aFirstBoolean,
+    'NoDefault',
+    'ClassForward', //true
+    'Class', //Class 'nd record members
+    'Sealed', //Only for classes
+    'Automated', //Class members
+    'Public', //Class 'nd record members
+    'Private', //Class 'nd record members
+    'Published', //Class members
+    'StrictPrivate', //Class 'nd record members
+    'StrictProtected', //Class members
+    'Protected', //Class members
+    'Absolute', //Local', record 'nd class variables
+  //Parameter directives
+    'Out', 'Var', 'Const',
+  //Method directives
+    'Reintroduce', 'Overload', 'Abstract', 'Virtual', //Differen bindings
+    'Dynamic', 'Override', 'Final', //Last override of ' virtual method
+    'Delayed', //With External only
+    'Forward', 'CCRegister', //Calling conventions
+    'CCPascal', 'CCCdecl', 'CCVarArgs', //Extra for CDecl only
+    'CCStdcall', 'CCSafecall', 'Inline',
+    //Warning directives
+    'Unsafe', //for .Net only
+    'Platform', 'Experimental', 'Library', 'Static', //methods 'nd variables
+    'Assembler',
+    'Compound', //SetOf', 'rrayOf', FileOf
+    //For dispinterface only
+    'ReadOnly', 'WriteOnly',
+    //aLastBoolean = 'WriteOnly',
+    'Invalid');
+
+type
   TAttributes = set of TAttribute;
   TValueAttribute = aFirst..aLastValue;
   TValueAttributes = set of TValueAttribute;
   TSimpleAttribute = aFirstBoolean..aLastBoolean;
   TSimpleAttributes = set of TSimpleAttribute;
+
+  ValueAttributes = aFirst..aLastValue;
 
 const
   Visibility: TAttributes = [aAutomated..aProtected];
@@ -104,12 +169,25 @@ type
 
   TExtHelper = record helper for TExtAttribute
      function IsEmpty: boolean;
+     function KeyName: string;
   end;
 
+
+
+  PAttributeRec = ^TAttributeRec;
   TAttributeRec = record
+  public type
+    TAttributeEnumerator = record
+      FIndex: TAttribute;
+      FRec: PAttributeRec;
+      class function Create(const ARec: TAttributeRec): TAttributeEnumerator; static;
+      function GetCurrent: TExtAttribute; inline;
+      function MoveNext: boolean; inline;
+      property Current: TExtAttribute read GetCurrent;
+    end;
   private
     FAttributes: TAttributes;
-    FData: array [aFirst .. aLastValue] of string;
+    FData: array [aFirst .. aDeprecated] of string;
     function GetValue(index: TValueAttribute): string;
     function GetData(index: TValueAttribute): TExtAttribute;
     function GetLine: integer;
@@ -125,6 +203,7 @@ type
     class operator Add(const A: TAttributeRec; B: TExtAttribute): TAttributeRec;
     class operator in(A: TAttribute; const B: TAttributeRec): Boolean; inline;
     class operator in(A: TExtAttribute; const B: TAttributeRec): Boolean; inline;
+    function GetEnumerator: TAttributeEnumerator;
     function IsEmpty: boolean; inline;
     property Line: integer read GetLine write SetLine;
     property Col: integer read GetCol write SetCol;
@@ -134,28 +213,30 @@ type
     property Data[index: TValueAttribute]: TExtAttribute read GetData;
   end;
 
+  TAttributeEnumerator = TAttributeRec.TAttributeEnumerator;
+
 const
   sENUM = 'enum';
-  sNAME = 'name';
-  sPATH = 'path';
+//  sNAME = 'name';
+//  sPATH = 'path';
   sSUBRANGE = 'subrange';
-  sTYPE = 'type';
-  sVALUE = 'value';
+//  sTYPE = 'type';
+//  sVALUE = 'value';
   sEXTERNAL = 'external';
   sCALLING = 'callingconvention';
-  sDEPRECATED = 'deprecated';
-  sExperimental = 'experimental';
+//  sDEPRECATED = 'deprecated';
+//  sExperimental = 'experimental';
   sBINDING = 'binding';
   s16BIT = '16bit';
   sFORWARD = 'forward';
-  sKIND = 'kind';
-  sVISIBILITY = 'visibility';
-  sLIBRARY = 'library';
-  sTRUE = 'true';
-  sFALSE = 'false';
-  sLINE = 'line';
-  sCOL = 'col';
-  sCLASS = 'class';
+//  sKIND = 'kind';
+//  sVISIBILITY = 'visibility';
+//  sLIBRARY = 'library';
+//  sTRUE = 'true';
+//  sFALSE = 'false';
+//  sLINE = 'line';
+//  sCOL = 'col';
+//  sCLASS = 'class';
   sDELAYED = 'delayed';
 
 implementation
@@ -165,6 +246,8 @@ uses
   System.StrUtils;
 
 { TAttributeRec }
+
+function Test: Boolean; external 'user32.dll' name 'Test' index 4;
 
 class operator TAttributeRec.Add(const A: TAttributeRec; B: TExtAttribute): TAttributeRec;
 begin
@@ -186,10 +269,9 @@ end;
 
 function TAttributeRec.GetValue(index: TValueAttribute): string;
 begin
-  if index in FAttributes then case index of
-    aLine: Result:= IntToStr(Line);
-    aCol: Result:= IntToStr(Col);
-    else Result:= FData[index];
+  if Index in FAttributes then begin
+    Index:= TAttribute(Integer(Index) and $7);
+    Result:= FData[index];
   end
   else Result:= '';
 end;
@@ -203,11 +285,7 @@ function TAttributeRec.GetData(index: TValueAttribute): TExtAttribute;
 begin
   if index in FAttributes then begin
     Result.Key:= index;
-    case index of
-      aLine: Result.Value:= IntToStr(Line);
-      aCol: Result.Value:= IntToStr(Col);
-      else Result.Value:= FData[index];
-    end
+    Result.Value:= Value[index];
   end
   else Result:= Default(TExtAttribute);
 end;
@@ -279,6 +357,11 @@ begin
   FData[aLine]:= IntToStr(Value);
 end;
 
+function TAttributeRec.GetEnumerator: TAttributeEnumerator;
+begin
+  Result:= TAttributeEnumerator.Create(Self);
+end;
+
 { Pair<K, V> }
 
 class function Pair<K, V>.Create(Key: K; Value: V): Pair<K, V>;
@@ -305,5 +388,33 @@ begin
   Result:= (Self.Key = aFirst) and (Self.Value = '');
 end;
 
+
+function TExtHelper.KeyName: string;
+begin
+  Result:= AttributeNames[Self.Key];
+end;
+
+{ TAttributeRec.TAttributeEnumerator }
+
+class function TAttributeRec.TAttributeEnumerator.Create(const
+  ARec: TAttributeRec): TAttributeEnumerator;
+begin
+  Result.FRec:= @ARec;
+  Result.FIndex:= TAttribute(-1);
+end;
+
+function TAttributeRec.TAttributeEnumerator.GetCurrent: TExtAttribute;
+begin
+  Result:= FRec.Data[FIndex];
+end;
+
+function TAttributeRec.TAttributeEnumerator.MoveNext: boolean;
+begin
+  while true do begin  //to allow inlining.
+    if FIndex = aInvalid then Exit(false);
+    FIndex:= Succ(FIndex);
+    if FIndex in FRec.FAttributes then Exit(true);
+  end;
+end;
 
 end.
