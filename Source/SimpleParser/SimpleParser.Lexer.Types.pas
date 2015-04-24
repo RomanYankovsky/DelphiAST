@@ -36,11 +36,14 @@ type
 
   TCommentState = (csAnsi, csBor, csNo);
 
-  TTokenPoint = packed record
+  TTokenPoint = record
     X: Integer;
     Y: Integer;
   end;
 
+  function TokenPoint(x,y: integer): TTokenPoint;
+
+type
   TptTokenKind = (
     ptAbort,
     ptAbsolute,
@@ -277,6 +280,12 @@ function IsTokenIDJunk(const aTokenID: TptTokenKind): Boolean;
 
 implementation
 
+function TokenPoint(x,y: integer): TTokenPoint;
+begin
+  Result.X:= x;
+  Result.Y:= y;
+end;
+
 function TokenName(Value: TptTokenKind): string;
 begin
   Result := Copy(ptTokenName(Value), 3, MaxInt);
@@ -309,4 +318,3 @@ begin
 end;
 
 end.
-
