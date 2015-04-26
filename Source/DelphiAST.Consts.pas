@@ -31,7 +31,7 @@ const
     'unaryminus', 'unit', 'uses', 'while', 'with', 'write');
 
 type
-  //Less than 64 different attributes (takes 8 bytes in a set)
+  //Exactly 64 different attributes (takes 8 bytes in a set)
   //All the attributes that have additional Value are in front.
   //Attributes with no associated Value are at the back.
   //The complex attributes have duplicated entries.
@@ -77,12 +77,12 @@ type
     aCCPascal, aCCCdecl, aCCVarArgs, //Extra for CDecl only
     aCCStdcall, aCCSafecall, aInline,
     //Warning directives
-    aUnsafe, //for .Net only
+    //aUnsafe, //for .Net only
     aPlatform, aExperimental, aLibrary, aStatic, //methods and variables
     aAssembler,
     aCompound, //SetOf, ArrayOf, FileOf
     //For dispinterface only
-    aReadOnly, aWriteOnly, aLastBoolean = aWriteOnly, aInvalid);
+    aReadOnly, aWriteOnly, aLastBoolean = aWriteOnly);//, aInvalid);
 
 const
   AttributeNames: array [TAttribute] of string = (
@@ -135,14 +135,14 @@ const
     'CCPascal', 'CCCdecl', 'CCVarArgs', //Extra for CDecl only
     'CCStdcall', 'CCSafecall', 'Inline',
     //Warning directives
-    'Unsafe', //for .Net only
+    //'Unsafe', //for .Net only
     'Platform', 'Experimental', 'Library', 'Static', //methods 'nd variables
     'Assembler',
     'Compound', //SetOf', 'rrayOf', FileOf
     //For dispinterface only
-    'ReadOnly', 'WriteOnly',
+    'ReadOnly', 'WriteOnly'
     //aLastBoolean = 'WriteOnly',
-    'Invalid');
+    );
 
 type
   TAttributes = set of TAttribute;
@@ -172,12 +172,11 @@ type
      function KeyName: string;
   end;
 
-
-
   PAttributeRec = ^TAttributeRec;
   TAttributeRec = record
   public type
     TAttributeEnumerator = record
+      //FTestAttributes: Int64;
       FIndex: TAttribute;
       FRec: PAttributeRec;
       class function Create(const ARec: TAttributeRec): TAttributeEnumerator; static;
@@ -302,9 +301,11 @@ var
 begin
   Start:= 1;
   repeat
-    while not(Full[Start] in ['0'..'9']) do Inc(Start);
+    while not(CharInSet(Full[Start], ['0'..'0'])) do Inc(Start);
+    //while not(Full[Start] in ['0'..'9']) do Inc(Start);
     Count:= 1;
-    while (Full[Start+Count] in ['0'..'9']) do Inc(Count);
+    while CharInSet(Full[Start+Count], ['0'..'9']) do Inc(Count);
+    //while (Full[Start+Count] in ['0'..'9']) do Inc(Count);
     if index > 0 then Start:= Start + Count;
     Dec(Index);
   until index < 0;
@@ -399,6 +400,7 @@ end;
 class function TAttributeRec.TAttributeEnumerator.Create(const
   ARec: TAttributeRec): TAttributeEnumerator;
 begin
+  //Result.FTestAttributes:= Int64(ARec.FAttributes);
   Result.FRec:= @ARec;
   Result.FIndex:= TAttribute(-1);
 end;
@@ -409,12 +411,29 @@ begin
 end;
 
 function TAttributeRec.TAttributeEnumerator.MoveNext: boolean;
+//var
+//  LowestBitSet: Int64;
+//  lsb: integer;
 begin
   while true do begin  //to allow inlining.
-    if FIndex = aInvalid then Exit(false);
+    if ShortInt(FIndex) > ShortInt(aLastBoolean) then Exit(false);
     FIndex:= Succ(FIndex);
     if FIndex in FRec.FAttributes then Exit(true);
   end;
+  //Does not work...
+//  //Extract lowest set bit: (x and -x)
+//  //Reset lowest set bit: (x and (x - 1))
+//  if FTestAttributes = 0 then Exit(false);
+//  LowestBitSet:= FTestAttributes and -FTestAttributes;
+//  lsb:= LowestBitSet or LowestBitSet shr 32;
+//  FIndex:= TAttribute(Integer(LowestBitset shr 32 <> 0) * 2 +
+//           Integer((lsb and $ffff0000) <> 0) * 2  +
+//           Integer((lsb and $ff00ff00) <> 0) * 2 +
+//           Integer((lsb and $f0f0f0f0) <> 0) * 2 +
+//           Integer((lsb and $cccccccc) <> 0) * 2 +
+//           Integer((lsb and $aaaaaaaa) <> 0));
+//  FTestAttributes:= FTestAttributes and (FTestAttributes - 1);
+//  Result:= true;
 end;
 
 end.
