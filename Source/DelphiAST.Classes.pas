@@ -11,7 +11,8 @@ type
     function GetHasChildren: Boolean;
     function GetHasAttributes: Boolean;
   protected
-    FAttributes: TDictionary<string, string>;
+    //FAttributes: TDictionary<string, string>;
+    FAttributes: TAttributeRec;
     FChildNodes: TObjectList<TSyntaxNode>;
     FTyp: TSyntaxNodeType;
     FParentNode: TSyntaxNode;
@@ -21,18 +22,23 @@ type
 
     function Clone: TSyntaxNode;
 
-    function GetAttribute(const Key: string): string;
-    function HasAttribute(const Key: string): boolean;
-    procedure SetAttribute(const Key: string; Value: string);
+    //function GetAttribute(const Key: string): string;
+    function GetAttribute(const Key: TValueAttribute): TExtAttribute;
+    function HasAttribute(const Key: TAttribute): boolean; overload;
+    function HasAttribute(const Keys: TAttributes): boolean; overload;
+    procedure SetAttribute(const Key: TValueAttribute; Value: string); overload;
+    procedure SetAttribute(const Key: TSimpleAttribute); overload;
 
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
     function AddChild(Typ: TSyntaxNodeType): TSyntaxNode; overload;
     procedure DeleteChild(Node: TSyntaxNode);
 
-    function FindNode(Typ: TSyntaxNodeType): TSyntaxNode;
-    procedure SetPositionAttributes(PosXY: TTokenPoint; const LineStr: string = 'line'; const ColStr: string = 'col');
+    function FindNode(Typ: TSyntaxNodeType; StartFrom: TSyntaxNode = nil): TSyntaxNode;
+    function NextNode(const PrevNode: TSyntaxNode): TSyntaxNode;
+    procedure SetPositionAttributes(PosXY: TTokenPoint; LineEnd: boolean = false);
 
-    property Attributes: TDictionary<string, string> read FAttributes;
+    //property Attributes: TDictionary<string, string> read FAttributes;
+    property Attributes: TAttributeRec read FAttributes;
     property ChildNodes: TObjectList<TSyntaxNode> read FChildNodes;
     property HasAttributes: Boolean read GetHasAttributes;
     property HasChildren: Boolean read GetHasChildren;
@@ -330,16 +336,27 @@ end;
 
 { TSyntaxNode }
 
-procedure TSyntaxNode.SetAttribute(const Key: string; Value: string);
+procedure TSyntaxNode.SetAttribute(const Key: TValueAttribute; Value: string);
 begin
-  FAttributes.AddOrSetValue(Key, Value);
+  FAttributes:= FAttributes + TExtAttribute.Create(Key, Value);
 end;
 
-procedure TSyntaxNode.SetPositionAttributes(PosXY: TTokenPoint; const LineStr, ColStr: string);
+procedure TSyntaxNode.SetAttribute(const Key: TSimpleAttribute);
 begin
-  SetAttribute(LineStr, IntToStr(PosXY.Y));
-  SetAttribute(ColStr, IntToStr(PosXY.X))
+  FAttributes:= FAttributes + Key;
 end;
+
+procedure TSyntaxNode.SetPositionAttributes(PosXY: TTokenPoint; LineEnd: boolean = false);
+begin
+  if LineEnd then begin
+    FAttributes.EndLine:= PosXY.X;
+    FAttributes.EndCol:= PosXY.Y;
+  end else begin
+    FAttributes.Line:= PosXY.X;
+    FAttributes.Col:= PosXY.Y;
+  end;
+end;
+
 
 function TSyntaxNode.AddChild(Node: TSyntaxNode): TSyntaxNode;
 begin
@@ -366,15 +383,16 @@ begin
   for ChildNode in FChildNodes do
     Result.AddChild(ChildNode.Clone);
 
-  for Attr in FAttributes do
-    Result.SetAttribute(Attr.Key, Attr.Value);
+  Result.FAttributes:= FAttributes;
+  //for Attr in FAttributes do
+  //  Result.SetAttribute(Attr.Key, Attr.Value);
 end;
 
 constructor TSyntaxNode.Create(Typ: TSyntaxNodeType);
 begin
   inherited Create;
   FTyp := Typ;
-  FAttributes := TDictionary<string, string>.Create;
+  //FAttributes := TDictionary<string, string>.Create;
   FChildNodes := TObjectList<TSyntaxNode>.Create(True);
   FParentNode := nil;
 end;
@@ -387,32 +405,50 @@ end;
 destructor TSyntaxNode.Destroy;
 begin
   FChildNodes.Free;
-  FAttributes.Free;
+  //FAttributes.Free;
   inherited;
 end;
 
-function TSyntaxNode.FindNode(Typ: TSyntaxNodeType): TSyntaxNode;
+function TSyntaxNode.FindNode(Typ: TSyntaxNodeType; StartFrom: TSyntaxNode = nil): TSyntaxNode;
 var
+  StartIndex: integer;
+  i: integer;
   Node: TSyntaxNode;
 begin
   Result := nil;
-  for Node in FChildNodes do
-    if Node.Typ = Typ then
-    begin
-      Result := Node;
-      Break;
-    end;
+  if (StartFrom = nil) then StartIndex := -1
+  else StartIndex := FChildNodes.IndexOf(StartFrom);
+  for i := StartIndex + 1 to FChildNodes.Count-1 do begin
+    Node := FChildNodes[i];
+    if (Node.Typ = Typ) then Exit(Node);
+  end;
 end;
 
-function TSyntaxNode.GetAttribute(const Key: string): string;
+function TSyntaxNode.NextNode(const PrevNode: TSyntaxNode): TSyntaxNode;
+var
+  Index: integer;
 begin
-  if not FAttributes.TryGetValue(Key, Result) then
-    Result := '';
+  Index:= FChildNodes.IndexOf(PrevNode) + 1;
+  if (Index = FChildNodes.Count) then exit(nil)
+  else Result:= FChildNodes[Index];
+end;
+
+//function TSyntaxNode.GetAttribute(const Key: string): string;
+//begin
+//  if not FAttributes.TryGetValue(Key, Result) then
+//    Result := '';
+//end;
+
+function TSyntaxNode.GetAttribute(const Key: TValueAttribute): TExtAttribute;
+begin
+  if Key in FAttributes then begin
+    Result:= FAttributes.Data[Key];
+  end;
 end;
 
 function TSyntaxNode.GetHasAttributes: Boolean;
 begin
-  Result := FAttributes.Count > 0;
+  Result := FAttributes.IsEmpty;
 end;
 
 function TSyntaxNode.GetHasChildren: Boolean;
@@ -420,9 +456,19 @@ begin
   Result := FChildNodes.Count > 0;
 end;
 
-function TSyntaxNode.HasAttribute(const Key: string): boolean;
+function TSyntaxNode.HasAttribute(const Key: TAttribute): boolean;
 begin
-  result := FAttributes.ContainsKey(key);
+  Result := Key in FAttributes;
+end;
+
+function TSyntaxNode.HasAttribute(const Keys: TAttributes): boolean;
+var
+  A: TAttribute;
+begin
+  for A in Keys do begin
+    if A in FAttributes then Exit(true);
+  end;
+  Result:= false;
 end;
 
 end.

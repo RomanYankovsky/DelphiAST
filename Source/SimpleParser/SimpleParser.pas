@@ -288,10 +288,15 @@ type
     procedure Designator; virtual;
     procedure DestructorHeading; virtual;
     procedure DestructorName; virtual;
+    procedure DeclarationForward; virtual;
     procedure Directive16Bit; virtual;
     procedure DirectiveBinding; virtual;
     procedure DirectiveCalling; virtual;
     procedure DirectiveDeprecated; virtual;
+    procedure DirectiveExperimental; virtual;
+    procedure DirectiveExternal; virtual;
+    procedure DirectiveExternalTwo; virtual;
+    procedure DirectiveExternalThree; virtual;
     procedure DirectiveLibrary; virtual;
     procedure DirectiveLocal; virtual;
     procedure DirectivePlatform; virtual;
@@ -316,16 +321,12 @@ type
     procedure ExportsElement; virtual;
     procedure Expression; virtual;
     procedure ExpressionList; virtual;
-    procedure ExternalDirective; virtual;
-    procedure ExternalDirectiveThree; virtual;
-    procedure ExternalDirectiveTwo; virtual;
     procedure Factor; virtual;
     procedure FieldDeclaration; virtual;
     procedure FieldList; virtual;
     procedure FieldNameList; virtual;
     procedure FieldName; virtual;
     procedure FileType; virtual;
-    procedure FinalizationSection; virtual;
     procedure FinallyBlock; virtual;
     procedure FormalParameterList; virtual;
     procedure FormalParameterSection; virtual;
@@ -334,7 +335,6 @@ type
     procedure ForStatementFrom; virtual;
     procedure ForStatementIn; virtual;
     procedure ForStatementTo; virtual;
-    procedure ForwardDeclaration; virtual;
     procedure FunctionHeading; virtual;
     procedure FunctionMethodDeclaration; virtual;
     procedure FunctionMethodName; virtual;
@@ -593,125 +593,86 @@ begin
   FPosXY := aPosXY;
 end;
 
-{ TmwSimplePasPar }
-
-procedure TmwSimplePasPar.ForwardDeclaration;
+procedure TmwSimplePasPar.InitAhead;
 begin
-  NextToken;
-  Semicolon;
+  if AheadParse = nil then
+    AheadParse := TmwSimplePasPar.Create;
+  AheadParse.Lexer.InitFrom(Lexer);
 end;
 
-procedure TmwSimplePasPar.ObjectProperty;
+procedure TmwSimplePasPar.VariableTail;
 begin
-  Expected(ptProperty);
-  PropertyName;
   case TokenID of
-    ptColon, ptSquareOpen:
+    ptRoundOpen:
       begin
-        PropertyInterface;
+        RoundOpen;
+        ExpressionList;
+        RoundClose;
+      end;
+    ptSquareOpen:
+      begin
+        IndexOp;
+      end;
+    ptPointerSymbol:
+      begin
+        PointerSymbol;
+      end;
+    ptLower:
+      begin
+        InitAhead;
+        AheadParse.NextToken;
+        AheadParse.TypeArgs;
+
+        if AheadParse.TokenId = ptGreater then
+        begin
+          NextToken;
+          TypeArgs;
+          Expected(ptGreater);
+          case TokenID of
+            ptAddressOp, ptDoubleAddressOp, ptIdentifier:
+              begin
+                VariableReference;
+              end;
+            ptPoint, ptPointerSymbol, ptRoundOpen, ptSquareOpen:
+              begin
+                VariableTail;
+              end;
+          end;
+        end;
       end;
   end;
-  ObjectPropertySpecifiers;
-  case ExID of
-    ptDefault:
-      begin
-        PropertyDefault;
-        Semicolon;
-      end;
+
+  case TokenID of
+    ptRoundOpen, ptSquareOpen, ptPointerSymbol:
+    begin
+      VariableTail;
+    end;
+    ptPoint:
+    begin
+      DotOp;
+      Variable;
+    end;
+    ptAs:
+    begin
+      AsOp;
+      SimpleExpression;
+    end;
   end;
 end;
 
-procedure TmwSimplePasPar.ObjectPropertySpecifiers;
+function TmwSimplePasPar.GetInRound: Boolean;
 begin
-  if ExID = ptIndex then
-  begin
-    IndexSpecifier;
-  end;
-  while ExID in [ptRead, ptReadOnly, ptWrite, ptWriteOnly] do
-  begin
-    AccessSpecifier;
-  end;
-  while ExID in [ptDefault, ptNoDefault, ptStored] do
-  begin
-    StorageSpecifier;
-  end;
-  Semicolon;
+  Result := FInRound > 0;
 end;
 
-type
-  TBytesStreamHelper = class helper for TBytesStream
-    function GetBytes: TBytes;
-    property Bytes: TBytes read GetBytes;
-  end;
-
-  TStringStreamHelper = class helper for TStringStream
-    function GetDataString: string;
-    property DataString: string read GetDataString;
-  end;
-
-function TBytesStreamHelper.GetBytes: TBytes;
+function TmwSimplePasPar.GetUseDefines: Boolean;
 begin
-  Result := Self.FBytes;
+  Result := FLexer.UseDefines;
 end;
 
-function TStringStreamHelper.GetDataString: string;
+procedure TmwSimplePasPar.SetUseDefines(const Value: Boolean);
 begin
-  // try to read a bom from the buffer to create the correct encoding
-  // but only if the encoding is still the default encoding
-  if Self.FEncoding = TEncoding.Default then
-  begin
-    Self.FEncoding := nil;
-    TEncoding.GetBufferEncoding(Bytes, Self.FEncoding);
-    Result := Self.FEncoding.GetString(Bytes, Length(Self.FEncoding.GetPreamble), Size);
-  end
-  else
-    Result := Self.FEncoding.GetString(Bytes, 0, Size);
-end;
-
-procedure TmwSimplePasPar.Run(const UnitName: string; SourceStream: TStream);
-var
-  StringStream: TStringStream;
-  OwnStream: Boolean;
-begin
-  OwnStream := not (SourceStream is TStringStream);
-  if OwnStream then
-  begin
-    StringStream := TStringStream.Create;
-    StringStream.LoadFromStream(SourceStream);
-  end
-  else
-    StringStream := TStringStream(SourceStream);
-  FLexer.Origin := PChar(StringStream.DataString);
-  ParseFile;
-  if OwnStream then
-    StringStream.Free;
-end;
-
-constructor TmwSimplePasPar.Create;
-begin
-  inherited Create;
-  FLexer := TmwPasLex.Create;
-  FLexer.OnCompDirect := HandlePtCompDirect;
-  FLexer.OnDefineDirect := HandlePtDefineDirect;
-  FLexer.OnElseDirect := HandlePtElseDirect;
-  FLexer.OnEndIfDirect := HandlePtEndIfDirect;
-  FLexer.OnIfDefDirect := HandlePtIfDefDirect;
-  FLexer.OnIfNDefDirect := HandlePtIfNDefDirect;
-  FLexer.OnIfOptDirect := HandlePtIfOptDirect;
-  FLexer.OnIncludeDirect := HandlePtIncludeDirect;
-  FLexer.OnResourceDirect := HandlePtResourceDirect;
-  FLexer.OnUnDefDirect := HandlePtUndefDirect;
-  FLexer.OnIfDirect := HandlePtIfDirect;
-  FLexer.OnIfEndDirect := HandlePtIfEndDirect;
-  FLexer.OnElseIfDirect := HandlePtElseIfDirect;
-end;
-
-destructor TmwSimplePasPar.Destroy;
-begin
-  AheadParse.Free;
-
-  FLexer.Free;
-  inherited Destroy;
+  FLexer.UseDefines := Value;
 end;
 
 {next two check for ptNull and ExpectedFatal for an EOF Error}
@@ -787,14 +748,6 @@ begin
     Sender.Next;
 end;
 
-procedure TmwSimplePasPar.HandlePtElseIfDirect(Sender: TmwBasePasLex);
-begin
-  if Sender = Lexer then
-    NextToken
-  else
-    Sender.Next;
-end;
-
 procedure TmwSimplePasPar.HandlePtEndIfDirect(Sender: TmwBasePasLex);
 begin
   if Sender = Lexer then
@@ -804,22 +757,6 @@ begin
 end;
 
 procedure TmwSimplePasPar.HandlePtIfDefDirect(Sender: TmwBasePasLex);
-begin
-  if Sender = Lexer then
-    NextToken
-  else
-    Sender.Next;
-end;
-
-procedure TmwSimplePasPar.HandlePtIfDirect(Sender: TmwBasePasLex);
-begin
-  if Sender = Lexer then
-    NextToken
-  else
-    Sender.Next;
-end;
-
-procedure TmwSimplePasPar.HandlePtIfEndDirect(Sender: TmwBasePasLex);
 begin
   if Sender = Lexer then
     NextToken
@@ -861,19 +798,33 @@ begin
   Sender.Next;
 end;
 
+procedure TmwSimplePasPar.HandlePtIfDirect(Sender: TmwBasePasLex);
+begin
+  if Sender = Lexer then
+    NextToken
+  else
+    Sender.Next;
+end;
+
+procedure TmwSimplePasPar.HandlePtIfEndDirect(Sender: TmwBasePasLex);
+begin
+  if Sender = Lexer then
+    NextToken
+  else
+    Sender.Next;
+end;
+
+procedure TmwSimplePasPar.HandlePtElseIfDirect(Sender: TmwBasePasLex);
+begin
+  if Sender = Lexer then
+    NextToken
+  else
+    Sender.Next;
+end;
+
 procedure TmwSimplePasPar.NextToken;
 begin
   FLexer.NextNoJunk;
-end;
-
-procedure TmwSimplePasPar.NilToken;
-begin
-  Expected(ptNil);
-end;
-
-procedure TmwSimplePasPar.NotOp;
-begin
-  Expected(ptNot);
 end;
 
 procedure TmwSimplePasPar.SkipJunk;
@@ -919,31 +870,6 @@ begin
   FLastNoJunkLen := Lexer.TokenLen;
 end;
 
-procedure TmwSimplePasPar.SkipAnsiComment;
-begin
-  Expected(ptAnsiComment);
-  while TokenID in [ptAnsiComment] do
-    Lexer.Next;
-end;
-
-procedure TmwSimplePasPar.SkipBorComment;
-begin
-  Expected(ptBorComment);
-  while TokenID in [ptBorComment] do
-    Lexer.Next;
-end;
-
-procedure TmwSimplePasPar.SkipSlashesComment;
-begin
-  Expected(ptSlashesComment);
-end;
-
-procedure TmwSimplePasPar.ThenStatement;
-begin
-  Expected(ptThen);
-  Statement;
-end;
-
 procedure TmwSimplePasPar.Semicolon;
 begin
   case Lexer.TokenID of
@@ -963,273 +889,225 @@ begin
   Result := FLexer.TokenID;
 end;
 
-function TmwSimplePasPar.GetUseDefines: Boolean;
-begin
-  Result := FLexer.UseDefines;
-end;
-
-procedure TmwSimplePasPar.GotoStatement;
-begin
-  Expected(ptGoto);
-  LabelId;
-end;
-
 function TmwSimplePasPar.GetGenID: TptTokenKind;
 begin
   Result := FLexer.GenID;
 end;
 
-function TmwSimplePasPar.GetInRound: Boolean;
+procedure TmwSimplePasPar.AccessSpecifier;
 begin
-  Result := FInRound > 0;
-end;
-
-procedure TmwSimplePasPar.SynError(Error: TmwParseError);
-begin
-  if Assigned(FOnMessage) then
-    FOnMessage(Self, meError, ParserErrorName(Error) + ' found ' + FLexer.Token, FLexer.PosXY.X,
-      FLexer.PosXY.Y);
-
-end;
-
-(******************************************************************************
- This part is oriented at the official grammar of Delphi 4
- and parialy based on Robert Zierers Delphi grammar.
- For more information about Delphi grammars take a look at:
- http://www.stud.mw.tu-muenchen.de/~rz1/Grammar.html
-******************************************************************************)
-
-procedure TmwSimplePasPar.ParseFile;
-begin
-  SkipJunk;
-  case GenID of
-    ptLibrary:
+  case ExID of
+    ptRead:
       begin
-        LibraryFile;
+        NextToken;
+        ReadAccessIdentifier;
       end;
-    ptPackage:
+    ptWrite:
       begin
-        PackageFile;
+        NextToken;
+        WriteAccessIdentifier;
       end;
-    ptProgram:
+    ptReadOnly:
       begin
-        ProgramFile;
+        NextToken;
       end;
-    ptUnit:
+    ptWriteOnly:
       begin
-        UnitFile;
+        NextToken;
+      end;
+    ptAdd:
+      begin
+        NextToken;
+        QualifiedIdentifier; //TODO: AddAccessIdentifier
+      end;
+    ptRemove:
+      begin
+        NextToken;
+        QualifiedIdentifier; //TODO: RemoveAccessIdentifier
       end;
   else
     begin
-      IncludeFile;
+      SynError(InvalidAccessSpecifier);
     end;
   end;
 end;
 
-procedure TmwSimplePasPar.LibraryFile;
+procedure TmwSimplePasPar.AdditiveOperator;
 begin
-  Expected(ptLibrary);
-  UnitName;
-  Semicolon;
-
-  LibraryBlock;
-  Expected(ptPoint);
-end;
-
-procedure TmwSimplePasPar.LibraryBlock;
-begin
-  if TokenID = ptUses then
-    MainUsesClause;
-
-  DeclarationSections;
-
-  if TokenID = ptBegin then
-    CompoundStatement
+  if TokenID in [ptMinus, ptOr, ptPlus, ptXor] then
+  begin
+    NextToken;
+  end
   else
-    Expected(ptEnd);
-end;
-
-procedure TmwSimplePasPar.PackageFile;
-begin
-  ExpectedEx(ptPackage);
-  UnitName;
-  Semicolon;
-  case ExID of
-    ptRequires:
-      begin
-        RequiresClause;
-      end;
-  end;
-  case ExID of
-    ptContains:
-      begin
-        ContainsClause;
-      end;
-  end;
-
-  while Lexer.TokenID = ptSquareOpen do
   begin
-    CustomAttribute;
-  end;
-
-  Expected(ptEnd);
-  Expected(ptPoint);
-end;
-
-procedure TmwSimplePasPar.ProgramFile;
-begin
-  Expected(ptProgram);
-  UnitName;
-  if TokenID = ptRoundOpen then
-  begin
-    NextToken;
-    IdentifierList;
-    Expected(ptRoundClose);
-  end;
-  if not InterfaceOnly then
-  begin
-    Semicolon;
-    ProgramBlock;
-    Expected(ptPoint);
+    SynError(InvalidAdditiveOperator);
   end;
 end;
 
-procedure TmwSimplePasPar.UnaryMinus;
+procedure TmwSimplePasPar.AddressOp;
 begin
-  Expected(ptMinus);
+  Expected(ptAddressOp);
 end;
 
-procedure TmwSimplePasPar.UnitFile;
+procedure TmwSimplePasPar.AlignmentParameter;
 begin
-  Expected(ptUnit);
-  UnitName;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform, ptExperimental] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-      ptExperimental: NextToken;
+  SimpleExpression;
+end;
+
+procedure TmwSimplePasPar.AsOp;
+begin
+  Expected(ptAs);
+end;
+
+procedure TmwSimplePasPar.AncestorIdList;
+begin
+  AncestorId;
+  while(TokenID = ptComma) do
+    begin
+      NextToken;
+      AncestorId;
     end;
-
-  Semicolon;
-  InterfaceSection;
-  if not InterfaceOnly then
-  begin
-    ImplementationSection;
-    case TokenID of
-      ptInitialization:
-        begin
-          InitializationSection;
-          if TokenID = ptFinalization then
-            FinalizationSection;
-          Expected(ptEnd);
-        end;
-      ptBegin:
-        begin
-          CompoundStatement;
-        end;
-      ptEnd:
-        begin
-          NextToken;
-        end;
-    end;
-
-    Expected(ptPoint);
-  end;
 end;
 
-procedure TmwSimplePasPar.ProgramBlock;
+procedure TmwSimplePasPar.AncestorId;
 begin
-  if TokenID = ptUses then
-  begin
-    MainUsesClause;
-  end;
-  Block;
+  TypeId;
 end;
 
-procedure TmwSimplePasPar.MainUsesClause;
-begin
-  Expected(ptUses);
-  MainUsedUnitStatement;
-  while TokenID = ptComma do
-  begin
-    NextToken;
-    MainUsedUnitStatement;
-  end;
-  Semicolon;
-end;
-
-procedure TmwSimplePasPar.MethodKind;
+procedure TmwSimplePasPar.AnonymousMethod;
 begin
   case TokenID of
-    ptConstructor:
+    ptFunction:
       begin
         NextToken;
-      end;
-    ptDestructor:
-      begin
-        NextToken;
+        if TokenID = ptRoundOpen then
+          FormalParameterList;
+        Expected(ptColon);
+        ReturnType;
       end;
     ptProcedure:
       begin
         NextToken;
+        if TokenId = ptRoundOpen then
+          FormalParameterList;
+      end;
+  end;
+  Block;
+end;
+
+procedure TmwSimplePasPar.AnonymousMethodType;
+begin
+  ExpectedEx(ptReference);
+  Expected(ptTo);
+  case TokenID of
+    ptProcedure:
+      begin
+        NextToken;
+        if TokenID = ptRoundOpen then
+          FormalParameterList;
       end;
     ptFunction:
       begin
         NextToken;
+        if TokenID = ptRoundOpen then
+          FormalParameterList;
+        Expected(ptColon);
+        ReturnType;
       end;
-  else
+  end;
+end;
+
+procedure TmwSimplePasPar.ArrayConstant;
+begin
+  Expected(ptRoundOpen);
+
+  TypedConstant;
+  if TokenID = ptDotDot then
+  begin
+    NextToken;
+    TypedConstant;
+  end;
+
+  while (TokenID = ptComma) do
+  begin
+    NextToken;
+    TypedConstant;
+    if TokenID = ptDotDot then
     begin
-      SynError(InvalidProcedureMethodDeclaration);
+      NextToken;
+      TypedConstant;
     end;
   end;
+  Expected(ptRoundClose);
 end;
 
-procedure TmwSimplePasPar.MainUsedUnitStatement;
+procedure TmwSimplePasPar.ArrayBounds;
 begin
-  MainUsedUnitName;
-  if Lexer.TokenID = ptIn then
+  if TokenID = ptSquareOpen then
   begin
     NextToken;
-    MainUsedUnitExpression;
+    ArrayDimension;
+    while TokenID = ptComma do
+    begin
+      NextToken;
+      ArrayDimension;
+    end;
+    Expected(ptSquareClose);
   end;
 end;
 
-procedure TmwSimplePasPar.MainUsedUnitName;
+procedure TmwSimplePasPar.ArrayDimension;
 begin
-  UsedUnitName;
+  OrdinalType;
 end;
 
-procedure TmwSimplePasPar.MainUsedUnitExpression;
+procedure TmwSimplePasPar.ArrayType;
 begin
-  ConstantExpression;
+  Expected(ptArray);
+  ArrayBounds;
+  Expected(ptOf);
+  TypeKind;
 end;
 
-procedure TmwSimplePasPar.UsesClause;
+procedure TmwSimplePasPar.AsmStatement;
 begin
-  Expected(ptUses);
-  UsedUnitsList;
-  Semicolon;
+  Lexer.AsmCode := True;
+  Expected(ptAsm);
+  { should be replaced with a Assembler lexer }
+  while TokenID <> ptEnd do
+    case FLexer.TokenID of
+      ptBegin, ptCase, ptEnd, ptIf, ptFunction, ptProcedure, ptRepeat, ptwhile: Break;
+      ptAddressOp:
+        begin
+          NextToken;
+          NextToken;
+        end;
+      ptDoubleAddressOp:
+        begin
+          NextToken;
+          NextToken;
+        end;
+      ptNull:
+        begin
+          Expected(ptEnd);
+          Exit;
+        end;
+    else
+      NextToken;
+    end;
+  Lexer.AsmCode := False;
+  Expected(ptEnd);
 end;
 
-procedure TmwSimplePasPar.UsedUnitsList;
+procedure TmwSimplePasPar.AssignOp;
 begin
-  UsedUnitName;
-  while TokenID = ptComma do
-  begin
-    NextToken;
-    UsedUnitName;
-  end;
+  Expected(ptAssign);
 end;
 
-procedure TmwSimplePasPar.UsedUnitName;
+procedure TmwSimplePasPar.AtExpression;
 begin
-  UnitId;
-  while Lexer.TokenID = ptPoint do
-  begin
-    NextToken;
-    UnitId;
-  end;
+  ExpectedEx(ptAt);
+  Expression;
 end;
 
 procedure TmwSimplePasPar.Block;
@@ -1245,6 +1123,620 @@ begin
       CompoundStatement;
     end;
   end;
+end;
+
+procedure TmwSimplePasPar.CaseElseStatement;
+begin
+  Expected(ptElse);
+  StatementList;
+  Semicolon;
+end;
+
+procedure TmwSimplePasPar.CaseLabel;
+begin
+  ConstantExpression;
+  if TokenID = ptDotDot then
+  begin
+    NextToken;
+    ConstantExpression;
+  end;
+end;
+
+procedure TmwSimplePasPar.CaseLabelList;
+begin
+  CaseLabel;
+  while TokenID = ptComma do
+  begin
+    NextToken;
+    CaseLabel;
+  end;
+end;
+
+procedure TmwSimplePasPar.CaseSelector;
+begin
+  CaseLabelList;
+  Expected(ptColon);
+  case TokenID of
+    ptSemiColon: EmptyStatement;
+  else
+    Statement;
+  end;
+end;
+
+procedure TmwSimplePasPar.CaseStatement;
+begin
+  Expected(ptCase);
+  Expression;
+  Expected(ptOf);
+  CaseSelector;
+  while TokenID = ptSemiColon do
+  begin
+    Semicolon;
+    case TokenID of
+      ptElse, ptEnd: ;
+    else
+      CaseSelector;
+    end;
+  end;
+  if TokenID = ptElse then
+    CaseElseStatement;
+  Expected(ptEnd);
+end;
+
+procedure TmwSimplePasPar.CharString;
+begin
+  case TokenID of
+    ptAsciiChar, ptIdentifier, ptRoundOpen, ptStringConst:
+      while TokenID in
+        [ptAsciiChar, ptIdentifier, ptRoundOpen, ptStringConst, ptString] do
+      begin
+        case TokenID of
+          ptIdentifier, ptRoundOpen:
+            begin
+              if ExID in [ptIndex] then
+                Break;
+              VariableReference;
+            end;
+          ptString:
+            begin
+              StringStatement;
+            end;
+        else
+          StringConst;
+        end;
+        if Lexer.TokenID = ptPoint then
+        begin
+          NextToken;
+          VariableReference;
+        end;
+      end;
+  else
+    begin
+      SynError(InvalidCharString);
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.ClassField;
+begin
+  if TokenID = ptSquareOpen then
+    CustomAttribute;
+  FieldNameList;
+  Expected(ptColon);
+  TypeKind;
+  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
+    case ExID of
+      ptDeprecated: DirectiveDeprecated;
+      ptLibrary: DirectiveLibrary;
+      ptPlatform: DirectivePlatform;
+    end;
+end;
+
+procedure TmwSimplePasPar.ClassForward;
+begin
+  Expected(ptClass);
+end;
+
+procedure TmwSimplePasPar.ClassFunctionHeading;
+begin
+  if (TokenID = ptIdentifier) and (Lexer.ExID = ptOperator) then
+    Expected(ptIdentifier) else
+  Expected(ptFunction);
+  FunctionProcedureName;
+  if TokenID = ptRoundOpen then
+  begin
+    FormalParameterList;
+  end;
+  Expected(ptColon);
+  ReturnType;
+  if TokenId = ptSemicolon then
+    Semicolon;
+  if ExID in ClassMethodDirectiveEnum then
+    ClassMethodDirective;
+end;
+
+procedure TmwSimplePasPar.ClassHeritage;
+begin
+  Expected(ptRoundOpen);
+  AncestorIdList;
+  Expected(ptRoundClose);
+end;
+
+procedure TmwSimplePasPar.ClassMemberList;
+begin
+  while TokenID in [ptClass, ptConstructor, ptDestructor, ptFunction,
+    ptIdentifier, ptProcedure, ptProperty,
+    ptType, ptSquareOpen, ptVar, ptConst, ptStrict, ptCase] do
+  begin
+    ClassVisibility;
+
+    if TokenID = ptSquareOpen then
+      CustomAttribute;
+
+    if (TokenID = ptIdentifier) and
+      not (ExID in [ptPrivate, ptProtected, ptPublished, ptPublic]) then
+    begin
+      InitAhead;
+      AheadParse.NextToken;
+
+      if AheadParse.TokenId = ptEqual then
+        ConstantDeclaration
+      else
+        ClassField;
+
+      Semicolon;
+    end
+    else if TokenID in [ptClass, ptConstructor, ptDestructor, ptFunction,
+      ptProcedure, ptProperty, ptVar, ptConst] then
+    begin
+      ClassMethodOrProperty;
+    end;
+    if TokenID = ptType then
+      TypeSection;
+    if TokenID = ptCase then
+    begin
+      VariantSection;
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.ClassMethodDirective;
+begin
+  while ExId in ClassMethodDirectiveEnum do
+  begin
+    if ExID = ptDispId then
+      DispIDSpecifier
+    else
+      ProceduralDirective;
+    if TokenId = ptSemicolon then
+      Semicolon;
+  end;
+end;
+
+procedure TmwSimplePasPar.ClassMethodHeading;
+begin
+  if TokenID = ptClass then
+    ClassClass;
+
+  InitAhead;
+  AheadParse.NextToken;
+  AheadParse.FunctionProcedureName;
+
+  if AheadParse.TokenId = ptEqual then
+    ClassMethodResolution
+  else
+  begin
+    case TokenID of
+      ptConstructor:
+        begin
+          ConstructorHeading;
+        end;
+      ptDestructor:
+        begin
+          DestructorHeading;
+        end;
+      ptFunction, ptIdentifier:
+        begin
+          if (TokenID = ptIdentifier) and (Lexer.ExID <> ptOperator) then
+            Expected(ptOperator);
+          ClassFunctionHeading;
+        end;
+      ptProcedure:
+        begin
+          ClassProcedureHeading;
+        end;
+    else
+      SynError(InvalidClassMethodHeading);
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.ClassMethodOrProperty;
+var
+  CurToken: TptTokenKind;
+begin
+  if TokenID = ptClass then
+  begin
+    InitAhead;
+    AheadParse.NextToken;
+    CurToken := AheadParse.TokenID;
+  end else
+    CurToken := TokenID;
+
+  case CurToken of
+    ptProperty:
+      begin
+        ClassProperty;
+      end;
+    ptVar, ptThreadVar:
+      begin
+        if TokenID = ptClass then
+          ClassClass;
+
+        NextToken;
+        while (TokenID = ptIdentifier) and (ExID = ptUnknown) do
+        begin
+          ClassField;
+          Semicolon;
+        end;
+      end;
+    ptConst:
+      begin
+        if TokenID = ptClass then
+          ClassClass;
+
+        NextToken;
+        while (TokenID = ptIdentifier) and (ExID = ptUnknown) do
+        begin
+          ConstantDeclaration;
+          Semicolon;
+        end;
+      end;
+  else
+    begin
+      ClassMethodHeading;
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.ClassMethodResolution;
+begin
+  case TokenID of
+    ptFunction:
+      begin
+        NextToken;
+      end;
+    ptProcedure:
+      begin
+        NextToken;
+      end;
+    ptIdentifier:
+      begin
+        if Lexer.ExID = ptOperator then
+          NextToken;
+      end;
+  end;
+  FunctionProcedureName;
+  Expected(ptEqual);
+  Expected(ptIdentifier);
+  Semicolon;
+end;
+
+procedure TmwSimplePasPar.ClassProcedureHeading;
+begin
+  Expected(ptProcedure);
+  FunctionProcedureName;
+  if TokenID = ptRoundOpen then
+  begin
+    FormalParameterList;
+  end;
+  if TokenId = ptSemicolon then
+    Semicolon;
+
+  if ExID = ptDispId then
+  begin
+    DispIDSpecifier;
+    if TokenId = ptSemicolon then
+      Semicolon;
+  end;
+  if exID in ClassMethodDirectiveEnum then
+  ClassMethodDirective;
+end;
+
+procedure TmwSimplePasPar.ClassClass;
+begin
+  Expected(ptClass);
+end;
+
+procedure TmwSimplePasPar.ClassMethod;
+begin
+  Expected(ptClass);
+end;
+
+procedure TmwSimplePasPar.ClassProperty;
+begin
+  if TokenID = ptClass then
+    ClassClass;
+
+  Expected(ptProperty);
+  PropertyName;
+  case TokenID of
+    ptColon, ptSquareOpen:
+      begin
+        PropertyInterface;
+      end;
+  end;
+  PropertySpecifiers;
+  case ExID of
+    ptDefault:
+      begin
+        PropertyDefault;
+        Semicolon;
+      end;
+  end;
+end;
+
+procedure TmwSimplePasPar.ClassReferenceType;
+begin
+  Expected(ptClass);
+  Expected(ptOf);
+  TypeId;
+end;
+
+procedure TmwSimplePasPar.ClassType;
+begin
+  Expected(ptClass);
+  case TokenID of
+    ptIdentifier: //NASTY hack because Abstract is generally an ExID, except in this case when it should be a keyword.
+      begin
+        if Lexer.ExID = ptAbstract then
+          Expected(ptIdentifier);
+
+        if Lexer.ExID = ptHelper then
+        begin
+          ExpectedEx(ptHelper);
+          if TokenID = ptRoundOpen then
+            ClassHeritage;
+          Expected(ptFor);
+          TypeId;
+        end;
+      end;
+    ptSealed:
+      Expected(ptSealed);
+  end;
+  case TokenID of
+    ptEnd:
+      begin
+        ClassTypeEnd;
+        NextToken; { Direct descendant of TObject without new members }
+      end;
+    ptRoundOpen:
+      begin
+        ClassHeritage;
+        case TokenID of
+          ptEnd:
+            begin
+              Expected(ptEnd);
+              ClassTypeEnd;
+            end;
+          ptSemiColon: ClassTypeEnd;
+        else
+          begin
+            ClassMemberList; { Direct descendant of TObject }
+            Expected(ptEnd);
+            ClassTypeEnd;
+          end;
+        end;
+      end;
+    ptSemicolon: ClassTypeEnd;
+  else
+    begin
+      ClassMemberList; { Direct descendant of TObject }
+      Expected(ptEnd);
+      ClassTypeEnd;
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.ClassTypeEnd;
+begin
+  case ExID of
+    ptExperimental: DirectiveExperimental;
+    ptDeprecated: DirectiveDeprecated;
+  end;
+end;
+
+procedure TmwSimplePasPar.ClassVisibility;
+begin
+  if TokenID = ptStrict then
+    Expected(ptStrict);
+  while ExID in [ptAutomated, ptPrivate, ptProtected, ptPublic, ptPublished] do
+  begin
+    Lexer.InitAhead;
+    case Lexer.AheadExID of
+      ptColon, ptComma: ;
+    else
+      case ExID of
+        ptAutomated:
+          begin
+            VisibilityAutomated;
+          end;
+        ptPrivate:
+          begin
+            VisibilityPrivate;
+          end;
+        ptProtected:
+          begin
+            VisibilityProtected;
+          end;
+        ptPublic:
+          begin
+            VisibilityPublic;
+          end;
+        ptPublished:
+          begin
+            VisibilityPublished;
+          end;
+      end;
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.CompoundStatement;
+begin
+  Expected(ptBegin);
+  StatementList;
+  Expected(ptEnd);
+end;
+
+procedure TmwSimplePasPar.ConstantColon;
+begin
+  Expected(ptColon);
+  ConstantType;
+  Expected(ptEqual);
+  ConstantValueTyped;
+end;
+
+procedure TmwSimplePasPar.ConstantDeclaration;
+begin
+  ConstantName;
+  case TokenID of
+    ptEqual:
+      begin
+        ConstantEqual;
+      end;
+    ptColon:
+      begin
+        ConstantColon;
+      end;
+  else
+    begin
+      SynError(InvalidConstantDeclaration);
+    end;
+  end;
+  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
+    case ExID of
+      ptDeprecated: DirectiveDeprecated;
+      ptLibrary: DirectiveLibrary;
+      ptPlatform: DirectivePlatform;
+    end;
+end;
+
+procedure TmwSimplePasPar.ConstantEqual;
+begin
+  Expected(ptEqual);
+  ConstantValue;
+end;
+
+procedure TmwSimplePasPar.ConstantExpression;
+begin
+  SimpleExpression;
+end;
+
+procedure TmwSimplePasPar.ConstantName;
+begin
+  Expected(ptIdentifier);
+end;
+
+procedure TmwSimplePasPar.ConstantType;
+begin
+  TypeKind;
+end;
+
+procedure TmwSimplePasPar.ConstantValue;
+begin
+  Expression;
+end;
+
+procedure TmwSimplePasPar.ConstantValueTyped;
+begin
+  TypedConstant;
+end;
+
+procedure TmwSimplePasPar.ConstParameter;
+begin
+  Expected(ptConst);
+  ParameterNameList;
+  case TokenID of
+    ptColon:
+      begin
+        NextToken;
+        NewFormalParameterType;
+        if TokenID = ptEqual then
+        begin
+          NextToken;
+          TypedConstant;
+        end;
+      end
+  end;
+end;
+
+procedure TmwSimplePasPar.ConstructorHeading;
+begin
+  Expected(ptConstructor);
+  ConstructorName;
+  if TokenID = ptRoundOpen then
+  begin
+    FormalParameterList;
+  end;
+  if TokenID = ptSemiColon then Semicolon;
+  ClassMethodDirective;
+end;
+
+procedure TmwSimplePasPar.ConstructorName;
+begin
+  Expected(ptIdentifier);
+end;
+
+procedure TmwSimplePasPar.ConstSection;
+begin
+  case TokenID of
+    ptConst:
+      begin
+        NextToken;
+        while TokenID in [ptIdentifier, ptSquareOpen] do
+        begin
+          if TokenID = ptSquareOpen then
+            CustomAttribute
+          else
+          begin
+            ConstantDeclaration;
+            Semicolon;
+          end;
+        end;
+      end;
+    ptResourceString:
+      begin
+        NextToken;
+        while (TokenID = ptIdentifier) do
+        begin
+          ResourceDeclaration;
+          Semicolon;
+        end;
+      end
+  else
+    begin
+      SynError(InvalidConstSection);
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.ContainsClause;
+begin
+  ExpectedEx(ptContains);
+  MainUsedUnitStatement;
+  while TokenID = ptComma do
+  begin
+    NextToken;
+    MainUsedUnitStatement;
+  end;
+  Semicolon;
+end;
+
+procedure TmwSimplePasPar.CustomAttribute;
+begin
+  //TODO: Global vs. Local attributes
+  AttributeSections;
 end;
 
 procedure TmwSimplePasPar.DeclarationSection;
@@ -1309,381 +1801,17 @@ begin
   end;
 end;
 
-procedure TmwSimplePasPar.UnitId;
+procedure TmwSimplePasPar.DeclarationSections;
 begin
-  Expected(ptIdentifier);
-end;
-
-procedure TmwSimplePasPar.UnitName;
-begin
-  UnitId;
-  while Lexer.TokenID = ptPoint do
+  while TokenID in [ptClass, ptConst, ptConstructor, ptDestructor, ptExports, ptFunction, ptLabel, ptProcedure, ptResourceString, ptThreadVar, ptType, ptVar, ptSquareOpen] do
   begin
-    NextToken;
-    UnitId;
+    DeclarationSection;
   end;
 end;
 
-procedure TmwSimplePasPar.InterfaceHeritage;
+procedure TmwSimplePasPar.Designator;
 begin
-  Expected(ptRoundOpen);
-  AncestorIdList;
-  Expected(ptRoundClose);
-end;
-
-procedure TmwSimplePasPar.InterfaceGUID;
-begin
-  Expected(ptSquareOpen);
-  CharString;
-  Expected(ptSquareClose);
-end;
-
-procedure TmwSimplePasPar.AccessSpecifier;
-begin
-  case ExID of
-    ptRead:
-      begin
-        NextToken;
-        ReadAccessIdentifier;
-      end;
-    ptWrite:
-      begin
-        NextToken;
-        WriteAccessIdentifier;
-      end;
-    ptReadOnly:
-      begin
-        NextToken;
-      end;
-    ptWriteOnly:
-      begin
-        NextToken;
-      end;
-    ptAdd:
-      begin
-        NextToken;
-        QualifiedIdentifier; //TODO: AddAccessIdentifier
-      end;
-    ptRemove:
-      begin
-        NextToken;
-        QualifiedIdentifier; //TODO: RemoveAccessIdentifier
-      end;
-  else
-    begin
-      SynError(InvalidAccessSpecifier);
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.ReadAccessIdentifier;
-begin
-  variable;
-end;
-
-procedure TmwSimplePasPar.WriteAccessIdentifier;
-begin
-  variable;
-end;
-
-procedure TmwSimplePasPar.StorageSpecifier;
-begin
-  case ExID of
-    ptStored:
-      begin
-        StorageStored;
-      end;
-    ptDefault:
-      begin
-        StorageDefault;
-      end;
-    ptNoDefault:
-      begin
-        StorageNoDefault;
-      end
-  else
-    begin
-      SynError(InvalidStorageSpecifier);
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.StorageDefault;
-begin
-  ExpectedEx(ptDefault);
-  StorageExpression;
-end;
-
-procedure TmwSimplePasPar.StorageNoDefault;
-begin
-  ExpectedEx(ptNoDefault);
-end;
-
-procedure TmwSimplePasPar.StorageStored;
-begin
-  ExpectedEx(ptStored);
-  case TokenID of
-    ptIdentifier:
-      begin
-        StorageIdentifier;
-      end;
-  else
-    if TokenID <> ptSemiColon then
-    begin
-      StorageExpression;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.StorageExpression;
-begin
-  ConstantExpression;
-end;
-
-procedure TmwSimplePasPar.StorageIdentifier;
-begin
-  Expected(ptIdentifier);
-end;
-
-procedure TmwSimplePasPar.PropertyParameterList;
-begin
-  Expected(ptSquareOpen);
-  PropertyParameter;
-  while TokenID = ptSemiColon do
-  begin
-    Semicolon;
-    PropertyParameter;
-  end;
-  Expected(ptSquareClose);
-end;
-
-procedure TmwSimplePasPar.PropertyParameterOut;
-begin
-  ExpectedEx(ptOut);
-end;
-
-procedure TmwSimplePasPar.PropertyParameterVar;
-begin
-  Expected(ptVar);
-end;
-
-procedure TmwSimplePasPar.PropertyParameter;
-begin
-  case TokenID of
-    ptConst: PropertyParameterConst;
-    ptVar: PropertyParameterVar;
-    ptIdentifier:
-      begin
-        if ExID = ptOut then
-          PropertyParameterOut;
-      end;
-  end;
-  IdentifierList;
-  if TokenID = ptColon then
-  begin
-    NextToken;
-
-    TypeId;
-    if TokenID = ptEqual then
-    begin
-      Expected(ptEqual);
-      ConstantExpression;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.PropertyParameterConst;
-begin
-  Expected(ptConst);
-end;
-
-procedure TmwSimplePasPar.PropertySpecifiers;
-begin
-  if ExID = ptIndex then
-  begin
-    IndexSpecifier;
-  end;
-  while ExID in [ptRead, ptReadOnly, ptWrite, ptWriteOnly, ptAdd, ptRemove] do
-  begin
-    AccessSpecifier;
-  end;
-  if ExID = ptDispId then
-  begin
-    DispIDSpecifier;
-  end;
-  while ExID in [ptDefault, ptNoDefault, ptStored] do
-  begin
-    StorageSpecifier;
-  end;
-  if ExID = ptImplements then
-  begin
-    ImplementsSpecifier;
-  end;
-  Semicolon;
-end;
-
-procedure TmwSimplePasPar.PropertyInterface;
-begin
-  if TokenID = ptSquareOpen then
-  begin
-    PropertyParameterList;
-  end;
-  Expected(ptColon);
-  TypeID;
-end;
-
-procedure TmwSimplePasPar.ClassMethodHeading;
-begin
-  if TokenID = ptClass then
-    ClassClass;
-
-  InitAhead;
-  AheadParse.NextToken;
-  AheadParse.FunctionProcedureName;
-
-  if AheadParse.TokenId = ptEqual then
-    ClassMethodResolution
-  else
-  begin
-    case TokenID of
-      ptConstructor:
-        begin
-          ConstructorHeading;
-        end;
-      ptDestructor:
-        begin
-          DestructorHeading;
-        end;
-      ptFunction, ptIdentifier:
-        begin
-          if (TokenID = ptIdentifier) and (Lexer.ExID <> ptOperator) then
-            Expected(ptOperator);
-          ClassFunctionHeading;
-        end;
-      ptProcedure:
-        begin
-          ClassProcedureHeading;
-        end;
-    else
-      SynError(InvalidClassMethodHeading);
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.ClassFunctionHeading;
-begin
-  if (TokenID = ptIdentifier) and (Lexer.ExID = ptOperator) then
-    Expected(ptIdentifier) else
-  Expected(ptFunction);
-  FunctionProcedureName;
-  if TokenID = ptRoundOpen then
-  begin
-    FormalParameterList;
-  end;
-  Expected(ptColon);
-  ReturnType;
-  if TokenId = ptSemicolon then
-    Semicolon;
-  if ExID in ClassMethodDirectiveEnum then
-    ClassMethodDirective;
-end;
-
-procedure TmwSimplePasPar.FunctionMethodName;
-begin
-  Expected(ptIdentifier);
-end;
-
-procedure TmwSimplePasPar.ClassProcedureHeading;
-begin
-  Expected(ptProcedure);
-  FunctionProcedureName;
-  if TokenID = ptRoundOpen then
-  begin
-    FormalParameterList;
-  end;
-  if TokenId = ptSemicolon then
-    Semicolon;
-
-  if ExID = ptDispId then
-  begin
-    DispIDSpecifier;
-    if TokenId = ptSemicolon then
-      Semicolon;
-  end;
-  if exID in ClassMethodDirectiveEnum then
-  ClassMethodDirective;
-end;
-
-procedure TmwSimplePasPar.ProcedureMethodName;
-begin
-  Expected(ptIdentifier);
-end;
-
-procedure TmwSimplePasPar.ClassMethodResolution;
-begin
-  case TokenID of
-    ptFunction:
-      begin
-        NextToken;
-      end;
-    ptProcedure:
-      begin
-        NextToken;
-      end;
-    ptIdentifier:
-      begin
-        if Lexer.ExID = ptOperator then
-          NextToken;
-      end;
-  end;
-  FunctionProcedureName;
-  Expected(ptEqual);
-  Expected(ptIdentifier);
-  Semicolon;
-end;
-
-procedure TmwSimplePasPar.ResolutionInterfaceName;
-begin
-  Expected(ptIdentifier);
-end;
-
-procedure TmwSimplePasPar.Constraint;
-begin
-  while TokenId in [ptConstructor, ptRecord, ptClass, ptIdentifier] do
-  begin
-    case TokenId of
-      ptConstructor, ptRecord, ptClass: NextToken;
-      ptIdentifier: TypeId;
-    end;
-    if TokenId = ptComma then
-      NextToken;
-  end;
-end;
-
-procedure TmwSimplePasPar.ConstraintList;
-begin
-  Constraint;
-  while TokenId = ptComma do
-  begin
-    Constraint;
-  end;
-end;
-
-procedure TmwSimplePasPar.ConstructorHeading;
-begin
-  Expected(ptConstructor);
-  ConstructorName;
-  if TokenID = ptRoundOpen then
-  begin
-    FormalParameterList;
-  end;
-  if TokenID = ptSemiColon then Semicolon;
-  ClassMethodDirective;
-end;
-
-procedure TmwSimplePasPar.ConstructorName;
-begin
-  Expected(ptIdentifier);
+  VariableReference;
 end;
 
 procedure TmwSimplePasPar.DestructorHeading;
@@ -1703,109 +1831,10 @@ begin
   Expected(ptIdentifier);
 end;
 
-procedure TmwSimplePasPar.ClassMethod;
+procedure TmwSimplePasPar.DeclarationForward;
 begin
-  Expected(ptClass);
-end;
-
-procedure TmwSimplePasPar.ClassMethodDirective;
-begin
-  while ExId in ClassMethodDirectiveEnum do
-  begin
-    if ExID = ptDispId then
-      DispIDSpecifier
-    else
-      ProceduralDirective;
-    if TokenId = ptSemicolon then
-      Semicolon;
-  end;
-end;
-
-procedure TmwSimplePasPar.ObjectMethodHeading;
-begin
-  case TokenID of
-    ptConstructor:
-      begin
-        ObjectConstructorHeading;
-      end;
-    ptDestructor:
-      begin
-        ObjectDestructorHeading;
-      end;
-    ptFunction:
-      begin
-        ObjectFunctionHeading;
-      end;
-    ptProcedure:
-      begin
-        ObjectProcedureHeading;
-      end;
-  else
-    begin
-      SynError(InvalidMethodHeading);
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.ObjectFunctionHeading;
-begin
-  Expected(ptFunction);
-  FunctionMethodName;
-  if TokenID = ptRoundOpen then
-  begin
-    FormalParameterList;
-  end;
-  Expected(ptColon);
-  ReturnType;
-  if TokenID = ptSemiColon then  Semicolon;
-  ObjectMethodDirective;
-end;
-
-procedure TmwSimplePasPar.ObjectProcedureHeading;
-begin
-  Expected(ptProcedure);
-  ProcedureMethodName;
-  if TokenID = ptRoundOpen then
-  begin
-    FormalParameterList;
-  end;
-  if TokenID = ptSemiColon then Semicolon;
-  ObjectMethodDirective;
-end;
-
-procedure TmwSimplePasPar.ObjectConstructorHeading;
-begin
-  Expected(ptConstructor);
-  ConstructorName;
-  if TokenID = ptRoundOpen then
-  begin
-    FormalParameterList;
-  end;
-  if TokenID = ptSemiColon then Semicolon;
-  ObjectMethodDirective;
-end;
-
-procedure TmwSimplePasPar.ObjectDestructorHeading;
-begin
-  Expected(ptDestructor);
-  DestructorName;
-  if TokenID = ptRoundOpen then
-  begin
-    FormalParameterList;
-  end;
-  if TokenID = ptSemiColon then Semicolon;
-  ObjectMethodDirective;
-end;
-
-procedure TmwSimplePasPar.ObjectMethodDirective;
-begin
-  while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptFar,
-    ptMessage, ptNear, ptOverload, ptPascal, ptRegister, ptSafeCall, ptStdCall,
-    ptVirtual, ptDeprecated, ptLibrary, ptPlatform, ptStatic, ptInline] do
-  begin
-    ProceduralDirective;
-    if TokenID = ptSemiColon then Semicolon;
-  end;
+  NextToken;
+  Semicolon;
 end;
 
 procedure TmwSimplePasPar.Directive16Bit;
@@ -1865,306 +1894,33 @@ begin
   end;
 end;
 
-procedure TmwSimplePasPar.ReturnType;
+procedure TmwSimplePasPar.DirectiveCalling;
 begin
-  while TokenID = ptSquareOpen do
-    CustomAttribute;
-  case TokenID of
-    ptString:
+  case ExID of
+    ptCdecl, ptPascal, ptRegister, ptSafeCall, ptStdCall:
       begin
-        StringType;
+        NextToken;
       end;
   else
     begin
-      TypeID;
+      SynError(InvalidDirectiveCalling);
     end;
   end;
 end;
 
-procedure TmwSimplePasPar.RoundClose;
+procedure TmwSimplePasPar.DirectiveDeprecated;
 begin
-  Expected(ptRoundClose);
-  Dec(FInRound);
-end;
-
-procedure TmwSimplePasPar.RoundOpen;
-begin
-  Expected(ptRoundOpen);
-  Inc(FInRound);
-end;
-
-procedure TmwSimplePasPar.FormalParameterList;
-begin
-  Expected(ptRoundOpen);
-  FormalParameterSection;
-  while TokenID = ptSemiColon do
-  begin
-    Semicolon;
-    FormalParameterSection;
-  end;
-  Expected(ptRoundClose);
-end;
-
-procedure TmwSimplePasPar.FormalParameterSection;
-begin
-  while TokenID = ptSquareOpen do
-    CustomAttribute;
-  case TokenID of
-    ptConst:
-      begin
-        ConstParameter;
-      end;
-    ptIdentifier:
-      case ExID of
-        ptOut: OutParameter;
-      else
-        ParameterFormal;
-      end;
-    ptIn:
-      begin
-        InParameter;
-      end;
-    ptVar:
-      begin
-        VarParameter;
-      end;
-  end;
-end;
-
-procedure TmwSimplePasPar.ConstParameter;
-begin
-  Expected(ptConst);
-  ParameterNameList;
-  case TokenID of
-    ptColon:
-      begin
-        NextToken;
-        NewFormalParameterType;
-        if TokenID = ptEqual then
-        begin
-          NextToken;
-          TypedConstant;
-        end;
-      end
-  end;
-end;
-
-procedure TmwSimplePasPar.VarParameter;
-begin
-  Expected(ptVar);
-  ParameterNameList;
-  case TokenID of
-    ptColon:
-      begin
-        NextToken;
-        NewFormalParameterType;
-      end
-  end;
-end;
-
-procedure TmwSimplePasPar.OutParameter;
-begin
-  ExpectedEx(ptOut);
-  ParameterNameList;
-  case TokenID of
-    ptColon:
-      begin
-        NextToken;
-        NewFormalParameterType;
-      end
-  end;
-end;
-
-procedure TmwSimplePasPar.ParameterFormal;
-begin
-  case TokenID of
-    ptIdentifier:
-      begin
-        ParameterNameList;
-        Expected(ptColon);
-        NewFormalParameterType;
-        if TokenID = ptEqual then
-        begin
-          NextToken;
-          TypedConstant;
-        end;
-      end;
-  else
-    begin
-      SynError(InvalidParameter);
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.ParameterNameList;
-begin
-  while TokenID = ptSquareOpen do
-    CustomAttribute;
-  ParameterName;
-
-  while TokenID = ptComma do
-  begin
+  ExpectedEx(ptDeprecated);
+  if TokenID = ptStringConst then
     NextToken;
-
-    while TokenID = ptSquareOpen do
-      CustomAttribute;
-    ParameterName;
-  end;
 end;
 
-procedure TmwSimplePasPar.ParameterName;
+procedure TmwSimplePasPar.DirectiveExperimental;
 begin
-  Expected(ptIdentifier);
+  ExpectedEx(ptExperimental);
 end;
 
-procedure TmwSimplePasPar.NewFormalParameterType;
-begin
-  case TokenID of
-    ptArray:
-      begin
-        NextToken;
-        Expected(ptOf);
-        case TokenID of
-          ptConst: (*new in ObjectPascal80*)
-            begin
-              NextToken;
-            end;
-        else
-          begin
-            OldFormalParameterType;
-          end;
-        end;
-      end;
-  else
-    begin
-      OldFormalParameterType;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.OldFormalParameterType;
-begin
-  case TokenID of
-    ptString:
-      begin
-        NextToken;
-      end;
-    ptFile:
-      begin
-        FileType;
-      end;
-  else
-    begin
-      TypeID;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.FunctionMethodDeclaration;
-begin
-  if (TokenID = ptIdentifier) and (Lexer.ExID = ptOperator) then
-    NextToken else
-  MethodKind;
-  FunctionProcedureName;
-  if TokenID = ptRoundOpen then
-  begin
-    FormalParameterList;
-  end;
-  case TokenID of
-    ptSemiColon:
-      begin
-        FunctionProcedureBlock;
-      end;
-  else
-    begin
-      Expected(ptColon);
-      ReturnType;
-      FunctionProcedureBlock;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.ProcedureProcedureName;
-begin
-  MethodKind;
-  FunctionProcedureName;
-  if TokenID = ptRoundOpen then
-  begin
-    FormalParameterList;
-  end;
-  FunctionProcedureBlock;
-end;
-
-procedure TmwSimplePasPar.FunctionProcedureName;
-begin
-  ObjectNameOfMethod;
-end;
-
-procedure TmwSimplePasPar.ObjectNameOfMethod;
-begin
-  if TokenID = ptIn then
-    Expected(ptIn)
-  else
-    Expected(ptIdentifier);
-
-  if TokenId = ptLower then
-    TypeParams;
-  if TokenID = ptPoint then
-  begin
-    Expected(ptPoint);
-    ObjectNameOfMethod;
-  end;
-end;
-
-procedure TmwSimplePasPar.FunctionProcedureBlock;
-var
-  HasBlock: Boolean;
-begin
-  HasBlock := True;
-  if TokenID = ptSemiColon then Semicolon;
-
-  while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptDelayed, ptFar,
-    ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
-    ptReintroduce, ptSafeCall, ptStdCall, ptVirtual, ptDeprecated, ptLibrary,
-    ptPlatform, ptLocal, ptVarargs, ptAssembler, ptStatic, ptInline, ptForward,
-    ptExperimental, ptDeprecated] do
-  begin
-    case ExId of
-      ptExternal:
-        begin
-          ProceduralDirective;
-          HasBlock := False;
-        end;
-      ptForward:
-        begin
-          ForwardDeclaration;
-          HasBlock := False;
-        end
-    else
-      begin
-        ProceduralDirective;
-      end;
-    end;
-    if TokenID = ptSemiColon then Semicolon;
-  end;
-
-  if HasBlock then
-  begin
-    case TokenID of
-      ptAsm:
-        begin
-          AsmStatement;
-        end;
-    else
-      begin
-        Block;
-      end;
-    end;
-    Semicolon;
-  end;
-end;
-
-procedure TmwSimplePasPar.ExternalDirective;
+procedure TmwSimplePasPar.DirectiveExternal;
 begin
   ExpectedEx(ptExternal);
   case TokenID of
@@ -2172,16 +1928,25 @@ begin
       begin
         Semicolon;
       end;
+    ptStringConst:
+      begin
+        StringConst;
+      end
   else
     begin
       if FLexer.ExID <> ptName then
         SimpleExpression;
-      ExternalDirectiveTwo;
+      DirectiveExternalTwo;
     end;
+  end;
+  case Lexer.ExID of
+    ptName, ptIndex: DirectiveExternalTwo;
+    ptDelayed: DirectiveExternalThree;
+    ptSemiColon: NextToken;
   end;
 end;
 
-procedure TmwSimplePasPar.ExternalDirectiveTwo;
+procedure TmwSimplePasPar.DirectiveExternalTwo;
 begin
   case FLexer.ExID of
     ptIndex:
@@ -2193,17 +1958,21 @@ begin
         NextToken;
         SimpleExpression;
       end;
-    ptSemiColon:
+    ptDelayed:
+      begin
+        DirectiveExternalThree;
+      end;
+    {ptSemiColon:    //?? there is no semicolon in an external directive
       begin
         Semicolon;
-        ExternalDirectiveThree;
-      end;
+        DirectiveExternalThree;
+      end; }
   end
 end;
 
-procedure TmwSimplePasPar.ExternalDirectiveThree;
+procedure TmwSimplePasPar.DirectiveExternalThree;
 begin
-  case TokenID of
+  {case TokenID of
     ptMinus:
       begin
         NextToken;
@@ -2214,132 +1983,78 @@ begin
       begin
         NextToken;
       end;
-  end;
+  end; }
+  NextToken;
 end;
 
-procedure TmwSimplePasPar.ForStatement;
+procedure TmwSimplePasPar.DirectiveLibrary;
 begin
-  Expected(ptFor);
-  QualifiedIdentifier;
-  if Lexer.TokenID = ptAssign then
-  begin
-    Expected(ptAssign);
-    ForStatementFrom;
-    case TokenID of
-      ptTo:
-        begin
-          ForStatementTo;
-        end;
-      ptDownTo:
-        begin
-          ForStatementDownTo;
-        end;
-    else
-      begin
-        SynError(InvalidForStatement);
-      end;
-    end;
-  end else
-  if Lexer.TokenID = ptIn then
-    ForStatementIn;
-  Expected(ptDo);
-  Statement;
+  ExpectedEx(ptLibrary);
 end;
 
-procedure TmwSimplePasPar.ForStatementDownTo;
+procedure TmwSimplePasPar.DirectiveLocal;
 begin
-  Expected(ptDownTo);
-  Expression;
+  ExpectedEx(ptLocal);
 end;
 
-procedure TmwSimplePasPar.ForStatementFrom;
+procedure TmwSimplePasPar.DirectivePlatform;
 begin
-  Expression;
+  ExpectedEx(ptPlatform);
 end;
 
-procedure TmwSimplePasPar.ForStatementIn;
+procedure TmwSimplePasPar.DirectiveVarargs;
 begin
-  Expected(ptIn);
-  Expression;
+  ExpectedEx(ptVarargs);
 end;
 
-procedure TmwSimplePasPar.ForStatementTo;
+procedure TmwSimplePasPar.DispInterfaceForward;
 begin
-  Expected(ptTo);
-  Expression;
+  Expected(ptDispInterface);
 end;
 
-procedure TmwSimplePasPar.WhileStatement;
+procedure TmwSimplePasPar.DispIDSpecifier;
 begin
-  Expected(ptWhile);
-  Expression;
-  Expected(ptDo);
-  Statement;
+  ExpectedEx(ptDispid);
+  ConstantExpression;
 end;
 
-procedure TmwSimplePasPar.RepeatStatement;
+procedure TmwSimplePasPar.DotOp;
 begin
-  Expected(ptRepeat);
-  StatementList;
-  Expected(ptUntil);
-  Expression;
+  Expected(ptPoint);
 end;
 
-procedure TmwSimplePasPar.CaseStatement;
-begin
-  Expected(ptCase);
-  Expression;
-  Expected(ptOf);
-  CaseSelector;
-  while TokenID = ptSemiColon do
-  begin
-    Semicolon;
-    case TokenID of
-      ptElse, ptEnd: ;
-    else
-      CaseSelector;
-    end;
-  end;
-  if TokenID = ptElse then
-    CaseElseStatement;
-  Expected(ptEnd);
-end;
-
-procedure TmwSimplePasPar.CaseSelector;
-begin
-  CaseLabelList;
-  Expected(ptColon);
-  case TokenID of
-    ptSemiColon: EmptyStatement;
-  else
-    Statement;
-  end;
-end;
-
-procedure TmwSimplePasPar.CaseElseStatement;
+procedure TmwSimplePasPar.ElseStatement;
 begin
   Expected(ptElse);
-  StatementList;
-  Semicolon;
+  Statement;
 end;
 
-procedure TmwSimplePasPar.CaseLabel;
+procedure TmwSimplePasPar.EmptyStatement;
 begin
-  ConstantExpression;
-  if TokenID = ptDotDot then
+  { Nothing to do here.
+    The semicolon will be removed in StatementList }
+end;
+
+procedure TmwSimplePasPar.EnumeratedType;
+begin
+  Expected(ptRoundOpen);
+  EnumeratedTypeItem;
+  while TokenID = ptComma do
   begin
     NextToken;
-    ConstantExpression;
+    EnumeratedTypeItem;
   end;
+  Expected(ptRoundClose);
 end;
 
-procedure TmwSimplePasPar.IfStatement;
+procedure TmwSimplePasPar.EnumeratedTypeItem;
 begin
-  Expected(ptIf);
-  Expression;
-  ThenStatement;
-  if TokenID = ptElse then
-    ElseStatement;
+  QualifiedIdentifier;
+  if TokenID = ptEqual then
+  begin
+    Expected(ptEqual);
+    ConstantExpression;
+  end;
 end;
 
 procedure TmwSimplePasPar.ExceptBlock;
@@ -2357,13 +2072,20 @@ begin
   end;
 end;
 
-procedure TmwSimplePasPar.ExceptionHandlerList;
+procedure TmwSimplePasPar.ExceptionBlockElseBranch;
 begin
-  while FLexer.ExID = ptOn do
-  begin
-    ExceptionHandler;
-    Semicolon;
+  case TokenID of
+    ptElse:
+      begin
+        NextToken;
+        StatementList;
+      end;
   end;
+end;
+
+procedure TmwSimplePasPar.ExceptionClassTypeIdentifier;
+begin
+  QualifiedIdentifier;
 end;
 
 procedure TmwSimplePasPar.ExceptionHandler;
@@ -2374,14 +2096,12 @@ begin
   Statement;
 end;
 
-procedure TmwSimplePasPar.ExceptionBlockElseBranch;
+procedure TmwSimplePasPar.ExceptionHandlerList;
 begin
-  case TokenID of
-    ptElse:
-      begin
-        NextToken;
-        StatementList;
-      end;
+  while FLexer.ExID = ptOn do
+  begin
+    ExceptionHandler;
+    Semicolon;
   end;
 end;
 
@@ -2407,371 +2127,110 @@ begin
   end;
 end;
 
-procedure TmwSimplePasPar.ExceptionClassTypeIdentifier;
-begin
-  QualifiedIdentifier;
-end;
-
 procedure TmwSimplePasPar.ExceptionVariable;
 begin
   Expected(ptIdentifier);
 end;
 
-procedure TmwSimplePasPar.InlineStatement;
+procedure TmwSimplePasPar.ExplicitType;
 begin
-  Expected(ptInline);
-  Expected(ptRoundOpen);
-  Expected(ptIntegerConst);
-  while (TokenID = ptSlash) do
+  Expected(ptType);
+end;
+
+procedure TmwSimplePasPar.ExportedHeading;
+begin
+  case TokenID of
+    ptFunction:
+      begin
+        FunctionHeading;
+      end;
+    ptProcedure:
+      begin
+        ProcedureHeading;
+      end;
+  else
+    begin
+      SynError(InvalidExportedHeading);
+    end;
+  end;
+  if TokenID = ptSemiColon then Semicolon;
+
+  while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptFar,
+    ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
+    ptReintroduce, ptSafeCall, ptStdCall, ptVirtual,
+    ptDeprecated, ptLibrary, ptPlatform, ptLocal, ptVarargs,
+    ptStatic, ptInline, ptAssembler, ptForward, ptDelayed, ptFinal] do
+  begin
+    case ExID of
+      ptAssembler: NextToken;
+      ptForward: DeclarationForward;
+    else
+      ProceduralDirective;
+    end;
+    if TokenID = ptSemiColon then Semicolon;
+  end;
+end;
+
+procedure TmwSimplePasPar.ExportsClause;
+begin
+  Expected(ptExports);
+  ExportsElement;
+  while TokenID = ptComma do
+  begin
+    NextToken;
+    ExportsElement;
+  end;
+  Semicolon;
+end;
+
+procedure TmwSimplePasPar.ExportsElement;
+begin
+  Expected(ptIdentifier);
+  if FLexer.ExID = ptIndex then
   begin
     NextToken;
     Expected(ptIntegerConst);
   end;
-  Expected(ptRoundClose);
-end;
-
-procedure TmwSimplePasPar.InParameter;
-begin
-  Expected(ptIn);
-  ParameterNameList;
-  case TokenID of
-    ptColon:
-      begin
-        NextToken;
-        NewFormalParameterType;
-        if TokenID = ptEqual then
-        begin
-          NextToken;
-          TypedConstant;
-        end;
-      end
-  end;
-end;
-
-procedure TmwSimplePasPar.AsmStatement;
-begin
-  Lexer.AsmCode := True;
-  Expected(ptAsm);
-  { should be replaced with a Assembler lexer }
-  while TokenID <> ptEnd do
-    case FLexer.TokenID of
-      ptBegin, ptCase, ptEnd, ptIf, ptFunction, ptProcedure, ptRepeat, ptwhile: Break;
-      ptAddressOp:
-        begin
-          NextToken;
-          NextToken;
-        end;
-      ptDoubleAddressOp:
-        begin
-          NextToken;
-          NextToken;
-        end;
-      ptNull:
-        begin
-          Expected(ptEnd);
-          Exit;
-        end;
-    else
-      NextToken;
-    end;
-  Lexer.AsmCode := False;
-  Expected(ptEnd);
-end;
-
-procedure TmwSimplePasPar.AsOp;
-begin
-  Expected(ptAs);
-end;
-
-procedure TmwSimplePasPar.AssignOp;
-begin
-  Expected(ptAssign);
-end;
-
-procedure TmwSimplePasPar.AtExpression;
-begin
-  ExpectedEx(ptAt);
-  Expression;
-end;
-
-procedure TmwSimplePasPar.RaiseStatement;
-begin
-  Expected(ptRaise);
-  case TokenID of
-    ptAddressOp, ptDoubleAddressOp, ptIdentifier, ptRoundOpen:
-      begin
-        Expression;
-      end;
-  end;
-  if ExID = ptAt then
-    AtExpression;
-end;
-
-procedure TmwSimplePasPar.TryStatement;
-begin
-  Expected(ptTry);
-  StatementList;
-  case TokenID of
-    ptExcept:
-      begin
-        NextToken;
-        ExceptBlock;
-        Expected(ptEnd);
-      end;
-    ptFinally:
-      begin
-        NextToken;
-        FinallyBlock;
-        Expected(ptEnd);
-      end;
-  else
-    begin
-      SynError(InvalidTryStatement);
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.WithStatement;
-begin
-  Expected(ptWith);
-  WithExpressionList;
-  Expected(ptDo);
-  Statement;
-end;
-
-procedure TmwSimplePasPar.WithExpressionList;
-begin
-  Expression;
-  while FLexer.TokenID = ptComma do
+  if FLexer.ExID = ptName then
   begin
     NextToken;
-    Expression;
+    SimpleExpression;
   end;
-end;
-
-procedure TmwSimplePasPar.StatementList;
-begin {removed ptIntegerConst jdj-Put back in for labels}
-  while TokenID in [ptAddressOp, ptAsm, ptBegin, ptCase, ptDoubleAddressOp,
-    ptFor, ptGoTo, ptIdentifier, ptIf, ptInherited, ptInline, ptIntegerConst,
-    ptPointerSymbol, ptRaise, ptRoundOpen, ptRepeat, ptSemiColon, ptString,
-    ptTry, ptWhile, ptWith] do
+  if FLexer.ExID = ptResident then
   begin
-    Statement;
-    Semicolon;
+    NextToken;
   end;
 end;
 
-procedure TmwSimplePasPar.SimpleStatement;
+procedure TmwSimplePasPar.Expression;
 begin
-  case TokenID of
-    ptAddressOp, ptDoubleAddressOp, ptIdentifier, ptRoundOpen, ptString:
-      begin
-        Designator;
-        if TokenID = ptAssign then
-        begin
-          AssignOp;
-          Expression;
-        end;
-      end;
-    ptGoTo:
-      begin
-        GotoStatement;
-      end;
-  end;
-end;
+  SimpleExpression;
 
-procedure TmwSimplePasPar.Statement;
-begin
+  //JT 2006-07-17 The Delphi language guide has this as
+  //Expression -> SimpleExpression [RelOp SimpleExpression]...
+  //So this needs to be able to repeat itself.
   case TokenID of
-    ptAsm:
+  ptEqual, ptGreater, ptGreaterEqual, ptLower, ptLowerEqual, ptIn, ptIs,
+    ptNotEqual:
+    begin
+      while TokenID in [ptEqual, ptGreater, ptGreaterEqual, ptLower, ptLowerEqual,
+        ptIn, ptIs, ptNotEqual{, ptColon}] do
       begin
-        AsmStatement;
+        RelativeOperator;
+        SimpleExpression;
       end;
-    ptBegin:
-      begin
-        CompoundStatement;
-      end;
-    ptCase:
-      begin
-        CaseStatement;
-      end;
-    ptFor:
-      begin
-        ForStatement;
-      end;
-    ptIf:
-      begin
-        IfStatement;
-      end;
-    ptIdentifier:
-      begin
-        FLexer.InitAhead;
-        case Lexer.AheadTokenID of
-          ptColon:
-            begin
-              LabeledStatement;
-            end;
-        else
+    end;
+  ptColon:
+    begin
+      case InRound of
+        False: ;
+        True:
+          while TokenID = ptColon do
           begin
-            SimpleStatement;
-          end;
-        end;
-      end;
-    ptInherited:
-      begin
-        InheritedStatement;
-      end;
-    ptInLine:
-      begin
-        InlineStatement;
-      end;
-    ptIntegerConst:
-      begin
-        FLexer.InitAhead;
-        case Lexer.AheadTokenID of
-          ptColon:
-            begin
-              LabeledStatement;
-            end;
-        else
-          begin
-            SynError(InvalidLabeledStatement);
             NextToken;
+            AlignmentParameter;
           end;
-        end;
       end;
-    ptRepeat:
-      begin
-        RepeatStatement;
-      end;
-    ptRaise:
-      begin
-        RaiseStatement;
-      end;
-    ptSemiColon:
-      begin
-        EmptyStatement;
-      end;
-    ptTry:
-      begin
-        TryStatement;
-      end;
-    ptWhile:
-      begin
-        WhileStatement;
-      end;
-    ptWith:
-      begin
-        WithStatement;
-      end;
-  else
-    begin
-      SimpleStatement;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.ElseStatement;
-begin
-  Expected(ptElse);
-  Statement;
-end;
-
-procedure TmwSimplePasPar.EmptyStatement;
-begin
-  { Nothing to do here.
-    The semicolon will be removed in StatementList }
-end;
-
-procedure TmwSimplePasPar.InheritedStatement;
-begin
-  Expected(ptInherited);
-  if TokenID = ptIdentifier then
-    Statement;
-end;
-
-procedure TmwSimplePasPar.LabeledStatement;
-begin
-  case TokenID of
-    ptIdentifier:
-      begin
-        NextToken;
-        Expected(ptColon);
-        Statement;
-      end;
-    ptIntegerConst:
-      begin
-        NextToken;
-        Expected(ptColon);
-        Statement;
-      end;
-  else
-    begin
-      SynError(InvalidLabeledStatement);
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.StringStatement;
-begin
-  Expected(ptString);
-  Statement;
-end;
-
-procedure TmwSimplePasPar.SetElement;
-begin
-  Expression;
-  if TokenID = ptDotDot then
-  begin
-    NextToken;
-    Expression;
-  end;
-end;
-
-procedure TmwSimplePasPar.QualifiedIdentifier;
-begin
-  Identifier;
-
-  while TokenID = ptPoint do
-  begin
-    DotOp;
-    Identifier;
-  end;
-end;
-
-procedure TmwSimplePasPar.SetConstructor;
-begin
-  Expected(ptSquareOpen);
-  if TokenID <> ptSquareClose then
-  begin
-    SetElement;
-    while TokenID = ptComma do
-    begin
-      NextToken;
-      SetElement;
-    end;
-  end;
-  Expected(ptSquareClose);
-end;
-
-procedure TmwSimplePasPar.Number;
-begin
-  case TokenID of
-    ptFloat:
-      begin
-        NextToken;
-      end;
-    ptIntegerConst:
-      begin
-        NextToken;
-      end;
-    ptIdentifier:
-      begin
-        NextToken;
-      end;
-  else
-    begin
-      SynError(InvalidNumber);
     end;
   end;
 end;
@@ -2792,48 +2251,6 @@ begin
     begin
       Expected(ptAssign);
       Expression;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.Designator;
-begin
-  VariableReference;
-end;
-
-procedure TmwSimplePasPar.MultiplicativeOperator;
-begin
-  case TokenID of
-    ptAnd:
-      begin
-        NextToken;
-      end;
-    ptDiv:
-      begin
-        NextToken;
-      end;
-    ptMod:
-      begin
-        NextToken;
-      end;
-    ptShl:
-      begin
-        NextToken;
-      end;
-    ptShr:
-      begin
-        NextToken;
-      end;
-    ptSlash:
-      begin
-        NextToken;
-      end;
-    ptStar:
-      begin
-        NextToken;
-      end;
-  else
-    begin SynError(InvalidMultiplicativeOperator);
     end;
   end;
 end;
@@ -2903,277 +2320,6 @@ begin
   end;
 end;
 
-procedure TmwSimplePasPar.AdditiveOperator;
-begin
-  if TokenID in [ptMinus, ptOr, ptPlus, ptXor] then
-  begin
-    NextToken;
-  end
-  else
-  begin
-    SynError(InvalidAdditiveOperator);
-  end;
-end;
-
-procedure TmwSimplePasPar.AddressOp;
-begin
-  Expected(ptAddressOp);
-end;
-
-procedure TmwSimplePasPar.AlignmentParameter;
-begin
-  SimpleExpression;
-end;
-
-procedure TmwSimplePasPar.Term;
-begin
-  Factor;
-  while TokenID in [ptAnd, ptDiv, ptMod, ptShl, ptShr, ptSlash, ptStar] do
-  begin
-    MultiplicativeOperator;
-    Factor;
-  end;
-end;
-
-procedure TmwSimplePasPar.RelativeOperator;
-begin
-  case TokenID of
-    ptAs:
-      begin
-        NextToken;
-      end;
-    ptEqual:
-      begin
-        NextToken;
-      end;
-    ptGreater:
-      begin
-        NextToken;
-      end;
-    ptGreaterEqual:
-      begin
-        NextToken;
-      end;
-    ptIn:
-      begin
-        NextToken;
-      end;
-    ptIs:
-      begin
-        NextToken;
-      end;
-    ptLower:
-      begin
-        NextToken;
-      end;
-    ptLowerEqual:
-      begin
-        NextToken;
-      end;
-    ptNotEqual:
-      begin
-        NextToken;
-      end;
-  else
-    begin
-      SynError(InvalidRelativeOperator);
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.SimpleExpression;
-begin
-  Term;
-  while TokenID in [ptMinus, ptOr, ptPlus, ptXor] do
-  begin
-    AdditiveOperator;
-    Term;
-  end;
-
-  case TokenID of
-    ptAs:
-      begin
-        AsOp;
-        TypeId;
-      end;
-  end;
-end;
-
-procedure TmwSimplePasPar.Expression;
-begin
-  SimpleExpression;
-
-  //JT 2006-07-17 The Delphi language guide has this as
-  //Expression -> SimpleExpression [RelOp SimpleExpression]...
-  //So this needs to be able to repeat itself.
-  case TokenID of
-  ptEqual, ptGreater, ptGreaterEqual, ptLower, ptLowerEqual, ptIn, ptIs,
-    ptNotEqual:
-    begin
-      while TokenID in [ptEqual, ptGreater, ptGreaterEqual, ptLower, ptLowerEqual,
-        ptIn, ptIs, ptNotEqual{, ptColon}] do
-      begin
-        RelativeOperator;
-        SimpleExpression;
-      end;
-    end;
-  ptColon:
-    begin
-      case InRound of
-        False: ;
-        True:
-          while TokenID = ptColon do
-          begin
-            NextToken;
-            AlignmentParameter;
-          end;
-      end;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.VarDeclaration;
-begin
-  VarNameList;
-  Expected(ptColon);
-  TypeKind;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
-  case GenID of
-    ptAbsolute:
-      begin
-        VarAbsolute;
-      end;
-    ptEqual:
-      begin
-        VarEqual;
-      end;
-  end;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
-end;
-
-procedure TmwSimplePasPar.VarAbsolute;
-begin
-  ExpectedEx(ptAbsolute);
-  ConstantValue;
-end;
-
-procedure TmwSimplePasPar.VarEqual;
-begin
-  Expected(ptEqual);
-  ConstantValueTyped;
-end;
-
-procedure TmwSimplePasPar.VarNameList;
-begin
-  VarName;
-  while TokenID = ptComma do
-    begin
-      NextToken;
-      VarName;
-    end;
-end;
-
-procedure TmwSimplePasPar.VarName;
-begin
-  Expected(ptIdentifier);
-end;
-
-procedure TmwSimplePasPar.DirectiveCalling;
-begin
-  case ExID of
-    ptCdecl:
-      begin
-        NextToken;
-      end;
-    ptPascal:
-      begin
-        NextToken;
-      end;
-    ptRegister:
-      begin
-        NextToken;
-      end;
-    ptSafeCall:
-      begin
-        NextToken;
-      end;
-    ptStdCall:
-      begin
-        NextToken;
-      end;
-  else
-    begin
-      SynError(InvalidDirectiveCalling);
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.RecordVariant;
-begin
-  ConstantExpression;
-  while (TokenID = ptComma) do
-  begin
-    NextToken;
-    ConstantExpression;
-  end;
-  Expected(ptColon);
-  Expected(ptRoundOpen);
-  if TokenID <> ptRoundClose then
-  begin
-    FieldList;
-  end;
-  Expected(ptRoundClose);
-end;
-
-procedure TmwSimplePasPar.VariantSection;
-begin
-  Expected(ptCase);
-  TagField;
-  Expected(ptOf);
-  RecordVariant;
-  while TokenID = ptSemiColon do
-  begin
-    Semicolon;
-    case TokenID of
-      ptEnd, ptRoundClose: Break;
-    else
-      RecordVariant;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.TagField;
-begin
-  TagFieldName;
-  case FLexer.TokenID of
-    ptColon:
-      begin
-        NextToken;
-        TagFieldTypeName;
-      end;
-  end;
-end;
-
-procedure TmwSimplePasPar.TagFieldName;
-begin
-  Expected(ptIdentifier);
-end;
-
-procedure TmwSimplePasPar.TagFieldTypeName;
-begin
-  OrdinalType;
-end;
-
 procedure TmwSimplePasPar.FieldDeclaration;
 begin
   FieldNameList;
@@ -3200,11 +2346,6 @@ begin
   end;
 end;
 
-procedure TmwSimplePasPar.FieldName;
-begin
-  Expected(ptIdentifier);
-end;
-
 procedure TmwSimplePasPar.FieldNameList;
 begin
   FieldName;
@@ -3215,29 +2356,9 @@ begin
   end;
 end;
 
-procedure TmwSimplePasPar.RecordType;
+procedure TmwSimplePasPar.FieldName;
 begin
-  Expected(ptRecord);
-  if TokenID = ptSemicolon then
-    Exit;
-
-  if ExID = ptHelper then
-  begin
-    ExpectedEx(ptHelper);
-    Expected(ptFor);
-    TypeId;
-  end;
-
-  if TokenID = ptRoundOpen then
-  begin
-    ClassHeritage;
-    if TokenID = ptSemicolon then
-      Exit;
-  end;
-  ClassMemberList;
-  Expected(ptEnd);
-
-  ClassTypeEnd;
+  Expected(ptIdentifier);
 end;
 
 procedure TmwSimplePasPar.FileType;
@@ -3250,117 +2371,1057 @@ begin
   end;
 end;
 
-procedure TmwSimplePasPar.FinalizationSection;
-begin
-  Expected(ptFinalization);
-  StatementList;
-end;
-
 procedure TmwSimplePasPar.FinallyBlock;
 begin
   StatementList;
 end;
 
-procedure TmwSimplePasPar.SetType;
-begin
-  Expected(ptSet);
-  Expected(ptOf);
-  OrdinalType;
-end;
-
-procedure TmwSimplePasPar.SetUseDefines(const Value: Boolean);
-begin
-  FLexer.UseDefines := Value;
-end;
-
-procedure TmwSimplePasPar.ArrayType;
-begin
-  Expected(ptArray);
-  ArrayBounds;
-  Expected(ptOf);
-  TypeKind;
-end;
-
-procedure TmwSimplePasPar.EnumeratedType;
+procedure TmwSimplePasPar.FormalParameterList;
 begin
   Expected(ptRoundOpen);
-  EnumeratedTypeItem;
-  while TokenID = ptComma do
+  FormalParameterSection;
+  while TokenID = ptSemiColon do
   begin
-    NextToken;
-    EnumeratedTypeItem;
+    Semicolon;
+    FormalParameterSection;
   end;
   Expected(ptRoundClose);
 end;
 
-procedure TmwSimplePasPar.SubrangeType;
+procedure TmwSimplePasPar.FormalParameterSection;
 begin
-  ConstantExpression;
-  if TokenID = ptDotDot then
-  begin
-    NextToken;
-    ConstantExpression;
+  while TokenID = ptSquareOpen do
+    CustomAttribute;
+  case TokenID of
+    ptConst:
+      begin
+        ConstParameter;
+      end;
+    ptIdentifier:
+      case ExID of
+        ptOut: OutParameter;
+      else
+        ParameterFormal;
+      end;
+    ptIn:
+      begin
+        InParameter;
+      end;
+    ptVar:
+      begin
+        VarParameter;
+      end;
   end;
 end;
 
-procedure TmwSimplePasPar.RealIdentifier;
+procedure TmwSimplePasPar.ForStatement;
 begin
-  case ExID of
-    ptReal48:
+  Expected(ptFor);
+  QualifiedIdentifier;
+  if Lexer.TokenID = ptAssign then
+  begin
+    Expected(ptAssign);
+    ForStatementFrom;
+    case TokenID of
+      ptTo:
+        begin
+          ForStatementTo;
+        end;
+      ptDownTo:
+        begin
+          ForStatementDownTo;
+        end;
+    else
       begin
-        NextToken;
+        SynError(InvalidForStatement);
       end;
-    ptReal:
+    end;
+  end else
+  if Lexer.TokenID = ptIn then
+    ForStatementIn;
+  Expected(ptDo);
+  Statement;
+end;
+
+procedure TmwSimplePasPar.ForStatementDownTo;
+begin
+  Expected(ptDownTo);
+  Expression;
+end;
+
+procedure TmwSimplePasPar.ForStatementFrom;
+begin
+  Expression;
+end;
+
+procedure TmwSimplePasPar.ForStatementIn;
+begin
+  Expected(ptIn);
+  Expression;
+end;
+
+procedure TmwSimplePasPar.ForStatementTo;
+begin
+  Expected(ptTo);
+  Expression;
+end;
+
+procedure TmwSimplePasPar.FunctionHeading;
+begin
+  Expected(ptFunction);
+  FunctionProcedureName;
+  if TokenID = ptRoundOpen then
+  begin
+    FormalParameterList;
+  end;
+  if TokenID = ptColon then
+  begin
+    Expected(ptColon);
+    ReturnType;
+  end;
+end;
+
+procedure TmwSimplePasPar.FunctionMethodDeclaration;
+begin
+  if (TokenID = ptIdentifier) and (Lexer.ExID = ptOperator) then
+    NextToken else
+  MethodKind;
+  FunctionProcedureName;
+  if TokenID = ptRoundOpen then
+  begin
+    FormalParameterList;
+  end;
+  case TokenID of
+    ptSemiColon:
       begin
-        NextToken;
-      end;
-    ptSingle:
-      begin
-        NextToken;
-      end;
-    ptDouble:
-      begin
-        NextToken;
-      end;
-    ptExtended:
-      begin
-        NextToken;
-      end;
-    ptCurrency:
-      begin
-        NextToken;
-      end;
-    ptComp:
-      begin
-        NextToken;
+        FunctionProcedureBlock;
       end;
   else
     begin
-      SynError(InvalidRealIdentifier);
+      Expected(ptColon);
+      ReturnType;
+      FunctionProcedureBlock;
     end;
   end;
 end;
 
-procedure TmwSimplePasPar.RealType;
+procedure TmwSimplePasPar.FunctionMethodName;
+begin
+  Expected(ptIdentifier);
+end;
+
+procedure TmwSimplePasPar.FunctionProcedureBlock;
+var
+  HasBlock: Boolean;
+begin
+  HasBlock := True;
+  if TokenID = ptSemiColon then Semicolon;
+
+  while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptDelayed, ptFar,
+    ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
+    ptReintroduce, ptSafeCall, ptStdCall, ptVirtual, ptDeprecated, ptLibrary,
+    ptPlatform, ptLocal, ptVarargs, ptAssembler, ptStatic, ptInline, ptForward,
+    ptExperimental, ptDeprecated] do
+  begin
+    case ExId of
+      ptExternal:
+        begin
+          ProceduralDirective;
+          HasBlock := False;
+        end;
+      ptForward:
+        begin
+          DeclarationForward;
+          HasBlock := False;
+        end
+    else
+      begin
+        ProceduralDirective;
+      end;
+    end;
+    if TokenID = ptSemiColon then Semicolon;
+  end;
+
+  if HasBlock then
+  begin
+    case TokenID of
+      ptAsm:
+        begin
+          AsmStatement;
+        end;
+    else
+      begin
+        Block;
+      end;
+    end;
+    Semicolon;
+  end;
+end;
+
+procedure TmwSimplePasPar.FunctionProcedureName;
+begin
+  ObjectNameOfMethod;
+end;
+
+procedure TmwSimplePasPar.GotoStatement;
+begin
+  Expected(ptGoto);
+  LabelId;
+end;
+
+procedure TmwSimplePasPar.Identifier;
+begin
+  NextToken;
+end;
+
+procedure TmwSimplePasPar.IdentifierList;
+begin
+  Identifier;
+  while TokenID = ptComma do
+  begin
+    NextToken;
+    Identifier;
+  end;
+end;
+
+procedure TmwSimplePasPar.IfStatement;
+begin
+  Expected(ptIf);
+  Expression;
+  ThenStatement;
+  if TokenID = ptElse then
+    ElseStatement;
+end;
+
+procedure TmwSimplePasPar.ImplementationSection;
+begin
+  Expected(ptImplementation);
+  if TokenID = ptUses then
+  begin
+    UsesClause;
+  end;
+  while TokenID in [ptClass, ptConst, ptConstructor, ptDestructor, ptFunction,
+    ptLabel, ptProcedure, ptResourceString, ptThreadVar, ptType, ptVar,
+    ptExports, ptSquareOpen] do
+  begin
+    DeclarationSection;
+  end;
+end;
+
+procedure TmwSimplePasPar.ImplementsSpecifier;
+begin
+  ExpectedEx(ptImplements);
+
+  TypeSimple;
+  while (TokenID = ptComma) do
+  begin
+    NextToken;
+    TypeSimple;
+  end;
+end;
+
+procedure TmwSimplePasPar.IncludeFile;
+begin
+  while TokenID <> ptNull do
+    case TokenID of
+      ptClass:
+        begin
+          ProcedureDeclarationSection;
+        end;
+      ptConst:
+        begin
+          ConstSection;
+        end;
+      ptConstructor:
+        begin
+          ProcedureDeclarationSection;
+        end;
+      ptDestructor:
+        begin
+          ProcedureDeclarationSection;
+        end;
+      ptExports:
+        begin
+          ExportsClause;
+        end;
+      ptFunction:
+        begin
+          ProcedureDeclarationSection;
+        end;
+      ptIdentifier:
+        begin
+          Lexer.InitAhead;
+          if Lexer.AheadTokenID in [ptColon, ptEqual] then
+          begin
+            ConstantDeclaration;
+            if TokenID = ptSemiColon then Semicolon;
+          end
+          else
+            NextToken;
+        end;
+      ptLabel:
+        begin
+          LabelDeclarationSection;
+        end;
+      ptProcedure:
+        begin
+          ProcedureDeclarationSection;
+        end;
+      ptResourceString:
+        begin
+          ConstSection;
+        end;
+      ptType:
+        begin
+          TypeSection;
+        end;
+      ptThreadVar:
+        begin
+          VarSection;
+        end;
+      ptVar:
+        begin
+          VarSection;
+        end;
+    else
+      begin
+        NextToken;
+      end;
+    end;
+end;
+
+procedure TmwSimplePasPar.IndexSpecifier;
+begin
+  ExpectedEx(ptIndex);
+  ConstantExpression;
+end;
+
+procedure TmwSimplePasPar.IndexOp;
+begin
+  Expected(ptSquareOpen);
+  Expression;
+  while TokenID = ptComma do
+  begin
+    NextToken;
+    Expression;
+  end;
+  Expected(ptSquareClose);
+end;
+
+procedure TmwSimplePasPar.InheritedStatement;
+begin
+  Expected(ptInherited);
+  if TokenID = ptIdentifier then
+    Statement;
+end;
+
+procedure TmwSimplePasPar.InheritedVariableReference;
+begin
+  Expected(ptInherited);
+  if TokenID = ptIdentifier then
+    VariableReference;
+end;
+
+procedure TmwSimplePasPar.InitializationSection;
 begin
   case TokenID of
-    ptMinus:
+    ptInitialization:
       begin
         NextToken;
+        StatementList;
+        if TokenID = ptFinalization then
+        begin
+          NextToken;
+          StatementList;
+        end;
+        Expected(ptEnd);
       end;
-    ptPlus:
+    ptBegin:
       begin
-        NextToken;
+        CompoundStatement;
       end;
-  end;
-  case TokenId of
-    ptFloat:
+    ptEnd:
       begin
         NextToken;
       end;
   else
     begin
-      VariableReference;
+      SynError(InvalidInitializationSection);
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.InlineStatement;
+begin
+  Expected(ptInline);
+  Expected(ptRoundOpen);
+  Expected(ptIntegerConst);
+  while (TokenID = ptSlash) do
+  begin
+    NextToken;
+    Expected(ptIntegerConst);
+  end;
+  Expected(ptRoundClose);
+end;
+
+procedure TmwSimplePasPar.InParameter;
+begin
+  Expected(ptIn);
+  ParameterNameList;
+  case TokenID of
+    ptColon:
+      begin
+        NextToken;
+        NewFormalParameterType;
+        if TokenID = ptEqual then
+        begin
+          NextToken;
+          TypedConstant;
+        end;
+      end
+  end;
+end;
+
+procedure TmwSimplePasPar.InterfaceDeclaration;
+begin
+  case TokenID of
+    ptConst:
+      begin
+        ConstSection;
+      end;
+    ptFunction:
+      begin
+        ExportedHeading;
+      end;
+    ptProcedure:
+      begin
+        ExportedHeading;
+      end;
+    ptResourceString:
+      begin
+        ConstSection;
+      end;
+    ptType:
+      begin
+        TypeSection;
+      end;
+    ptThreadVar:
+      begin
+        VarSection;
+      end;
+    ptVar:
+      begin
+        VarSection;
+      end;
+    ptExports:
+      begin
+        ExportsClause;
+      end;
+    ptSquareOpen:
+      begin
+        CustomAttribute;
+      end;
+  else
+    begin
+      SynError(InvalidInterfaceDeclaration);
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.InterfaceForward;
+begin
+  Expected(ptInterface);
+end;
+
+procedure TmwSimplePasPar.InterfaceGUID;
+begin
+  Expected(ptSquareOpen);
+  CharString;
+  Expected(ptSquareClose);
+end;
+
+procedure TmwSimplePasPar.InterfaceHeritage;
+begin
+  Expected(ptRoundOpen);
+  AncestorIdList;
+  Expected(ptRoundClose);
+end;
+
+procedure TmwSimplePasPar.InterfaceMemberList;
+begin
+  while TokenID in [ptSquareOpen, ptFunction, ptProcedure, ptProperty] do
+  begin
+    while TokenID = ptSquareOpen do
+      CustomAttribute;
+
+    ClassMethodOrProperty;
+  end;
+end;
+
+procedure TmwSimplePasPar.InterfaceSection;
+begin
+  Expected(ptInterface);
+  if TokenID = ptUses then
+  begin
+    UsesClause;
+  end;
+  while TokenID in [ptConst, ptFunction, ptResourceString, ptProcedure,
+    ptThreadVar, ptType, ptVar, ptExports, ptSquareOpen] do
+  begin
+    InterfaceDeclaration;
+  end;
+end;
+
+procedure TmwSimplePasPar.InterfaceType;
+begin
+  case TokenID of
+    ptInterface:
+      begin
+        NextToken;
+      end;
+    ptDispInterface:
+      begin
+        NextToken;
+      end
+  else
+    begin
+      SynError(InvalidInterfaceType);
+    end;
+  end;
+  case TokenID of
+    ptEnd:
+      begin
+        NextToken; { Direct descendant without new members }
+      end;
+    ptRoundOpen:
+      begin
+        InterfaceHeritage;
+        case TokenID of
+          ptEnd:
+            begin
+              NextToken; { No new members }
+            end;
+          ptSemiColon: ; { No new members }
+        else
+          begin
+            if TokenID = ptSquareOpen then
+            begin
+              InterfaceGUID;
+            end;
+            InterfaceMemberList;
+            Expected(ptEnd);
+          end;
+        end;
+      end;
+  else
+    begin
+      if TokenID = ptSquareOpen then
+      begin
+        InterfaceGUID;
+      end;
+      InterfaceMemberList; { Direct descendant }
+      Expected(ptEnd);
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.LabelDeclarationSection;
+begin
+  Expected(ptLabel);
+  LabelId;
+  while (TokenID = ptComma) do
+  begin
+    NextToken;
+    LabelId;
+  end;
+  Semicolon;
+end;
+
+procedure TmwSimplePasPar.LabeledStatement;
+begin
+  case TokenID of
+    ptIdentifier:
+      begin
+        NextToken;
+        Expected(ptColon);
+        Statement;
+      end;
+    ptIntegerConst:
+      begin
+        NextToken;
+        Expected(ptColon);
+        Statement;
+      end;
+  else
+    begin
+      SynError(InvalidLabeledStatement);
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.LabelId;
+begin
+  case TokenID of
+    ptIntegerConst:
+      begin
+        NextToken;
+      end;
+    ptIdentifier:
+      begin
+        NextToken;
+      end;
+  else
+    begin
+      SynError(InvalidLabelId);
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.LibraryFile;
+begin
+  Expected(ptLibrary);
+  UnitName;
+  Semicolon;
+
+  LibraryBlock;
+  Expected(ptPoint);
+end;
+
+procedure TmwSimplePasPar.LibraryBlock;
+begin
+  if TokenID = ptUses then
+    MainUsesClause;
+
+  DeclarationSections;
+
+  if TokenID = ptBegin then
+    CompoundStatement
+  else
+    Expected(ptEnd);
+end;
+
+procedure TmwSimplePasPar.MainUsedUnitExpression;
+begin
+  ConstantExpression;
+end;
+
+procedure TmwSimplePasPar.MainUsedUnitName;
+begin
+  UsedUnitName;
+end;
+
+procedure TmwSimplePasPar.MainUsedUnitStatement;
+begin
+  MainUsedUnitName;
+  if Lexer.TokenID = ptIn then
+  begin
+    NextToken;
+    MainUsedUnitExpression;
+  end;
+end;
+
+procedure TmwSimplePasPar.MainUsesClause;
+begin
+  Expected(ptUses);
+  MainUsedUnitStatement;
+  while TokenID = ptComma do
+  begin
+    NextToken;
+    MainUsedUnitStatement;
+  end;
+  Semicolon;
+end;
+
+procedure TmwSimplePasPar.MethodKind;
+begin
+  case TokenID of
+    ptConstructor:
+      begin
+        NextToken;
+      end;
+    ptDestructor:
+      begin
+        NextToken;
+      end;
+    ptProcedure:
+      begin
+        NextToken;
+      end;
+    ptFunction:
+      begin
+        NextToken;
+      end;
+  else
+    begin
+      SynError(InvalidProcedureMethodDeclaration);
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.MultiplicativeOperator;
+begin
+  case TokenID of
+    ptAnd:
+      begin
+        NextToken;
+      end;
+    ptDiv:
+      begin
+        NextToken;
+      end;
+    ptMod:
+      begin
+        NextToken;
+      end;
+    ptShl:
+      begin
+        NextToken;
+      end;
+    ptShr:
+      begin
+        NextToken;
+      end;
+    ptSlash:
+      begin
+        NextToken;
+      end;
+    ptStar:
+      begin
+        NextToken;
+      end;
+  else
+    begin SynError(InvalidMultiplicativeOperator);
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.NewFormalParameterType;
+begin
+  case TokenID of
+    ptArray:
+      begin
+        NextToken;
+        Expected(ptOf);
+        case TokenID of
+          ptConst: (*new in ObjectPascal80*)
+            begin
+              NextToken;
+            end;
+        else
+          begin
+            OldFormalParameterType;
+          end;
+        end;
+      end;
+  else
+    begin
+      OldFormalParameterType;
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.NotOp;
+begin
+  Expected(ptNot);
+end;
+
+procedure TmwSimplePasPar.NilToken;
+begin
+  Expected(ptNil);
+end;
+
+procedure TmwSimplePasPar.Number;
+begin
+  case TokenID of
+    ptFloat:
+      begin
+        NextToken;
+      end;
+    ptIntegerConst:
+      begin
+        NextToken;
+      end;
+    ptIdentifier:
+      begin
+        NextToken;
+      end;
+  else
+    begin
+      SynError(InvalidNumber);
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.ObjectConstructorHeading;
+begin
+  Expected(ptConstructor);
+  ConstructorName;
+  if TokenID = ptRoundOpen then
+  begin
+    FormalParameterList;
+  end;
+  if TokenID = ptSemiColon then Semicolon;
+  ObjectMethodDirective;
+end;
+
+procedure TmwSimplePasPar.ObjectDestructorHeading;
+begin
+  Expected(ptDestructor);
+  DestructorName;
+  if TokenID = ptRoundOpen then
+  begin
+    FormalParameterList;
+  end;
+  if TokenID = ptSemiColon then Semicolon;
+  ObjectMethodDirective;
+end;
+
+procedure TmwSimplePasPar.ObjectField;
+begin
+  IdentifierList;
+  Expected(ptColon);
+  TypeKind;
+  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
+    case ExID of
+      ptDeprecated: DirectiveDeprecated;
+      ptLibrary: DirectiveLibrary;
+      ptPlatform: DirectivePlatform;
+    end;
+end;
+
+procedure TmwSimplePasPar.ObjectForward;
+begin
+  Expected(ptObject);
+end;
+
+procedure TmwSimplePasPar.ObjectFunctionHeading;
+begin
+  Expected(ptFunction);
+  FunctionMethodName;
+  if TokenID = ptRoundOpen then
+  begin
+    FormalParameterList;
+  end;
+  Expected(ptColon);
+  ReturnType;
+  if TokenID = ptSemiColon then  Semicolon;
+  ObjectMethodDirective;
+end;
+
+procedure TmwSimplePasPar.ObjectHeritage;
+begin
+  Expected(ptRoundOpen);
+  AncestorIdList;
+  Expected(ptRoundClose);
+end;
+
+procedure TmwSimplePasPar.ObjectMemberList;
+begin {jdj added ptProperty-call to ObjectProperty 02/07/2001}
+  ObjectVisibility;
+  while TokenID in [ptConstructor, ptDestructor, ptFunction, ptIdentifier,
+    ptProcedure, ptProperty] do
+  begin
+    while TokenID = ptIdentifier do
+    begin
+      ObjectField;
+      Semicolon;
+      ObjectVisibility;
+    end;
+    while TokenID in [ptConstructor, ptDestructor, ptFunction, ptProcedure, ptProperty] do
+    begin
+      case TokenID of
+        ptConstructor, ptDestructor, ptFunction, ptProcedure:
+          ObjectMethodHeading;
+        ptProperty:
+          ObjectProperty;
+      end;
+    end;
+    ObjectVisibility;
+  end;
+end;
+
+procedure TmwSimplePasPar.ObjectMethodDirective;
+begin
+  while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptFar,
+    ptMessage, ptNear, ptOverload, ptPascal, ptRegister, ptSafeCall, ptStdCall,
+    ptVirtual, ptDeprecated, ptLibrary, ptPlatform, ptStatic, ptInline] do
+  begin
+    ProceduralDirective;
+    if TokenID = ptSemiColon then Semicolon;
+  end;
+end;
+
+procedure TmwSimplePasPar.ObjectMethodHeading;
+begin
+  case TokenID of
+    ptConstructor:
+      begin
+        ObjectConstructorHeading;
+      end;
+    ptDestructor:
+      begin
+        ObjectDestructorHeading;
+      end;
+    ptFunction:
+      begin
+        ObjectFunctionHeading;
+      end;
+    ptProcedure:
+      begin
+        ObjectProcedureHeading;
+      end;
+  else
+    begin
+      SynError(InvalidMethodHeading);
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.ObjectNameOfMethod;
+begin
+  if TokenID = ptIn then
+    Expected(ptIn)
+  else
+    Expected(ptIdentifier);
+
+  if TokenId = ptLower then
+    TypeParams;
+  if TokenID = ptPoint then
+  begin
+    Expected(ptPoint);
+    ObjectNameOfMethod;
+  end;
+end;
+
+procedure TmwSimplePasPar.ObjectProperty;
+begin
+  Expected(ptProperty);
+  PropertyName;
+  case TokenID of
+    ptColon, ptSquareOpen:
+      begin
+        PropertyInterface;
+      end;
+  end;
+  ObjectPropertySpecifiers;
+  case ExID of
+    ptDefault:
+      begin
+        PropertyDefault;
+        Semicolon;
+      end;
+  end;
+end;
+
+procedure TmwSimplePasPar.ObjectPropertySpecifiers;
+begin
+  if ExID = ptIndex then
+  begin
+    IndexSpecifier;
+  end;
+  while ExID in [ptRead, ptReadOnly, ptWrite, ptWriteOnly] do
+  begin
+    AccessSpecifier;
+  end;
+  while ExID in [ptDefault, ptNoDefault, ptStored] do
+  begin
+    StorageSpecifier;
+  end;
+  Semicolon;
+end;
+
+procedure TmwSimplePasPar.ObjectProcedureHeading;
+begin
+  Expected(ptProcedure);
+  ProcedureMethodName;
+  if TokenID = ptRoundOpen then
+  begin
+    FormalParameterList;
+  end;
+  if TokenID = ptSemiColon then Semicolon;
+  ObjectMethodDirective;
+end;
+
+procedure TmwSimplePasPar.ObjectType;
+begin
+  Expected(ptObject);
+  case TokenID of
+    ptEnd:
+      begin
+        ObjectTypeEnd;
+        NextToken; { Direct descendant without new members }
+      end;
+    ptRoundOpen:
+      begin
+        ObjectHeritage;
+        case TokenID of
+          ptEnd:
+            begin
+              Expected(ptEnd);
+              ObjectTypeEnd;
+            end;
+          ptSemiColon: ObjectTypeEnd;
+        else
+          begin
+            ObjectMemberList; { Direct descendant }
+            Expected(ptEnd);
+            ObjectTypeEnd;
+          end;
+        end;
+      end;
+  else
+    begin
+      ObjectMemberList; { Direct descendant }
+      Expected(ptEnd);
+      ObjectTypeEnd;
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.ObjectTypeEnd;
+begin
+end;
+
+procedure TmwSimplePasPar.ObjectVisibility;
+begin
+  while ExID in [ptPrivate, ptProtected, ptPublic] do
+  begin
+    Lexer.InitAhead;
+    case Lexer.AheadExID of
+      ptColon, ptComma: ;
+    else
+      case ExID of
+        ptPrivate:
+          begin
+            VisibilityPrivate;
+          end;
+        ptProtected:
+          begin
+            VisibilityProtected;
+          end;
+        ptPublic:
+          begin
+            VisibilityPublic;
+          end;
+      end;
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.OldFormalParameterType;
+begin
+  case TokenID of
+    ptString:
+      begin
+        NextToken;
+      end;
+    ptFile:
+      begin
+        FileType;
+      end;
+  else
+    begin
+      TypeID;
     end;
   end;
 end;
@@ -3486,555 +3547,195 @@ begin
   end;
 end;
 
-procedure TmwSimplePasPar.VariableReference;
+procedure TmwSimplePasPar.OutParameter;
 begin
+  ExpectedEx(ptOut);
+  ParameterNameList;
   case TokenID of
-    ptRoundOpen:
-    begin
-      RoundOpen;
-      Expression;
-      RoundClose;
-      VariableTail;
-    end;
-    ptSquareOpen:
-    begin
-      SetConstructor;
-    end;
-    ptAddressOp:
-      begin
-        AddressOp;
-        VariableReference;
-      end;
-    ptDoubleAddressOp:
+    ptColon:
       begin
         NextToken;
-        VariableReference;
-      end;
-    ptInherited:
-      begin
-        InheritedVariableReference;
-      end;
-  else
-    variable;
+        NewFormalParameterType;
+      end
   end;
 end;
 
-procedure TmwSimplePasPar.Variable; (* Attention: could also came from proc_call ! ! *)
+procedure TmwSimplePasPar.PackageFile;
 begin
-  QualifiedIdentifier;
-  VariableTail;
+  ExpectedEx(ptPackage);
+  UnitName;
+  Semicolon;
+  case ExID of
+    ptRequires:
+      begin
+        RequiresClause;
+      end;
+  end;
+  case ExID of
+    ptContains:
+      begin
+        ContainsClause;
+      end;
+  end;
+
+  while Lexer.TokenID = ptSquareOpen do
+  begin
+    CustomAttribute;
+  end;
+
+  Expected(ptEnd);
+  Expected(ptPoint);
 end;
 
-procedure TmwSimplePasPar.VariableTail;
+procedure TmwSimplePasPar.ParameterFormal;
 begin
   case TokenID of
-    ptRoundOpen:
+    ptIdentifier:
       begin
-        RoundOpen;
-        ExpressionList;
-        RoundClose;
-      end;
-    ptSquareOpen:
-      begin
-        IndexOp;
-      end;
-    ptPointerSymbol:
-      begin
-        PointerSymbol;
-      end;
-    ptLower:
-      begin
-        InitAhead;
-        AheadParse.NextToken;
-        AheadParse.TypeArgs;
-
-        if AheadParse.TokenId = ptGreater then
+        ParameterNameList;
+        Expected(ptColon);
+        NewFormalParameterType;
+        if TokenID = ptEqual then
         begin
           NextToken;
-          TypeArgs;
-          Expected(ptGreater);
-          case TokenID of
-            ptAddressOp, ptDoubleAddressOp, ptIdentifier:
-              begin
-                VariableReference;
-              end;
-            ptPoint, ptPointerSymbol, ptRoundOpen, ptSquareOpen:
-              begin
-                VariableTail;
-              end;
-          end;
-        end;
-      end;
-  end;
-
-  case TokenID of
-    ptRoundOpen, ptSquareOpen, ptPointerSymbol:
-    begin
-      VariableTail;
-    end;
-    ptPoint:
-    begin
-      DotOp;
-      Variable;
-    end;
-    ptAs:
-    begin
-      AsOp;
-      SimpleExpression;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.InterfaceType;
-begin
-  case TokenID of
-    ptInterface:
-      begin
-        NextToken;
-      end;
-    ptDispInterface:
-      begin
-        NextToken;
-      end
-  else
-    begin
-      SynError(InvalidInterfaceType);
-    end;
-  end;
-  case TokenID of
-    ptEnd:
-      begin
-        NextToken; { Direct descendant without new members }
-      end;
-    ptRoundOpen:
-      begin
-        InterfaceHeritage;
-        case TokenID of
-          ptEnd:
-            begin
-              NextToken; { No new members }
-            end;
-          ptSemiColon: ; { No new members }
-        else
-          begin
-            if TokenID = ptSquareOpen then
-            begin
-              InterfaceGUID;
-            end;
-            InterfaceMemberList;
-            Expected(ptEnd);
-          end;
+          TypedConstant;
         end;
       end;
   else
     begin
-      if TokenID = ptSquareOpen then
-      begin
-        InterfaceGUID;
-      end;
-      InterfaceMemberList; { Direct descendant }
-      Expected(ptEnd);
+      SynError(InvalidParameter);
     end;
   end;
 end;
 
-procedure TmwSimplePasPar.InterfaceMemberList;
-begin
-  while TokenID in [ptSquareOpen, ptFunction, ptProcedure, ptProperty] do
-  begin
-    while TokenID = ptSquareOpen do
-      CustomAttribute;
-
-    ClassMethodOrProperty;
-  end;
-end;
-
-procedure TmwSimplePasPar.ClassType;
-begin
-  Expected(ptClass);
-  case TokenID of
-    ptIdentifier: //NASTY hack because Abstract is generally an ExID, except in this case when it should be a keyword.
-      begin
-        if Lexer.ExID = ptAbstract then
-          Expected(ptIdentifier);
-
-        if Lexer.ExID = ptHelper then
-        begin
-          ExpectedEx(ptHelper);
-          if TokenID = ptRoundOpen then
-            ClassHeritage;
-          Expected(ptFor);
-          TypeId;
-        end;
-      end;
-    ptSealed:
-      Expected(ptSealed);
-  end;
-  case TokenID of
-    ptEnd:
-      begin
-        ClassTypeEnd;
-        NextToken; { Direct descendant of TObject without new members }
-      end;
-    ptRoundOpen:
-      begin
-        ClassHeritage;
-        case TokenID of
-          ptEnd:
-            begin
-              Expected(ptEnd);
-              ClassTypeEnd;
-            end;
-          ptSemiColon: ClassTypeEnd;
-        else
-          begin
-            ClassMemberList; { Direct descendant of TObject }
-            Expected(ptEnd);
-            ClassTypeEnd;
-          end;
-        end;
-      end;
-    ptSemicolon: ClassTypeEnd;
-  else
-    begin
-      ClassMemberList; { Direct descendant of TObject }
-      Expected(ptEnd);
-      ClassTypeEnd;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.ClassHeritage;
-begin
-  Expected(ptRoundOpen);
-  AncestorIdList;
-  Expected(ptRoundClose);
-end;
-
-procedure TmwSimplePasPar.ClassVisibility;
-begin
-  if TokenID = ptStrict then
-    Expected(ptStrict);
-  while ExID in [ptAutomated, ptPrivate, ptProtected, ptPublic, ptPublished] do
-  begin
-    Lexer.InitAhead;
-    case Lexer.AheadExID of
-      ptColon, ptComma: ;
-    else
-      case ExID of
-        ptAutomated:
-          begin
-            VisibilityAutomated;
-          end;
-        ptPrivate:
-          begin
-            VisibilityPrivate;
-          end;
-        ptProtected:
-          begin
-            VisibilityProtected;
-          end;
-        ptPublic:
-          begin
-            VisibilityPublic;
-          end;
-        ptPublished:
-          begin
-            VisibilityPublished;
-          end;
-      end;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.VisibilityAutomated;
-begin
-  ExpectedEx(ptAutomated);
-end;
-
-procedure TmwSimplePasPar.VisibilityPrivate;
-begin
-  ExpectedEx(ptPrivate);
-end;
-
-procedure TmwSimplePasPar.VisibilityProtected;
-begin
-  ExpectedEx(ptProtected);
-end;
-
-procedure TmwSimplePasPar.VisibilityPublic;
-begin
-  ExpectedEx(ptPublic);
-end;
-
-procedure TmwSimplePasPar.VisibilityPublished;
-begin
-  ExpectedEx(ptPublished);
-end;
-
-procedure TmwSimplePasPar.VisibilityUnknown;
-begin
-end;
-
-procedure TmwSimplePasPar.ClassMemberList;
-begin
-  while TokenID in [ptClass, ptConstructor, ptDestructor, ptFunction,
-    ptIdentifier, ptProcedure, ptProperty,
-    ptType, ptSquareOpen, ptVar, ptConst, ptStrict, ptCase] do
-  begin
-    ClassVisibility;
-
-    if TokenID = ptSquareOpen then
-      CustomAttribute;
-
-    if (TokenID = ptIdentifier) and
-      not (ExID in [ptPrivate, ptProtected, ptPublished, ptPublic]) then
-    begin
-      InitAhead;
-      AheadParse.NextToken;
-
-      if AheadParse.TokenId = ptEqual then
-        ConstantDeclaration
-      else
-        ClassField;
-
-      Semicolon;
-    end
-    else if TokenID in [ptClass, ptConstructor, ptDestructor, ptFunction,
-      ptProcedure, ptProperty, ptVar, ptConst] then
-    begin
-      ClassMethodOrProperty;
-    end;
-    if TokenID = ptType then
-      TypeSection;
-    if TokenID = ptCase then
-    begin
-      VariantSection;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.ClassMethodOrProperty;
-var
-  CurToken: TptTokenKind;
-begin
-  if TokenID = ptClass then
-  begin
-    InitAhead;
-    AheadParse.NextToken;
-    CurToken := AheadParse.TokenID;
-  end else
-    CurToken := TokenID;
-
-  case CurToken of
-    ptProperty:
-      begin
-        ClassProperty;
-      end;
-    ptVar, ptThreadVar:
-      begin
-        if TokenID = ptClass then
-          ClassClass;
-
-        NextToken;
-        while (TokenID = ptIdentifier) and (ExID = ptUnknown) do
-        begin
-          ClassField;
-          Semicolon;
-        end;
-      end;
-    ptConst:
-      begin
-        if TokenID = ptClass then
-          ClassClass;
-
-        NextToken;
-        while (TokenID = ptIdentifier) and (ExID = ptUnknown) do
-        begin
-          ConstantDeclaration;
-          Semicolon;
-        end;
-      end;
-  else
-    begin
-      ClassMethodHeading;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.ClassProperty;
-begin
-  if TokenID = ptClass then
-    ClassClass;
-
-  Expected(ptProperty);
-  PropertyName;
-  case TokenID of
-    ptColon, ptSquareOpen:
-      begin
-        PropertyInterface;
-      end;
-  end;
-  PropertySpecifiers;
-  case ExID of
-    ptDefault:
-      begin
-        PropertyDefault;
-        Semicolon;
-      end;
-  end;
-end;
-
-procedure TmwSimplePasPar.PropertyName;
+procedure TmwSimplePasPar.ParameterName;
 begin
   Expected(ptIdentifier);
 end;
 
-procedure TmwSimplePasPar.ClassField;
+procedure TmwSimplePasPar.ParameterNameList;
 begin
-  if TokenID = ptSquareOpen then
+  while TokenID = ptSquareOpen do
     CustomAttribute;
-  FieldNameList;
-  Expected(ptColon);
-  TypeKind;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  ParameterName;
+
+  while TokenID = ptComma do
+  begin
+    NextToken;
+
+    while TokenID = ptSquareOpen do
+      CustomAttribute;
+    ParameterName;
+  end;
 end;
 
-procedure TmwSimplePasPar.ObjectType;
+(******************************************************************************
+ This part is oriented at the official grammar of Delphi 4
+ and parialy based on Robert Zierers Delphi grammar.
+ For more information about Delphi grammars take a look at:
+ http://www.stud.mw.tu-muenchen.de/~rz1/Grammar.html
+******************************************************************************)
+
+procedure TmwSimplePasPar.ParseFile;
 begin
-  Expected(ptObject);
-  case TokenID of
-    ptEnd:
+  SkipJunk;
+  case GenID of
+    ptLibrary:
       begin
-        ObjectTypeEnd;
-        NextToken; { Direct descendant without new members }
+        LibraryFile;
       end;
-    ptRoundOpen:
+    ptPackage:
       begin
-        ObjectHeritage;
-        case TokenID of
-          ptEnd:
-            begin
-              Expected(ptEnd);
-              ObjectTypeEnd;
-            end;
-          ptSemiColon: ObjectTypeEnd;
-        else
-          begin
-            ObjectMemberList; { Direct descendant }
-            Expected(ptEnd);
-            ObjectTypeEnd;
-          end;
-        end;
+        PackageFile;
+      end;
+    ptProgram:
+      begin
+        ProgramFile;
+      end;
+    ptUnit:
+      begin
+        UnitFile;
       end;
   else
     begin
-      ObjectMemberList; { Direct descendant }
-      Expected(ptEnd);
-      ObjectTypeEnd;
+      IncludeFile;
     end;
   end;
 end;
 
-procedure TmwSimplePasPar.ObjectHeritage;
+procedure TmwSimplePasPar.PointerSymbol;
 begin
-  Expected(ptRoundOpen);
-  AncestorIdList;
-  Expected(ptRoundClose);
+  Expected(ptPointerSymbol);
 end;
 
-procedure TmwSimplePasPar.ObjectMemberList;
-begin {jdj added ptProperty-call to ObjectProperty 02/07/2001}
-  ObjectVisibility;
-  while TokenID in [ptConstructor, ptDestructor, ptFunction, ptIdentifier,
-    ptProcedure, ptProperty] do
-  begin
-    while TokenID = ptIdentifier do
-    begin
-      ObjectField;
-      Semicolon;
-      ObjectVisibility;
-    end;
-    while TokenID in [ptConstructor, ptDestructor, ptFunction, ptProcedure, ptProperty] do
-    begin
-      case TokenID of
-        ptConstructor, ptDestructor, ptFunction, ptProcedure:
-          ObjectMethodHeading;
-        ptProperty:
-          ObjectProperty;
-      end;
-    end;
-    ObjectVisibility;
-  end;
-end;
-
-procedure TmwSimplePasPar.ObjectVisibility;
+procedure TmwSimplePasPar.PointerType;
 begin
-  while ExID in [ptPrivate, ptProtected, ptPublic] do
-  begin
-    Lexer.InitAhead;
-    case Lexer.AheadExID of
-      ptColon, ptComma: ;
-    else
-      case ExID of
-        ptPrivate:
-          begin
-            VisibilityPrivate;
-          end;
-        ptProtected:
-          begin
-            VisibilityProtected;
-          end;
-        ptPublic:
-          begin
-            VisibilityPublic;
-          end;
-      end;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.ObjectField;
-begin
-  IdentifierList;
-  Expected(ptColon);
-  TypeKind;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
-end;
-
-procedure TmwSimplePasPar.ClassReferenceType;
-begin
-  Expected(ptClass);
-  Expected(ptOf);
+  Expected(ptPointerSymbol);
   TypeId;
 end;
 
-procedure TmwSimplePasPar.VariantIdentifier;
+procedure TmwSimplePasPar.ProceduralDirective;
 begin
   case ExID of
-    ptOleVariant:
+    ptFinal:
       begin
         NextToken;
       end;
-    ptVariant:
+    ptAbstract:
       begin
         NextToken;
       end;
+    ptCdecl, ptPascal, ptRegister, ptSafeCall, ptStdCall:
+      begin
+        DirectiveCalling;
+      end;
+    ptExport, ptFar, ptNear:
+      begin
+        Directive16Bit;
+      end;
+    ptExternal:
+      begin
+        DirectiveExternal;
+      end;
+    ptDynamic, ptMessage, ptOverload, ptOverride, ptReintroduce, ptVirtual:
+      begin
+        DirectiveBinding;
+      end;
+    ptAssembler:
+      begin
+        NextToken;
+      end;
+    ptStatic:
+      begin
+        NextToken;
+      end;
+    ptInline:
+      begin
+        NextToken;
+      end;
+    ptDeprecated:
+      DirectiveDeprecated;
+    ptLibrary:
+      DirectiveLibrary;
+    ptPlatform:
+      DirectivePlatform;
+    ptLocal:
+      DirectiveLocal;
+    ptVarargs:
+      DirectiveVarargs;
+    ptExperimental, ptDelayed:
+      NextToken;
   else
     begin
-      SynError(InvalidVariantIdentifier);
+      SynError(InvalidProceduralDirective);
     end;
   end;
+end;
+
+procedure TmwSimplePasPar.ProceduralDirectiveOf;
+begin
+  NextToken;
+  Expected(ptObject);
 end;
 
 procedure TmwSimplePasPar.ProceduralType;
@@ -4093,52 +3794,278 @@ begin
     ProceduralDirectiveOf;
 end;
 
-procedure TmwSimplePasPar.StringConst;
+procedure TmwSimplePasPar.ProcedureDeclarationSection;
 begin
-  StringConstSimple;
-  while TokenID in [ptStringConst, ptAsciiChar] do
-    StringConstSimple;
+  if TokenID = ptClass then
+  begin
+    ClassMethod;
+  end;
+  case TokenID of
+    ptConstructor:
+      begin
+        ProcedureProcedureName;
+      end;
+    ptDestructor:
+      begin
+        ProcedureProcedureName;
+      end;
+    ptProcedure:
+      begin
+        ProcedureProcedureName;
+      end;
+    ptFunction:
+      begin
+        FunctionMethodDeclaration;
+      end;
+    ptIdentifier:
+      begin
+        if Lexer.ExID = ptOperator then
+        begin
+          FunctionMethodDeclaration;
+        end
+        else
+          SynError(InvalidProcedureDeclarationSection);
+      end;
+  else
+    begin
+      SynError(InvalidProcedureDeclarationSection);
+    end;
+  end;
 end;
 
-procedure TmwSimplePasPar.StringConstSimple;
+procedure TmwSimplePasPar.ProcedureHeading;
 begin
-  NextToken;
+  Expected(ptProcedure);
+  FunctionProcedureName;
+  if TokenID = ptRoundOpen then
+  begin
+    FormalParameterList;
+  end;
 end;
 
-procedure TmwSimplePasPar.StringIdentifier;
+procedure TmwSimplePasPar.ProcedureProcedureName;
+begin
+  MethodKind;
+  FunctionProcedureName;
+  if TokenID = ptRoundOpen then
+  begin
+    FormalParameterList;
+  end;
+  FunctionProcedureBlock;
+end;
+
+procedure TmwSimplePasPar.ProcedureMethodName;
+begin
+  Expected(ptIdentifier);
+end;
+
+procedure TmwSimplePasPar.ProgramBlock;
+begin
+  if TokenID = ptUses then
+  begin
+    MainUsesClause;
+  end;
+  Block;
+end;
+
+procedure TmwSimplePasPar.ProgramFile;
+begin
+  Expected(ptProgram);
+  UnitName;
+  if TokenID = ptRoundOpen then
+  begin
+    NextToken;
+    IdentifierList;
+    Expected(ptRoundClose);
+  end;
+  if not InterfaceOnly then
+  begin
+    Semicolon;
+    ProgramBlock;
+    Expected(ptPoint);
+  end;
+end;
+
+procedure TmwSimplePasPar.PropertyDefault;
+begin
+  ExpectedEx(ptDefault);
+end;
+
+procedure TmwSimplePasPar.PropertyInterface;
+begin
+  if TokenID = ptSquareOpen then
+  begin
+    PropertyParameterList;
+  end;
+  Expected(ptColon);
+  TypeID;
+end;
+
+procedure TmwSimplePasPar.PropertyName;
+begin
+  Expected(ptIdentifier);
+end;
+
+procedure TmwSimplePasPar.PropertyParameter;
+begin
+  case TokenID of
+    ptConst: PropertyParameterConst;
+    ptVar: PropertyParameterVar;
+    ptIdentifier:
+      begin
+        if ExID = ptOut then
+          PropertyParameterOut;
+      end;
+  end;
+  IdentifierList;
+  if TokenID = ptColon then
+  begin
+    NextToken;
+
+    TypeId;
+    if TokenID = ptEqual then
+    begin
+      Expected(ptEqual);
+      ConstantExpression;
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.PropertyParameterConst;
+begin
+  Expected(ptConst);
+end;
+
+procedure TmwSimplePasPar.PropertyParameterOut;
+begin
+  ExpectedEx(ptOut);
+end;
+
+procedure TmwSimplePasPar.PropertyParameterVar;
+begin
+  Expected(ptVar);
+end;
+
+procedure TmwSimplePasPar.PropertyParameterList;
+begin
+  Expected(ptSquareOpen);
+  PropertyParameter;
+  while TokenID = ptSemiColon do
+  begin
+    Semicolon;
+    PropertyParameter;
+  end;
+  Expected(ptSquareClose);
+end;
+
+procedure TmwSimplePasPar.PropertySpecifiers;
+begin
+  if ExID = ptIndex then
+  begin
+    IndexSpecifier;
+  end;
+  while ExID in [ptRead, ptReadOnly, ptWrite, ptWriteOnly, ptAdd, ptRemove] do
+  begin
+    AccessSpecifier;
+  end;
+  if ExID = ptDispId then
+  begin
+    DispIDSpecifier;
+  end;
+  while ExID in [ptDefault, ptNoDefault, ptStored] do
+  begin
+    StorageSpecifier;
+  end;
+  if ExID = ptImplements then
+  begin
+    ImplementsSpecifier;
+  end;
+  Semicolon;
+end;
+
+procedure TmwSimplePasPar.QualifiedIdentifier;
+begin
+  Identifier;
+
+  while TokenID = ptPoint do
+  begin
+    DotOp;
+    Identifier;
+  end;
+end;
+
+procedure TmwSimplePasPar.RaiseStatement;
+begin
+  Expected(ptRaise);
+  case TokenID of
+    ptAddressOp, ptDoubleAddressOp, ptIdentifier, ptRoundOpen:
+      begin
+        Expression;
+      end;
+  end;
+  if ExID = ptAt then
+    AtExpression;
+end;
+
+procedure TmwSimplePasPar.ReadAccessIdentifier;
+begin
+  variable;
+end;
+
+procedure TmwSimplePasPar.RealIdentifier;
 begin
   case ExID of
-    ptAnsiString:
+    ptReal48:
       begin
         NextToken;
       end;
-    ptShortString:
+    ptReal:
       begin
         NextToken;
       end;
-    ptWideString:
+    ptSingle:
+      begin
+        NextToken;
+      end;
+    ptDouble:
+      begin
+        NextToken;
+      end;
+    ptExtended:
+      begin
+        NextToken;
+      end;
+    ptCurrency:
+      begin
+        NextToken;
+      end;
+    ptComp:
       begin
         NextToken;
       end;
   else
     begin
-      SynError(InvalidStringIdentifier);
+      SynError(InvalidRealIdentifier);
     end;
   end;
 end;
 
-procedure TmwSimplePasPar.StringType;
+procedure TmwSimplePasPar.RealType;
 begin
   case TokenID of
-    ptString:
+    ptMinus:
       begin
         NextToken;
-        if TokenID = ptSquareOpen then
-        begin
-          NextToken;
-          ConstantExpression;
-          Expected(ptSquareClose);
-        end;
+      end;
+    ptPlus:
+      begin
+        NextToken;
+      end;
+  end;
+  case TokenId of
+    ptFloat:
+      begin
+        NextToken;
       end;
   else
     begin
@@ -4147,48 +4074,268 @@ begin
   end;
 end;
 
-procedure TmwSimplePasPar.PointerSymbol;
+procedure TmwSimplePasPar.RecordConstant;
 begin
-  Expected(ptPointerSymbol);
+  Expected(ptRoundOpen);
+  RecordFieldConstant;
+  while (TokenID = ptSemiColon) do
+  begin
+    Semicolon;
+    if TokenId <> ptRoundClose then
+      RecordFieldConstant;
+  end;
+  Expected(ptRoundClose);
 end;
 
-procedure TmwSimplePasPar.PointerType;
+procedure TmwSimplePasPar.RecordFieldConstant;
 begin
-  Expected(ptPointerSymbol);
-  TypeId;
+  Expected(ptIdentifier);
+  Expected(ptColon);
+  TypedConstant;
 end;
 
-procedure TmwSimplePasPar.StructuredType;
+procedure TmwSimplePasPar.RecordType;
 begin
-  if TokenID = ptPacked then
+  Expected(ptRecord);
+  if TokenID = ptSemicolon then
+    Exit;
+
+  if ExID = ptHelper then
+  begin
+    ExpectedEx(ptHelper);
+    Expected(ptFor);
+    TypeId;
+  end;
+
+  if TokenID = ptRoundOpen then
+  begin
+    ClassHeritage;
+    if TokenID = ptSemicolon then
+      Exit;
+  end;
+  ClassMemberList;
+  Expected(ptEnd);
+
+  ClassTypeEnd;
+end;
+
+procedure TmwSimplePasPar.RecordVariant;
+begin
+  ConstantExpression;
+  while (TokenID = ptComma) do
   begin
     NextToken;
+    ConstantExpression;
   end;
+  Expected(ptColon);
+  Expected(ptRoundOpen);
+  if TokenID <> ptRoundClose then
+  begin
+    FieldList;
+  end;
+  Expected(ptRoundClose);
+end;
+
+procedure TmwSimplePasPar.RelativeOperator;
+begin
   case TokenID of
-    ptArray:
+    ptAs:
       begin
-        ArrayType;
+        NextToken;
       end;
-    ptFile:
+    ptEqual:
       begin
-        FileType;
+        NextToken;
       end;
-    ptRecord:
+    ptGreater:
       begin
-        RecordType;
+        NextToken;
       end;
-    ptSet:
+    ptGreaterEqual:
       begin
-        SetType;
+        NextToken;
       end;
-    ptObject:
+    ptIn:
       begin
-        ObjectType;
-      end
+        NextToken;
+      end;
+    ptIs:
+      begin
+        NextToken;
+      end;
+    ptLower:
+      begin
+        NextToken;
+      end;
+    ptLowerEqual:
+      begin
+        NextToken;
+      end;
+    ptNotEqual:
+      begin
+        NextToken;
+      end;
   else
     begin
-      SynError(InvalidStructuredType);
+      SynError(InvalidRelativeOperator);
     end;
+  end;
+end;
+
+procedure TmwSimplePasPar.RepeatStatement;
+begin
+  Expected(ptRepeat);
+  StatementList;
+  Expected(ptUntil);
+  Expression;
+end;
+
+procedure TmwSimplePasPar.RequiresClause;
+begin
+  ExpectedEx(ptRequires);
+  RequiresIdentifier;
+  while TokenID = ptComma do
+  begin
+    NextToken;
+    RequiresIdentifier;
+  end;
+  Semicolon;
+end;
+
+procedure TmwSimplePasPar.RequiresIdentifier;
+begin
+  RequiresIdentifierId;
+  while Lexer.TokenID = ptPoint do
+  begin
+    NextToken;
+    RequiresIdentifierId;
+  end;
+end;
+
+procedure TmwSimplePasPar.RequiresIdentifierId;
+begin
+  Expected(ptIdentifier);
+end;
+
+procedure TmwSimplePasPar.ResolutionInterfaceName;
+begin
+  Expected(ptIdentifier);
+end;
+
+procedure TmwSimplePasPar.ResourceDeclaration;
+begin
+  Identifier;
+  Expected(ptEqual);
+
+  CharString;
+  while TokenID = ptPlus do
+  begin
+    NextToken;
+    CharString;
+  end;
+
+  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
+    case ExID of
+      ptDeprecated: DirectiveDeprecated;
+      ptLibrary: DirectiveLibrary;
+      ptPlatform: DirectivePlatform;
+    end;
+end;
+
+procedure TmwSimplePasPar.ReturnType;
+begin
+  while TokenID = ptSquareOpen do
+    CustomAttribute;
+  case TokenID of
+    ptString:
+      begin
+        StringType;
+      end;
+  else
+    begin
+      TypeID;
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.RoundClose;
+begin
+  Expected(ptRoundClose);
+  Dec(FInRound);
+end;
+
+procedure TmwSimplePasPar.RoundOpen;
+begin
+  Expected(ptRoundOpen);
+  Inc(FInRound);
+end;
+
+procedure TmwSimplePasPar.SetConstructor;
+begin
+  Expected(ptSquareOpen);
+  if TokenID <> ptSquareClose then
+  begin
+    SetElement;
+    while TokenID = ptComma do
+    begin
+      NextToken;
+      SetElement;
+    end;
+  end;
+  Expected(ptSquareClose);
+end;
+
+procedure TmwSimplePasPar.SetElement;
+begin
+  Expression;
+  if TokenID = ptDotDot then
+  begin
+    NextToken;
+    Expression;
+  end;
+end;
+
+procedure TmwSimplePasPar.SetType;
+begin
+  Expected(ptSet);
+  Expected(ptOf);
+  OrdinalType;
+end;
+
+procedure TmwSimplePasPar.SimpleExpression;
+begin
+  Term;
+  while TokenID in [ptMinus, ptOr, ptPlus, ptXor] do
+  begin
+    AdditiveOperator;
+    Term;
+  end;
+
+  case TokenID of
+    ptAs:
+      begin
+        AsOp;
+        TypeId;
+      end;
+  end;
+end;
+
+procedure TmwSimplePasPar.SimpleStatement;
+begin
+  case TokenID of
+    ptAddressOp, ptDoubleAddressOp, ptIdentifier, ptRoundOpen, ptString:
+      begin
+        Designator;
+        if TokenID = ptAssign then
+        begin
+          AssignOp;
+          Expression;
+        end;
+      end;
+    ptGoTo:
+      begin
+        GotoStatement;
+      end;
   end;
 end;
 
@@ -4233,78 +4380,429 @@ begin
   end;
 end;
 
-procedure TmwSimplePasPar.RecordFieldConstant;
+procedure TmwSimplePasPar.SkipAnsiComment;
+begin
+  Expected(ptAnsiComment);
+  while TokenID in [ptAnsiComment] do
+    Lexer.Next;
+end;
+
+procedure TmwSimplePasPar.SkipBorComment;
+begin
+  Expected(ptBorComment);
+  while TokenID in [ptBorComment] do
+    Lexer.Next;
+end;
+
+procedure TmwSimplePasPar.SkipSlashesComment;
+begin
+  Expected(ptSlashesComment);
+end;
+
+procedure TmwSimplePasPar.SkipSpace;
+begin
+  Expected(ptSpace);
+  while TokenID in [ptSpace] do
+    Lexer.Next;
+end;
+
+procedure TmwSimplePasPar.SkipCRLFco;
+begin
+  Expected(ptCRLFCo);
+  while TokenID in [ptCRLFCo] do
+    Lexer.Next;
+end;
+
+procedure TmwSimplePasPar.SkipCRLF;
+begin
+  Expected(ptCRLF);
+  while TokenID in [ptCRLF] do
+    Lexer.Next;
+end;
+
+procedure TmwSimplePasPar.Statement;
+begin
+  case TokenID of
+    ptAsm:
+      begin
+        AsmStatement;
+      end;
+    ptBegin:
+      begin
+        CompoundStatement;
+      end;
+    ptCase:
+      begin
+        CaseStatement;
+      end;
+    ptFor:
+      begin
+        ForStatement;
+      end;
+    ptIf:
+      begin
+        IfStatement;
+      end;
+    ptIdentifier:
+      begin
+        FLexer.InitAhead;
+        case Lexer.AheadTokenID of
+          ptColon:
+            begin
+              LabeledStatement;
+            end;
+        else
+          begin
+            SimpleStatement;
+          end;
+        end;
+      end;
+    ptInherited:
+      begin
+        InheritedStatement;
+      end;
+    ptInLine:
+      begin
+        InlineStatement;
+      end;
+    ptIntegerConst:
+      begin
+        FLexer.InitAhead;
+        case Lexer.AheadTokenID of
+          ptColon:
+            begin
+              LabeledStatement;
+            end;
+        else
+          begin
+            SynError(InvalidLabeledStatement);
+            NextToken;
+          end;
+        end;
+      end;
+    ptRepeat:
+      begin
+        RepeatStatement;
+      end;
+    ptRaise:
+      begin
+        RaiseStatement;
+      end;
+    ptSemiColon:
+      begin
+        EmptyStatement;
+      end;
+    ptTry:
+      begin
+        TryStatement;
+      end;
+    ptWhile:
+      begin
+        WhileStatement;
+      end;
+    ptWith:
+      begin
+        WithStatement;
+      end;
+  else
+    begin
+      SimpleStatement;
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.StatementList;
+begin {removed ptIntegerConst jdj-Put back in for labels}
+  while TokenID in [ptAddressOp, ptAsm, ptBegin, ptCase, ptDoubleAddressOp,
+    ptFor, ptGoTo, ptIdentifier, ptIf, ptInherited, ptInline, ptIntegerConst,
+    ptPointerSymbol, ptRaise, ptRoundOpen, ptRepeat, ptSemiColon, ptString,
+    ptTry, ptWhile, ptWith] do
+  begin
+    Statement;
+    Semicolon;
+  end;
+end;
+
+procedure TmwSimplePasPar.StorageExpression;
+begin
+  ConstantExpression;
+end;
+
+procedure TmwSimplePasPar.StorageIdentifier;
 begin
   Expected(ptIdentifier);
-  Expected(ptColon);
-  TypedConstant;
 end;
 
-procedure TmwSimplePasPar.RecordConstant;
+procedure TmwSimplePasPar.StorageDefault;
 begin
-  Expected(ptRoundOpen);
-  RecordFieldConstant;
-  while (TokenID = ptSemiColon) do
-  begin
-    Semicolon;
-    if TokenId <> ptRoundClose then
-      RecordFieldConstant;
+  ExpectedEx(ptDefault);
+  StorageExpression;
+end;
+
+procedure TmwSimplePasPar.StorageNoDefault;
+begin
+  ExpectedEx(ptNoDefault);
+end;
+
+procedure TmwSimplePasPar.StorageSpecifier;
+begin
+  case ExID of
+    ptStored:
+      begin
+        StorageStored;
+      end;
+    ptDefault:
+      begin
+        StorageDefault;
+      end;
+    ptNoDefault:
+      begin
+        StorageNoDefault;
+      end
+  else
+    begin
+      SynError(InvalidStorageSpecifier);
+    end;
   end;
-  Expected(ptRoundClose);
 end;
 
-procedure TmwSimplePasPar.ArrayConstant;
+procedure TmwSimplePasPar.StorageStored;
 begin
-  Expected(ptRoundOpen);
+  ExpectedEx(ptStored);
+  case TokenID of
+    ptIdentifier:
+      begin
+        StorageIdentifier;
+      end;
+  else
+    if TokenID <> ptSemiColon then
+    begin
+      StorageExpression;
+    end;
+  end;
+end;
 
-  TypedConstant;
+procedure TmwSimplePasPar.StringConst;
+begin
+  StringConstSimple;
+  while TokenID in [ptStringConst, ptAsciiChar] do
+    StringConstSimple;
+end;
+
+procedure TmwSimplePasPar.StringConstSimple;
+begin
+  NextToken;
+end;
+
+procedure TmwSimplePasPar.StringIdentifier;
+begin
+  case ExID of
+    ptAnsiString:
+      begin
+        NextToken;
+      end;
+    ptShortString:
+      begin
+        NextToken;
+      end;
+    ptWideString:
+      begin
+        NextToken;
+      end;
+  else
+    begin
+      SynError(InvalidStringIdentifier);
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.StringStatement;
+begin
+  Expected(ptString);
+  Statement;
+end;
+
+procedure TmwSimplePasPar.StringType;
+begin
+  case TokenID of
+    ptString:
+      begin
+        NextToken;
+        if TokenID = ptSquareOpen then
+        begin
+          NextToken;
+          ConstantExpression;
+          Expected(ptSquareClose);
+        end;
+      end;
+  else
+    begin
+      VariableReference;
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.StructuredType;
+begin
+  if TokenID = ptPacked then
+  begin
+    NextToken;
+  end;
+  case TokenID of
+    ptArray:
+      begin
+        ArrayType;
+      end;
+    ptFile:
+      begin
+        FileType;
+      end;
+    ptRecord:
+      begin
+        RecordType;
+      end;
+    ptSet:
+      begin
+        SetType;
+      end;
+    ptObject:
+      begin
+        ObjectType;
+      end
+  else
+    begin
+      SynError(InvalidStructuredType);
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.SubrangeType;
+begin
+  ConstantExpression;
   if TokenID = ptDotDot then
   begin
     NextToken;
-    TypedConstant;
+    ConstantExpression;
   end;
-
-  while (TokenID = ptComma) do
-  begin
-    NextToken;
-    TypedConstant;
-    if TokenID = ptDotDot then
-    begin
-      NextToken;
-      TypedConstant;
-    end;
-  end;
-  Expected(ptRoundClose);
 end;
 
-procedure TmwSimplePasPar.ArrayDimension;
+procedure TmwSimplePasPar.TagField;
+begin
+  TagFieldName;
+  case FLexer.TokenID of
+    ptColon:
+      begin
+        NextToken;
+        TagFieldTypeName;
+      end;
+  end;
+end;
+
+procedure TmwSimplePasPar.TagFieldName;
+begin
+  Expected(ptIdentifier);
+end;
+
+procedure TmwSimplePasPar.TagFieldTypeName;
 begin
   OrdinalType;
 end;
 
-procedure TmwSimplePasPar.ClassForward;
+procedure TmwSimplePasPar.Term;
 begin
-  Expected(ptClass);
+  Factor;
+  while TokenID in [ptAnd, ptDiv, ptMod, ptShl, ptShr, ptSlash, ptStar] do
+  begin
+    MultiplicativeOperator;
+    Factor;
+  end;
 end;
 
-procedure TmwSimplePasPar.DispInterfaceForward;
+procedure TmwSimplePasPar.ThenStatement;
 begin
-  Expected(ptDispInterface);
+  Expected(ptThen);
+  Statement;
 end;
 
-procedure TmwSimplePasPar.DotOp;
+procedure TmwSimplePasPar.TryStatement;
 begin
-  Expected(ptPoint);
+  Expected(ptTry);
+  StatementList;
+  case TokenID of
+    ptExcept:
+      begin
+        NextToken;
+        ExceptBlock;
+        Expected(ptEnd);
+      end;
+    ptFinally:
+      begin
+        NextToken;
+        FinallyBlock;
+        Expected(ptEnd);
+      end;
+  else
+    begin
+      SynError(InvalidTryStatement);
+    end;
+  end;
 end;
 
-procedure TmwSimplePasPar.InterfaceForward;
+procedure TmwSimplePasPar.TypedConstant;
+var
+  RoundBrackets: Integer;
 begin
-  Expected(ptInterface);
-end;
+  case TokenID of
+    ptRoundOpen:
+      begin
+        Lexer.InitAhead;
+        while Lexer.AheadTokenID <> ptSemiColon do
+          case Lexer.AheadTokenID of
+            ptAnd, ptBegin, ptCase, ptColon, ptEnd, ptElse, ptIf, ptMinus, ptNull,
+              ptOr, ptPlus, ptShl, ptShr, ptSlash, ptStar, ptWhile, ptWith,
+              ptXor: Break;
+            ptRoundOpen:
+              begin
+                RoundBrackets := 0;
+                repeat
+                  case Lexer.AheadTokenID of
+                    ptBegin, ptCase, ptEnd, ptElse, ptIf, ptNull, ptWhile, ptWith: Break;
+                  else
+                    if Lexer.AheadTokenID = ptRoundOpen then
+                      Inc(RoundBrackets);
+                    if Lexer.AheadTokenID = ptRoundClose then
+                      Dec(RoundBrackets);
 
-procedure TmwSimplePasPar.ObjectForward;
-begin
-  Expected(ptObject);
+                    Lexer.AheadNext;
+                  end;
+                until RoundBrackets = 0;
+              end;
+          else
+            Lexer.AheadNext;
+          end;
+        case Lexer.AheadTokenID of
+          ptColon:
+            begin
+              RecordConstant;
+            end;
+          ptNull: ;
+          ptAnd, ptMinus, ptOr, ptPlus, ptShl, ptShr, ptSlash, ptStar, ptXor:
+            begin
+              ConstantExpression;
+            end;
+        else
+          begin
+            ArrayConstant;
+          end;
+        end;
+      end;
+    ptSquareOpen:
+      ConstantExpression;
+  else
+    begin
+      ConstantExpression;
+    end;
+  end;
 end;
 
 procedure TmwSimplePasPar.TypeDeclaration;
@@ -4397,16 +4895,22 @@ begin
   TypeDirective;
 end;
 
-procedure TmwSimplePasPar.TypeName;
+procedure TmwSimplePasPar.TypeId;
 begin
-  Expected(ptIdentifier);
-  if TokenId = ptLower then
-    TypeParams;
-end;
+  TypeSimple;
 
-procedure TmwSimplePasPar.ExplicitType;
-begin
-  Expected(ptType);
+  while TokenID = ptPoint do
+  begin
+    Expected(ptPoint);
+    TypeSimple;
+  end;
+
+  if TokenID = ptRoundOpen then
+  begin
+    Expected(ptRoundOpen);
+    SimpleExpression;
+    Expected(ptRoundClose);
+  end;
 end;
 
 procedure TmwSimplePasPar.TypeKind;
@@ -4460,410 +4964,18 @@ begin
   end;
 end;
 
-procedure TmwSimplePasPar.TypeArgs;
-begin
-  TypeKind;
-  while TokenId = ptComma do
-  begin
-    NextToken;
-    TypeKind;
-  end;
-end;
-
-procedure TmwSimplePasPar.TypedConstant;
-var
-  RoundBrackets: Integer;
-begin
-  case TokenID of
-    ptRoundOpen:
-      begin
-        Lexer.InitAhead;
-        while Lexer.AheadTokenID <> ptSemiColon do
-          case Lexer.AheadTokenID of
-            ptAnd, ptBegin, ptCase, ptColon, ptEnd, ptElse, ptIf, ptMinus, ptNull,
-              ptOr, ptPlus, ptShl, ptShr, ptSlash, ptStar, ptWhile, ptWith,
-              ptXor: Break;
-            ptRoundOpen:
-              begin
-                RoundBrackets := 0;
-                repeat
-                  case Lexer.AheadTokenID of
-                    ptBegin, ptCase, ptEnd, ptElse, ptIf, ptNull, ptWhile, ptWith: Break;
-                  else
-                    if Lexer.AheadTokenID = ptRoundOpen then
-                      Inc(RoundBrackets);
-                    if Lexer.AheadTokenID = ptRoundClose then
-                      Dec(RoundBrackets);
-
-                    Lexer.AheadNext;
-                  end;
-                until RoundBrackets = 0;
-              end;
-          else
-            Lexer.AheadNext;
-          end;
-        case Lexer.AheadTokenID of
-          ptColon:
-            begin
-              RecordConstant;
-            end;
-          ptNull: ;
-          ptAnd, ptMinus, ptOr, ptPlus, ptShl, ptShr, ptSlash, ptStar, ptXor:
-            begin
-              ConstantExpression;
-            end;
-        else
-          begin
-            ArrayConstant;
-          end;
-        end;
-      end;
-    ptSquareOpen:
-      ConstantExpression;
-  else
-    begin
-      ConstantExpression;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.TypeId;
-begin
-  TypeSimple;
-
-  while TokenID = ptPoint do
-  begin
-    Expected(ptPoint);
-    TypeSimple;
-  end;
-
-  if TokenID = ptRoundOpen then
-  begin
-    Expected(ptRoundOpen);
-    SimpleExpression;
-    Expected(ptRoundClose);
-  end;
-end;
-
-procedure TmwSimplePasPar.ConstantExpression;
-begin
-  SimpleExpression;
-end;
-
-procedure TmwSimplePasPar.ResourceDeclaration;
-begin
-  Identifier;
-  Expected(ptEqual);
-
-  CharString;
-  while TokenID = ptPlus do
-  begin
-    NextToken;
-    CharString;
-  end;
-
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
-end;
-
-procedure TmwSimplePasPar.ConstantDeclaration;
-begin
-  ConstantName;
-  case TokenID of
-    ptEqual:
-      begin
-        ConstantEqual;
-      end;
-    ptColon:
-      begin
-        ConstantColon;
-      end;
-  else
-    begin
-      SynError(InvalidConstantDeclaration);
-    end;
-  end;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
-end;
-
-procedure TmwSimplePasPar.ConstantColon;
-begin
-  Expected(ptColon);
-  ConstantType;
-  Expected(ptEqual);
-  ConstantValueTyped;
-end;
-
-procedure TmwSimplePasPar.ConstantEqual;
-begin
-  Expected(ptEqual);
-  ConstantValue;
-end;
-
-procedure TmwSimplePasPar.ConstantValue;
-begin
-  Expression;
-end;
-
-procedure TmwSimplePasPar.ConstantValueTyped;
-begin
-  TypedConstant;
-end;
-
-procedure TmwSimplePasPar.ConstantName;
+procedure TmwSimplePasPar.TypeName;
 begin
   Expected(ptIdentifier);
+  if TokenId = ptLower then
+    TypeParams;
 end;
 
-procedure TmwSimplePasPar.ConstantType;
-begin
-  TypeKind;
-end;
-
-procedure TmwSimplePasPar.LabelId;
-begin
-  case TokenID of
-    ptIntegerConst:
-      begin
-        NextToken;
-      end;
-    ptIdentifier:
-      begin
-        NextToken;
-      end;
-  else
-    begin
-      SynError(InvalidLabelId);
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.ProcedureDeclarationSection;
-begin
-  if TokenID = ptClass then
-  begin
-    ClassMethod;
-  end;
-  case TokenID of
-    ptConstructor:
-      begin
-        ProcedureProcedureName;
-      end;
-    ptDestructor:
-      begin
-        ProcedureProcedureName;
-      end;
-    ptProcedure:
-      begin
-        ProcedureProcedureName;
-      end;
-    ptFunction:
-      begin
-        FunctionMethodDeclaration;
-      end;
-    ptIdentifier:
-      begin
-        if Lexer.ExID = ptOperator then
-        begin
-          FunctionMethodDeclaration;
-        end
-        else
-          SynError(InvalidProcedureDeclarationSection);
-      end;
-  else
-    begin
-      SynError(InvalidProcedureDeclarationSection);
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.LabelDeclarationSection;
-begin
-  Expected(ptLabel);
-  LabelId;
-  while (TokenID = ptComma) do
-  begin
-    NextToken;
-    LabelId;
-  end;
-  Semicolon;
-end;
-
-procedure TmwSimplePasPar.ProceduralDirective;
-begin
-  case ExID of
-    ptAbstract:
-      begin
-        NextToken;
-      end;
-    ptCdecl, ptPascal, ptRegister, ptSafeCall, ptStdCall:
-      begin
-        DirectiveCalling;
-      end;
-    ptExport, ptFar, ptNear:
-      begin
-        Directive16Bit;
-      end;
-    ptExternal:
-      begin
-        ExternalDirective;
-      end;
-    ptDynamic, ptMessage, ptOverload, ptOverride, ptReintroduce, ptVirtual:
-      begin
-        DirectiveBinding;
-      end;
-    ptAssembler:
-      begin
-        NextToken;
-      end;
-    ptStatic:
-      begin
-        NextToken;
-      end;
-    ptInline:
-      begin
-        NextToken;
-      end;
-    ptDeprecated:
-      DirectiveDeprecated;
-    ptLibrary:
-      DirectiveLibrary;
-    ptPlatform:
-      DirectivePlatform;
-    ptLocal:
-      DirectiveLocal;
-    ptVarargs:
-      DirectiveVarargs;
-    ptFinal, ptExperimental, ptDelayed:
-      NextToken;
-  else
-    begin
-      SynError(InvalidProceduralDirective);
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.ExportedHeading;
-begin
-  case TokenID of
-    ptFunction:
-      begin
-        FunctionHeading;
-      end;
-    ptProcedure:
-      begin
-        ProcedureHeading;
-      end;
-  else
-    begin
-      SynError(InvalidExportedHeading);
-    end;
-  end;
-  if TokenID = ptSemiColon then Semicolon;
-
-  //TODO: Add FINAL
-  while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptFar,
-    ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
-    ptReintroduce, ptSafeCall, ptStdCall, ptVirtual,
-    ptDeprecated, ptLibrary, ptPlatform, ptLocal, ptVarargs,
-    ptStatic, ptInline, ptAssembler, ptForward, ptDelayed] do
-  begin
-    case ExID of
-      ptAssembler: NextToken;
-      ptForward: ForwardDeclaration;
-    else
-      ProceduralDirective;
-    end;
-    if TokenID = ptSemiColon then Semicolon;
-  end;
-end;
-
-procedure TmwSimplePasPar.FunctionHeading;
-begin
-  Expected(ptFunction);
-  FunctionProcedureName;
-  if TokenID = ptRoundOpen then
-  begin
-    FormalParameterList;
-  end;
-  if TokenID = ptColon then
-  begin
-    Expected(ptColon);
-    ReturnType;
-  end;
-end;
-
-procedure TmwSimplePasPar.ProcedureHeading;
-begin
-  Expected(ptProcedure);
-  FunctionProcedureName;
-  if TokenID = ptRoundOpen then
-  begin
-    FormalParameterList;
-  end;
-end;
-
-procedure TmwSimplePasPar.VarSection;
-begin
-  case TokenID of
-    ptThreadVar:
-      begin
-        NextToken;
-      end;
-    ptVar:
-      begin
-        NextToken;
-      end;
-  else
-    begin
-      SynError(InvalidVarSection);
-    end;
-  end;
-  while TokenID in [ptIdentifier, ptSquareOpen] do
-  begin
-    if TokenID = ptSquareOpen then
-      CustomAttribute
-    else
-    begin
-      VarDeclaration;
-      Semicolon;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.TypeSection;
+procedure TmwSimplePasPar.TypeReferenceType;
 begin
   Expected(ptType);
-
-  while (TokenID = ptIdentifier) or (Lexer.TokenID = ptSquareOpen) do
-  begin
-    if TokenID = ptSquareOpen then
-      CustomAttribute
-    else
-    begin
-      InitAhead;
-      AheadParse.NextToken;
-      if AheadParse.TokenID = ptLower then
-        AheadParse.TypeParams;
-
-      if AheadParse.TokenID <> ptEqual then
-        Break;
-
-      TypeDeclaration;
-      if TokenID = ptEqual then
-        TypedConstant;
-      Semicolon;
-    end;
-  end;
+  Expected(ptOf);
+  TypeId;
 end;
 
 procedure TmwSimplePasPar.TypeSimple;
@@ -4906,6 +5018,37 @@ begin
   end;
 end;
 
+procedure TmwSimplePasPar.TypeArgs;
+begin
+  TypeKind;
+  while TokenId = ptComma do
+  begin
+    NextToken;
+    TypeKind;
+  end;
+end;
+
+procedure TmwSimplePasPar.TypeDirective;
+begin
+  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
+    case ExID of
+      ptDeprecated: DirectiveDeprecated;
+      ptLibrary:    DirectiveLibrary;
+      ptPlatform:   DirectivePlatform;
+    end;
+end;
+
+procedure TmwSimplePasPar.TypeParams;
+begin
+  Expected(ptLower);
+  TypeParamDeclList;
+  // workaround for TSomeClass< T >= class(TObject)
+  if TokenID = ptGreaterEqual then
+    Lexer.RunPos := Lexer.RunPos - 1
+  else
+    Expected(ptGreater);
+end;
+
 procedure TmwSimplePasPar.TypeParamDecl;
 begin
   TypeParamList;
@@ -4930,609 +5073,362 @@ procedure TmwSimplePasPar.TypeParamList;
 begin
   if TokenId = ptSquareOpen then
     AttributeSection;
-  TypeSimple;
+  Identifier;
   while TokenId = ptComma do
   begin
     NextToken;
     if TokenId = ptSquareOpen then
       AttributeSection;
-    TypeSimple;
-  end;
-end;
-
-procedure TmwSimplePasPar.TypeParams;
-begin
-  Expected(ptLower);
-  TypeParamDeclList;
-  // workaround for TSomeClass< T >= class(TObject)
-  if TokenID = ptGreaterEqual then
-    Lexer.RunPos := Lexer.RunPos - 1
-  else
-    Expected(ptGreater);
-end;
-
-procedure TmwSimplePasPar.TypeReferenceType;
-begin
-  Expected(ptType);
-  Expected(ptOf);
-  TypeId;
-end;
-
-procedure TmwSimplePasPar.ConstSection;
-begin
-  case TokenID of
-    ptConst:
-      begin
-        NextToken;
-        while TokenID in [ptIdentifier, ptSquareOpen] do
-        begin
-          if TokenID = ptSquareOpen then
-            CustomAttribute
-          else
-          begin
-            ConstantDeclaration;
-            Semicolon;
-          end;
-        end;
-      end;
-    ptResourceString:
-      begin
-        NextToken;
-        while (TokenID = ptIdentifier) do
-        begin
-          ResourceDeclaration;
-          Semicolon;
-        end;
-      end
-  else
-    begin
-      SynError(InvalidConstSection);
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.InterfaceDeclaration;
-begin
-  case TokenID of
-    ptConst:
-      begin
-        ConstSection;
-      end;
-    ptFunction:
-      begin
-        ExportedHeading;
-      end;
-    ptProcedure:
-      begin
-        ExportedHeading;
-      end;
-    ptResourceString:
-      begin
-        ConstSection;
-      end;
-    ptType:
-      begin
-        TypeSection;
-      end;
-    ptThreadVar:
-      begin
-        VarSection;
-      end;
-    ptVar:
-      begin
-        VarSection;
-      end;
-    ptExports:
-      begin
-        ExportsClause;
-      end;
-    ptSquareOpen:
-      begin
-        CustomAttribute;
-      end;
-  else
-    begin
-      SynError(InvalidInterfaceDeclaration);
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.ExportsElement;
-begin
-  Expected(ptIdentifier);
-  if FLexer.ExID = ptIndex then
-  begin
-    NextToken;
-    Expected(ptIntegerConst);
-  end;
-  if FLexer.ExID = ptName then
-  begin
-    NextToken;
-    SimpleExpression;
-  end;
-  if FLexer.ExID = ptResident then
-  begin
-    NextToken;
-  end;
-end;
-
-procedure TmwSimplePasPar.CompoundStatement;
-begin
-  Expected(ptBegin);
-  StatementList;
-  Expected(ptEnd);
-end;
-
-procedure TmwSimplePasPar.ExportsClause;
-begin
-  Expected(ptExports);
-  ExportsElement;
-  while TokenID = ptComma do
-  begin
-    NextToken;
-    ExportsElement;
-  end;
-  Semicolon;
-end;
-
-procedure TmwSimplePasPar.ContainsClause;
-begin
-  ExpectedEx(ptContains);
-  MainUsedUnitStatement;
-  while TokenID = ptComma do
-  begin
-    NextToken;
-    MainUsedUnitStatement;
-  end;
-  Semicolon;
-end;
-
-procedure TmwSimplePasPar.RequiresClause;
-begin
-  ExpectedEx(ptRequires);
-  RequiresIdentifier;
-  while TokenID = ptComma do
-  begin
-    NextToken;
-    RequiresIdentifier;
-  end;
-  Semicolon;
-end;
-
-procedure TmwSimplePasPar.RequiresIdentifier;
-begin
-  RequiresIdentifierId;
-  while Lexer.TokenID = ptPoint do
-  begin
-    NextToken;
-    RequiresIdentifierId;
-  end;
-end;
-
-procedure TmwSimplePasPar.RequiresIdentifierId;
-begin
-  Expected(ptIdentifier);
-end;
-
-procedure TmwSimplePasPar.InitializationSection;
-begin
-  Expected(ptInitialization);
-  StatementList;
-end;
-
-procedure TmwSimplePasPar.ImplementationSection;
-begin
-  Expected(ptImplementation);
-  if TokenID = ptUses then
-  begin
-    UsesClause;
-  end;
-  while TokenID in [ptClass, ptConst, ptConstructor, ptDestructor, ptFunction,
-    ptLabel, ptProcedure, ptResourceString, ptThreadVar, ptType, ptVar,
-    ptExports, ptSquareOpen] do
-  begin
-    DeclarationSection;
-  end;
-end;
-
-procedure TmwSimplePasPar.InterfaceSection;
-begin
-  Expected(ptInterface);
-  if TokenID = ptUses then
-  begin
-    UsesClause;
-  end;
-  while TokenID in [ptConst, ptFunction, ptResourceString, ptProcedure,
-    ptThreadVar, ptType, ptVar, ptExports, ptSquareOpen] do
-  begin
-    InterfaceDeclaration;
-  end;
-end;
-
-procedure TmwSimplePasPar.IdentifierList;
-begin
-  Identifier;
-  while TokenID = ptComma do
-  begin
-    NextToken;
     Identifier;
   end;
 end;
 
-procedure TmwSimplePasPar.CharString;
+procedure TmwSimplePasPar.ConstraintList;
 begin
-  case TokenID of
-    ptAsciiChar, ptIdentifier, ptRoundOpen, ptStringConst:
-      while TokenID in
-        [ptAsciiChar, ptIdentifier, ptRoundOpen, ptStringConst, ptString] do
-      begin
-        case TokenID of
-          ptIdentifier, ptRoundOpen:
-            begin
-              if ExID in [ptIndex] then
-                Break;
-              VariableReference;
-            end;
-          ptString:
-            begin
-              StringStatement;
-            end;
-        else
-          StringConst;
-        end;
-        if Lexer.TokenID = ptPoint then
-        begin
-          NextToken;
-          VariableReference;
-        end;
-      end;
-  else
-    begin
-      SynError(InvalidCharString);
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.IncludeFile;
-begin
-  while TokenID <> ptNull do
-    case TokenID of
-      ptClass:
-        begin
-          ProcedureDeclarationSection;
-        end;
-      ptConst:
-        begin
-          ConstSection;
-        end;
-      ptConstructor:
-        begin
-          ProcedureDeclarationSection;
-        end;
-      ptDestructor:
-        begin
-          ProcedureDeclarationSection;
-        end;
-      ptExports:
-        begin
-          ExportsClause;
-        end;
-      ptFunction:
-        begin
-          ProcedureDeclarationSection;
-        end;
-      ptIdentifier:
-        begin
-          Lexer.InitAhead;
-          if Lexer.AheadTokenID in [ptColon, ptEqual] then
-          begin
-            ConstantDeclaration;
-            if TokenID = ptSemiColon then Semicolon;
-          end
-          else
-            NextToken;
-        end;
-      ptLabel:
-        begin
-          LabelDeclarationSection;
-        end;
-      ptProcedure:
-        begin
-          ProcedureDeclarationSection;
-        end;
-      ptResourceString:
-        begin
-          ConstSection;
-        end;
-      ptType:
-        begin
-          TypeSection;
-        end;
-      ptThreadVar:
-        begin
-          VarSection;
-        end;
-      ptVar:
-        begin
-          VarSection;
-        end;
-    else
-      begin
-        NextToken;
-      end;
-    end;
-end;
-
-procedure TmwSimplePasPar.SkipSpace;
-begin
-  Expected(ptSpace);
-  while TokenID in [ptSpace] do
-    Lexer.Next;
-end;
-
-procedure TmwSimplePasPar.SkipCRLFco;
-begin
-  Expected(ptCRLFCo);
-  while TokenID in [ptCRLFCo] do
-    Lexer.Next;
-end;
-
-procedure TmwSimplePasPar.SkipCRLF;
-begin
-  Expected(ptCRLF);
-  while TokenID in [ptCRLF] do
-    Lexer.Next;
-end;
-
-procedure TmwSimplePasPar.ClassClass;
-begin
-  Expected(ptClass);
-end;
-
-procedure TmwSimplePasPar.PropertyDefault;
-begin
-  ExpectedEx(ptDefault);
-end;
-
-procedure TmwSimplePasPar.DispIDSpecifier;
-begin
-  ExpectedEx(ptDispid);
-  ConstantExpression;
-end;
-
-procedure TmwSimplePasPar.IndexOp;
-begin
-  Expected(ptSquareOpen);
-  Expression;
-  while TokenID = ptComma do
+  Constraint;
+  while TokenId = ptComma do
   begin
-    NextToken;
-    Expression;
-  end;
-  Expected(ptSquareClose);
-end;
-
-procedure TmwSimplePasPar.IndexSpecifier;
-begin
-  ExpectedEx(ptIndex);
-  ConstantExpression;
-end;
-
-procedure TmwSimplePasPar.ClassTypeEnd;
-begin
-  case ExID of
-    ptExperimental: NextToken;
-    ptDeprecated: DirectiveDeprecated;
+    Constraint;
   end;
 end;
 
-procedure TmwSimplePasPar.ObjectTypeEnd;
+procedure TmwSimplePasPar.Constraint;
 begin
-end;
-
-procedure TmwSimplePasPar.DirectiveDeprecated;
-begin
-  ExpectedEx(ptDeprecated);
-  if TokenID = ptStringConst then
-    NextToken;
-end;
-
-procedure TmwSimplePasPar.DirectiveLibrary;
-begin
-  ExpectedEx(ptLibrary);
-end;
-
-procedure TmwSimplePasPar.DirectivePlatform;
-begin
-  ExpectedEx(ptPlatform);
-end;
-
-procedure TmwSimplePasPar.EnumeratedTypeItem;
-begin
-  QualifiedIdentifier;
-  if TokenID = ptEqual then
+  while TokenId in [ptConstructor, ptRecord, ptClass, ptIdentifier] do
   begin
-    Expected(ptEqual);
-    ConstantExpression;
-  end;
-end;
-
-procedure TmwSimplePasPar.Identifier;
-begin
-  NextToken;
-end;
-
-procedure TmwSimplePasPar.DirectiveLocal;
-begin
-  ExpectedEx(ptLocal);
-end;
-
-procedure TmwSimplePasPar.DirectiveVarargs;
-begin
-  ExpectedEx(ptVarargs);
-end;
-
-procedure TmwSimplePasPar.AncestorId;
-begin
-  TypeId;
-end;
-
-procedure TmwSimplePasPar.AncestorIdList;
-begin
-  AncestorId;
-  while(TokenID = ptComma) do
-    begin
+    case TokenId of
+      ptConstructor, ptRecord, ptClass: NextToken;
+      ptIdentifier: TypeId;
+    end;
+    if TokenId = ptComma then
       NextToken;
-      AncestorId;
-    end;
-end;
-
-procedure TmwSimplePasPar.AnonymousMethod;
-begin
-  case TokenID of
-    ptFunction:
-      begin
-        NextToken;
-        if TokenID = ptRoundOpen then
-          FormalParameterList;
-        Expected(ptColon);
-        ReturnType;
-      end;
-    ptProcedure:
-      begin
-        NextToken;
-        if TokenId = ptRoundOpen then
-          FormalParameterList;
-      end;
-  end;
-  Block;
-end;
-
-procedure TmwSimplePasPar.AnonymousMethodType;
-begin
-  ExpectedEx(ptReference);
-  Expected(ptTo);
-  case TokenID of
-    ptProcedure:
-      begin
-        NextToken;
-        if TokenID = ptRoundOpen then
-          FormalParameterList;
-      end;
-    ptFunction:
-      begin
-        NextToken;
-        if TokenID = ptRoundOpen then
-          FormalParameterList;
-        Expected(ptColon);
-        ReturnType;
-      end;
   end;
 end;
 
-procedure TmwSimplePasPar.AddDefine(const ADefine: string);
+procedure TmwSimplePasPar.TypeSection;
 begin
-  FLexer.AddDefine(ADefine);
-end;
+  Expected(ptType);
 
-procedure TmwSimplePasPar.RemoveDefine(const ADefine: string);
-begin
-  FLexer.RemoveDefine(ADefine);
-end;
-
-function TmwSimplePasPar.IsDefined(const ADefine: string): Boolean;
-begin
-  Result := FLexer.IsDefined(ADefine);
-end;
-
-procedure TmwSimplePasPar.ImplementsSpecifier;
-begin
-  ExpectedEx(ptImplements);
-
-  TypeSimple;
-  while (TokenID = ptComma) do
+  while (TokenID = ptIdentifier) or (Lexer.TokenID = ptSquareOpen) do
   begin
-    NextToken;
-    TypeSimple;
+    if TokenID = ptSquareOpen then
+      CustomAttribute
+    else
+    begin
+      InitAhead;
+      AheadParse.NextToken;
+      if AheadParse.TokenID = ptLower then
+        AheadParse.TypeParams;
+
+      if AheadParse.TokenID <> ptEqual then
+        Break;
+
+      TypeDeclaration;
+      if TokenID = ptEqual then
+        TypedConstant;
+      Semicolon;
+    end;
   end;
 end;
 
-procedure TmwSimplePasPar.AttributeArgumentName;
+procedure TmwSimplePasPar.UnaryMinus;
+begin
+  Expected(ptMinus);
+end;
+
+procedure TmwSimplePasPar.UnitFile;
+begin
+  Expected(ptUnit);
+  UnitName;
+  while ExID in [ptDeprecated, ptLibrary, ptPlatform, ptExperimental] do
+    case ExID of
+      ptDeprecated: DirectiveDeprecated;
+      ptLibrary: DirectiveLibrary;
+      ptPlatform: DirectivePlatform;
+      ptExperimental: NextToken;
+    end;
+
+  Semicolon;
+  InterfaceSection;
+  if not InterfaceOnly then
+  begin
+    ImplementationSection;
+    InitializationSection;
+    Expected(ptPoint);
+  end;
+end;
+
+procedure TmwSimplePasPar.UnitId;
 begin
   Expected(ptIdentifier);
 end;
 
-procedure TmwSimplePasPar.CaseLabelList;
+procedure TmwSimplePasPar.UnitName;
 begin
-  CaseLabel;
+  UnitId;
+  while Lexer.TokenID = ptPoint do
+  begin
+    NextToken;
+    UnitId;
+  end;
+end;
+
+procedure TmwSimplePasPar.UsedUnitName;
+begin
+  UnitId;
+  while Lexer.TokenID = ptPoint do
+  begin
+    NextToken;
+    UnitId;
+  end;
+end;
+
+procedure TmwSimplePasPar.UsedUnitsList;
+begin
+  UsedUnitName;
   while TokenID = ptComma do
   begin
     NextToken;
-    CaseLabel;
+    UsedUnitName;
   end;
 end;
 
-procedure TmwSimplePasPar.ArrayBounds;
+procedure TmwSimplePasPar.UsesClause;
 begin
-  if TokenID = ptSquareOpen then
-  begin
-    NextToken;
-    ArrayDimension;
-    while TokenID = ptComma do
-    begin
-      NextToken;
-      ArrayDimension;
-    end;
-    Expected(ptSquareClose);
-  end;
+  Expected(ptUses);
+  UsedUnitsList;
+  Semicolon;
 end;
 
-procedure TmwSimplePasPar.DeclarationSections;
+procedure TmwSimplePasPar.VarAbsolute;
 begin
-  while TokenID in [ptClass, ptConst, ptConstructor, ptDestructor, ptExports, ptFunction, ptLabel, ptProcedure, ptResourceString, ptThreadVar, ptType, ptVar, ptSquareOpen] do
-  begin
-    DeclarationSection;
-  end;
+  ExpectedEx(ptAbsolute);
+  ConstantValue;
 end;
 
-procedure TmwSimplePasPar.ProceduralDirectiveOf;
+procedure TmwSimplePasPar.VarEqual;
 begin
-  NextToken;
-  Expected(ptObject);
+  Expected(ptEqual);
+  ConstantValueTyped;
 end;
 
-procedure TmwSimplePasPar.TypeDirective;
+procedure TmwSimplePasPar.VarDeclaration;
 begin
+  VarNameList;
+  Expected(ptColon);
+  TypeKind;
   while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
     case ExID of
       ptDeprecated: DirectiveDeprecated;
-      ptLibrary:    DirectiveLibrary;
-      ptPlatform:   DirectivePlatform;
+      ptLibrary: DirectiveLibrary;
+      ptPlatform: DirectivePlatform;
+    end;
+  case GenID of
+    ptAbsolute:
+      begin
+        VarAbsolute;
+      end;
+    ptEqual:
+      begin
+        VarEqual;
+      end;
+  end;
+  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
+    case ExID of
+      ptDeprecated: DirectiveDeprecated;
+      ptLibrary: DirectiveLibrary;
+      ptPlatform: DirectivePlatform;
     end;
 end;
 
-procedure TmwSimplePasPar.InheritedVariableReference;
+procedure TmwSimplePasPar.Variable; (* Attention: could also came from proc_call ! ! *)
 begin
-  Expected(ptInherited);
-  if TokenID = ptIdentifier then
-    VariableReference;
+  QualifiedIdentifier;
+  VariableTail;
 end;
 
-procedure TmwSimplePasPar.ClearDefines;
+procedure TmwSimplePasPar.VariableReference;
 begin
-  FLexer.ClearDefines;
+  case TokenID of
+    ptRoundOpen:
+    begin
+      RoundOpen;
+      Expression;
+      RoundClose;
+      VariableTail;
+    end;
+    ptSquareOpen:
+    begin
+      SetConstructor;
+    end;
+    ptAddressOp:
+      begin
+        AddressOp;
+        VariableReference;
+      end;
+    ptDoubleAddressOp:
+      begin
+        NextToken;
+        VariableReference;
+      end;
+    ptInherited:
+      begin
+        InheritedVariableReference;
+      end;
+  else
+    variable;
+  end;
 end;
 
-procedure TmwSimplePasPar.InitAhead;
+procedure TmwSimplePasPar.VariantIdentifier;
 begin
-  if AheadParse = nil then
-    AheadParse := TmwSimplePasPar.Create;
-  AheadParse.Lexer.InitFrom(Lexer);
+  case ExID of
+    ptOleVariant:
+      begin
+        NextToken;
+      end;
+    ptVariant:
+      begin
+        NextToken;
+      end;
+  else
+    begin
+      SynError(InvalidVariantIdentifier);
+    end;
+  end;
 end;
 
-procedure TmwSimplePasPar.InitDefinesDefinedByCompiler;
+procedure TmwSimplePasPar.VariantSection;
 begin
-  FLexer.InitDefinesDefinedByCompiler;
+  Expected(ptCase);
+  TagField;
+  Expected(ptOf);
+  RecordVariant;
+  while TokenID = ptSemiColon do
+  begin
+    Semicolon;
+    case TokenID of
+      ptEnd, ptRoundClose: Break;
+    else
+      RecordVariant;
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.VarParameter;
+begin
+  Expected(ptVar);
+  ParameterNameList;
+  case TokenID of
+    ptColon:
+      begin
+        NextToken;
+        NewFormalParameterType;
+      end
+  end;
+end;
+
+procedure TmwSimplePasPar.VarName;
+begin
+  Expected(ptIdentifier);
+end;
+
+procedure TmwSimplePasPar.VarNameList;
+begin
+  VarName;
+  while TokenID = ptComma do
+    begin
+      NextToken;
+      VarName;
+    end;
+end;
+
+procedure TmwSimplePasPar.VarSection;
+begin
+  case TokenID of
+    ptThreadVar:
+      begin
+        NextToken;
+      end;
+    ptVar:
+      begin
+        NextToken;
+      end;
+  else
+    begin
+      SynError(InvalidVarSection);
+    end;
+  end;
+  while TokenID in [ptIdentifier, ptSquareOpen] do
+  begin
+    if TokenID = ptSquareOpen then
+      CustomAttribute
+    else
+    begin
+      VarDeclaration;
+      Semicolon;
+    end;
+  end;
+end;
+
+procedure TmwSimplePasPar.VisibilityAutomated;
+begin
+  ExpectedEx(ptAutomated);
+end;
+
+procedure TmwSimplePasPar.VisibilityPrivate;
+begin
+  ExpectedEx(ptPrivate);
+end;
+
+procedure TmwSimplePasPar.VisibilityProtected;
+begin
+  ExpectedEx(ptProtected);
+end;
+
+procedure TmwSimplePasPar.VisibilityPublic;
+begin
+  ExpectedEx(ptPublic);
+end;
+
+procedure TmwSimplePasPar.VisibilityPublished;
+begin
+  ExpectedEx(ptPublished);
+end;
+
+procedure TmwSimplePasPar.VisibilityUnknown;
+begin
+end;
+
+procedure TmwSimplePasPar.WhileStatement;
+begin
+  Expected(ptWhile);
+  Expression;
+  Expected(ptDo);
+  Statement;
+end;
+
+procedure TmwSimplePasPar.WithExpressionList;
+begin
+  Expression;
+  while FLexer.TokenID = ptComma do
+  begin
+    NextToken;
+    Expression;
+  end;
+end;
+
+procedure TmwSimplePasPar.WithStatement;
+begin
+  Expected(ptWith);
+  WithExpressionList;
+  Expected(ptDo);
+  Statement;
+end;
+
+procedure TmwSimplePasPar.WriteAccessIdentifier;
+begin
+  variable;
 end;
 
 procedure TmwSimplePasPar.GlobalAttributes;
@@ -5692,16 +5588,122 @@ begin
   AttributeArgumentExpression;
 end;
 
+procedure TmwSimplePasPar.AttributeArgumentName;
+begin
+  Expected(ptIdentifier);
+end;
+
 procedure TmwSimplePasPar.AttributeArgumentExpression;
 begin
   Expression;
 end;
 
-procedure TmwSimplePasPar.CustomAttribute;
+constructor TmwSimplePasPar.Create;
 begin
-  //TODO: Global vs. Local attributes
-  AttributeSections;
+  inherited Create;
+  FLexer := TmwPasLex.Create;
+  FLexer.OnCompDirect := HandlePtCompDirect;
+  FLexer.OnDefineDirect := HandlePtDefineDirect;
+  FLexer.OnElseDirect := HandlePtElseDirect;
+  FLexer.OnEndIfDirect := HandlePtEndIfDirect;
+  FLexer.OnIfDefDirect := HandlePtIfDefDirect;
+  FLexer.OnIfNDefDirect := HandlePtIfNDefDirect;
+  FLexer.OnIfOptDirect := HandlePtIfOptDirect;
+  FLexer.OnIncludeDirect := HandlePtIncludeDirect;
+  FLexer.OnResourceDirect := HandlePtResourceDirect;
+  FLexer.OnUnDefDirect := HandlePtUndefDirect;
+  FLexer.OnIfDirect := HandlePtIfDirect;
+  FLexer.OnIfEndDirect := HandlePtIfEndDirect;
+  FLexer.OnElseIfDirect := HandlePtElseIfDirect;
+end;
+
+destructor TmwSimplePasPar.Destroy;
+begin
+  AheadParse.Free;
+
+  FLexer.Free;
+  inherited Destroy;
+end;
+
+procedure TmwSimplePasPar.SynError(Error: TmwParseError);
+begin
+  if Assigned(FOnMessage) then
+    FOnMessage(Self, meError, ParserErrorName(Error) + ' found ' + FLexer.Token, FLexer.PosXY.X,
+      FLexer.PosXY.Y);
+end;
+
+procedure TmwSimplePasPar.Run(const UnitName: string; SourceStream: TStream);
+var
+  StringStream: TStringStream;
+  OwnStream: Boolean;
+begin
+  OwnStream := not (SourceStream is TStringStream);
+  if OwnStream then
+  begin
+    StringStream := TStringStream.Create;
+    StringStream.LoadFromStream(SourceStream);
+  end
+  else
+    StringStream := TStringStream(SourceStream);
+  FLexer.Origin := PChar(StringStream.DataString);
+  ParseFile;
+  if OwnStream then
+    StringStream.Free;
+end;
+
+procedure TmwSimplePasPar.ClearDefines;
+begin
+  FLexer.ClearDefines;
+end;
+
+procedure TmwSimplePasPar.InitDefinesDefinedByCompiler;
+begin
+  FLexer.InitDefinesDefinedByCompiler;
+end;
+
+procedure TmwSimplePasPar.AddDefine(const ADefine: string);
+begin
+  FLexer.AddDefine(ADefine);
+end;
+
+procedure TmwSimplePasPar.RemoveDefine(const ADefine: string);
+begin
+  FLexer.RemoveDefine(ADefine);
+end;
+
+function TmwSimplePasPar.IsDefined(const ADefine: string): Boolean;
+begin
+  Result := FLexer.IsDefined(ADefine);
+end;
+
+type
+  TBytesStreamHelper = class helper for TBytesStream
+    function GetBytes: TBytes;
+    property Bytes: TBytes read GetBytes;
+  end;
+
+  TStringStreamHelper = class helper for TStringStream
+    function GetDataString: string;
+    property DataString: string read GetDataString;
+  end;
+
+function TBytesStreamHelper.GetBytes: TBytes;
+begin
+  Result := Self.FBytes;
+end;
+
+function TStringStreamHelper.GetDataString: string;
+begin
+  // try to read a bom from the buffer to create the correct encoding
+  // but only if the encoding is still the default encoding
+  if Self.FEncoding = TEncoding.Default then
+  begin
+    Self.FEncoding := nil;
+    TEncoding.GetBufferEncoding(Bytes, Self.FEncoding);
+    Result := Self.FEncoding.GetString(Bytes, Length(Self.FEncoding.GetPreamble), Size);
+  end
+  else
+    Result := Self.FEncoding.GetString(Bytes, 0, Size);
 end;
 
 end.
-

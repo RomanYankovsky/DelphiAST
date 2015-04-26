@@ -61,7 +61,7 @@ class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
   var
     HasChildren: Boolean;
     NewIndent: string;
-    Attr: TPair<string, string>;
+    Attr: TExtAttribute;
     ChildNode: TSyntaxNode;
   begin
     HasChildren := Node.HasChildren;
@@ -72,7 +72,7 @@ class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
     end;
     Builder.Append('<' + UpperCase(SyntaxNodeNames[Node.Typ]));
     for Attr in Node.Attributes do
-      Builder.Append(' ' + Attr.Key + '="' + XMLEncode(Attr.Value) + '"');
+      Builder.Append(' ' + Attr.KeyName + '="' + XMLEncode(Attr.Value) + '"');
     if HasChildren then
       Builder.Append('>')
     else
