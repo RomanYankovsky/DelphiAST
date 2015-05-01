@@ -303,11 +303,11 @@ end;
 
 procedure TPasSyntaxTreeBuilder.AsmStatement;
 begin
-  FStack.Push(ntStatements, False).SetAttribute('type', 'asm');
+  FStack.Push(FStack.Peek.AddChild(TCompoundSyntaxNode.Create(ntStatements))).SetAttribute('type', 'asm');
   try
-    FStack.Peek.SetPositionAttributes(Lexer.PosXY, 'begin_line', 'begin_col');
     inherited;
-    FStack.Peek.SetPositionAttributes(Lexer.PosXY, 'end_line', 'end_col');
+    TCompoundSyntaxNode(FStack.Peek).EndCol  := Lexer.PosXY.X;
+    TCompoundSyntaxNode(FStack.Peek).EndLine := Lexer.PosXY.Y;
   finally
     FStack.Pop;
   end;
@@ -413,8 +413,8 @@ begin
     begin
       ExprNode := FStack.Push(ntExpression, False);
       try
-        ExprNode.SetAttribute('line', IntToStr(Line));
-        ExprNode.SetAttribute('col', IntToStr(Col));
+        ExprNode.Line := Line;
+        ExprNode.Col  := Col;
 
         NodeList := TList<TSyntaxNode>.Create;
         try
@@ -512,6 +512,9 @@ begin
 
       FStack.Push(ntField, False);
       try
+        FStack.Peek.Col  := Field.Col;
+        FStack.Peek.Line := Field.Line;
+
         FStack.AddChild(Field.Clone);
         TypeInfo := TypeInfo.Clone;
         if assigned(TypeArgs) then
@@ -693,6 +696,9 @@ begin
 
         FStack.Push(ntConstant, False);
         try
+          FStack.Peek.Col  := Constant.Col;
+          FStack.Peek.Line := Constant.Line;
+
           FStack.AddChild(Constant.Clone);
           if assigned(TypeInfo) then
              FStack.AddChild(TypeInfo.Clone);
@@ -761,7 +767,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.DotOp;
 begin
-  FStack.AddChild(ntDot, False);
+  FStack.AddChild(ntDot);
   inherited;
 end;
 
@@ -856,7 +862,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ExpressionList;
 begin
-  FStack.Push(ntExpressions, False);
+  FStack.Push(ntExpressions);
   try
     inherited;
   finally
@@ -918,9 +924,12 @@ begin
         if Param.Typ <> ntName then
           Continue;
 
-        FStack.Push(ntParameter, False);
+        FStack.Push(ntParameter);
         if ParamKind <> '' then
           FStack.Peek.SetAttribute('kind', ParamKind);
+
+        FStack.Peek.Col  := Param.Col;
+        FStack.Peek.Line := Param.Line;
 
         FStack.AddChild(Param.Clone);
         if Assigned(TypeInfo) then
@@ -1565,7 +1574,7 @@ end;
 procedure TPasSyntaxTreeBuilder.SimpleStatement;
 var
   RawStatement: TSyntaxNode;
-  Node: TSyntaxNode;
+  Node, LHS, RHS: TSyntaxNode;
   NodeList: TList<TSyntaxNode>;
   I, AssignIdx: Integer;
   Position: TTokenPoint;
@@ -1588,7 +1597,8 @@ begin
     begin
       FStack.Push(ntAssign, False);
       try
-        FStack.Peek.SetPositionAttributes(Position);
+        FStack.Peek.Col  := Position.X;
+        FStack.Peek.Line := Position.Y;
 
         NodeList := TList<TSyntaxNode>.Create;
         try
@@ -1602,13 +1612,21 @@ begin
             end;
             NodeList.Add(RawStatement.ChildNodes[I]);
           end;
-          TExpressionTools.RawNodeListToTree(RawStatement, NodeList, FStack.AddChild(ntLHS, False));
+
+          LHS := FStack.AddChild(ntLHS, False);
+          LHS.Col  := NodeList[0].Col;
+          LHS.Line := NodeList[0].Line;
+          TExpressionTools.RawNodeListToTree(RawStatement, NodeList, LHS);
 
           NodeList.Clear;
 
           for I := AssignIdx + 1 to RawStatement.ChildNodes.Count - 1 do
             NodeList.Add(RawStatement.ChildNodes[I]);
-          TExpressionTools.RawNodeListToTree(RawStatement, NodeList, FStack.AddChild(ntRHS, False));
+
+          RHS := FStack.AddChild(ntRHS, False);
+          RHS.Col  := NodeList[0].Col;
+          RHS.Line := NodeList[0].Line;
+          TExpressionTools.RawNodeListToTree(RawStatement, NodeList, RHS);
         finally
           NodeList.Free;
         end;
@@ -1619,7 +1637,8 @@ begin
     begin
       FStack.Push(ntCall, False);
       try
-        FStack.Peek.SetPositionAttributes(Position);
+        FStack.Peek.Col  := Position.X;
+        FStack.Peek.Line := Position.Y;
 
         NodeList := TList<TSyntaxNode>.Create;
         try
@@ -1650,11 +1669,11 @@ end;
 
 procedure TPasSyntaxTreeBuilder.StatementList;
 begin
-  FStack.Push(ntStatements, False);
+  FStack.Push(FStack.Peek.AddChild(TCompoundSyntaxNode.Create(ntStatements)));
   try
-    FStack.Peek.SetPositionAttributes(Lexer.PosXY, 'begin_line', 'begin_col');
     inherited;
-    FStack.Peek.SetPositionAttributes(Lexer.PosXY, 'end_line', 'end_col');
+    TCompoundSyntaxNode(FStack.Peek).EndCol := Lexer.PosXY.X;
+    TCompoundSyntaxNode(FStack.Peek).EndLine := Lexer.PosXY.Y;
   finally
     FStack.Pop;
   end;
@@ -1839,7 +1858,8 @@ end;
 
 procedure TPasSyntaxTreeBuilder.UnitFile;
 begin
-  FStack.Peek.SetPositionAttributes(Lexer.PosXY);
+  FStack.Peek.Col  := Lexer.PosXY.X;
+  FStack.Peek.Line := Lexer.PosXY.Y;
   inherited;
 end;
 
@@ -1886,7 +1906,8 @@ begin
 
     UnitNode := FStack.AddChild(ntUnit);
     UnitNode.SetAttribute(sNAME, NodeListToString(NamesNode));
-    UnitNode.SetPositionAttributes(Position);
+    UnitNode.Col  := Position.X;
+    UnitNode.Line := Position.Y;
   finally
     NamesNode.Free;
   end;
@@ -1955,6 +1976,9 @@ begin
 
         FStack.Push(ntVariable, False);
         try
+          FStack.Peek.Col  := Variable.Col;
+          FStack.Peek.Line := Variable.Line;
+
           FStack.AddChild(Variable.Clone);
           FStack.AddChild(TypeInfo.Clone);
 
@@ -2054,7 +2078,10 @@ begin
   Result := FStack.Peek.AddChild(TSyntaxNode.Create(Typ));
 
   if SetPositionAttributes then
-    Result.SetPositionAttributes(FParser.Lexer.PosXY);
+  begin
+    Result.Col  := FParser.Lexer.PosXY.X;
+    Result.Line := FParser.Lexer.PosXY.Y;
+  end;
 end;
 
 function TNodeStack.AddChild(Node: TSyntaxNode): TSyntaxNode;
@@ -2100,7 +2127,10 @@ begin
   Result := Node;
 
   if SetPositionAttributes then
-    Result.SetPositionAttributes(FParser.Lexer.PosXY);
+  begin
+    Result.Col  := FParser.Lexer.PosXY.X;
+    Result.Line := FParser.Lexer.PosXY.Y;
+  end;
 end;
 
 function TNodeStack.Push(Typ: TSyntaxNodeType; SetPositionAttributes: Boolean = True): TSyntaxNode;
