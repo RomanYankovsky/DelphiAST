@@ -170,7 +170,6 @@ type
     procedure TryStatement; override;
     procedure TypeArgs; override;
     procedure TypeDeclaration; override;
-    procedure TypeKind; override;
     procedure TypeParams; override;
     procedure TypeSection; override;
     procedure TypeSimple; override;
@@ -1725,12 +1724,8 @@ end;
 
 procedure TPasSyntaxTreeBuilder.StructuredType;
 begin
-  FStack.Push(ntType).SetAttribute(sNAME, Lexer.Token);
-  try
-    inherited;
-  finally
-    FStack.Pop;
-  end;
+  FStack.Peek.SetAttribute(sTYPE, Lexer.Token);
+  inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.SubrangeType;
@@ -1780,43 +1775,6 @@ begin
     inherited;
   finally
     FStack.Pop;
-  end;
-end;
-
-procedure TPasSyntaxTreeBuilder.TypeKind;
-var
-  compound: TSyntaxNode;
-  compoundType: string;
-  found: boolean;
-  i: integer;
-begin
-  case TokenID of
-    ptArray, ptFile, ptSet: begin
-      compound := FStack.Push(ntType);
-      case TokenID of
-        ptArray: compoundType := 'ArrayOf';
-        ptFile: compoundType := 'FileOf';
-        ptSet: compoundType := 'SetOf';
-      end;
-      compound.SetAttribute(sNAME, compoundType);
-      compound.SetAttribute('compound', 'true');
-    end
-    else
-      compound := nil;
-  end;
-  try
-    inherited;
-  finally
-    if assigned(compound) then
-    begin
-      FStack.Pop;
-      found := false;
-      for i := compound.ChildNodes.Count - 1 downto 0 do
-        if compound.ChildNodes[i].Typ = ntType then
-          if found then
-            compound.ChildNodes.Delete(i)
-          else found := true;
-    end;
   end;
 end;
 
