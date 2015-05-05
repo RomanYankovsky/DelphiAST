@@ -491,8 +491,8 @@ type
     procedure VarNameList; virtual;
     procedure VarSection; virtual;
     procedure VisibilityAutomated; virtual;
-    procedure VisibilityPrivate; virtual;
-    procedure VisibilityProtected; virtual;
+    procedure VisibilityPrivate(IsStrict: boolean = false); virtual;
+    procedure VisibilityProtected(IsStrict: boolean = false); virtual;
     procedure VisibilityPublic; virtual;
     procedure VisibilityPublished; virtual;
     procedure VisibilityUnknown; virtual;
@@ -3254,8 +3254,11 @@ begin
 end;
 
 procedure TmwSimplePasPar.ClassVisibility;
+var
+  IsStrict: boolean;
 begin
-  if TokenID = ptStrict then Expected(ptStrict);
+  IsStrict:= TokenID = ptStrict;
+  if IsStrict then Expected(ptStrict);
   while ExID in [ptAutomated, ptPrivate, ptProtected, ptPublic, ptPublished] do begin
     Lexer.InitAhead;
     case Lexer.AheadExID of
@@ -3265,10 +3268,10 @@ begin
           VisibilityAutomated;
         end;
         ptPrivate: begin
-          VisibilityPrivate;
+          VisibilityPrivate(IsStrict);
         end;
         ptProtected: begin
-          VisibilityProtected;
+          VisibilityProtected(IsStrict);
         end;
         ptPublic: begin
           VisibilityPublic;
@@ -3286,12 +3289,12 @@ begin
   ExpectedEx(ptAutomated);
 end;
 
-procedure TmwSimplePasPar.VisibilityPrivate;
+procedure TmwSimplePasPar.VisibilityPrivate(IsStrict: boolean = false);
 begin
   ExpectedEx(ptPrivate);
 end;
 
-procedure TmwSimplePasPar.VisibilityProtected;
+procedure TmwSimplePasPar.VisibilityProtected(IsStrict: boolean = false);
 begin
   ExpectedEx(ptProtected);
 end;

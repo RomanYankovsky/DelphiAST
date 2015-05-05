@@ -186,8 +186,9 @@ type
     procedure VarName; override;
     procedure VarParameter; override;
     procedure VarSection; override;
-    procedure VisibilityPrivate; override;
-    procedure VisibilityProtected; override;
+    procedure VisibilityAutomated; override;
+    procedure VisibilityPrivate(IsStrict: boolean = false); override;
+    procedure VisibilityProtected(IsStrict: boolean = false); override;
     procedure VisibilityPublic; override;
     procedure VisibilityPublished; override;
     procedure WhileStatement; override;
@@ -1985,22 +1986,42 @@ begin
   end;
 end;
 
-procedure TPasSyntaxTreeBuilder.VisibilityPrivate;
+
+procedure TPasSyntaxTreeBuilder.VisibilityAutomated;
 begin
-  FStack.Push(ntVisibility);//(ntPrivate);
+  FStack.Push(ntVisibility);
   try
-    FStack.Peek.SetAttribute(atVisibility, 'private');
+    FStack.Peek.SetAttribute(atVisibility, 'automated');
     inherited;
   finally
     FStack.Pop;
   end;
 end;
 
-procedure TPasSyntaxTreeBuilder.VisibilityProtected;
+procedure TPasSyntaxTreeBuilder.VisibilityPrivate(IsStrict: boolean = false);
+var
+  Value: string;
 begin
-  FStack.Push(ntVisibility);//(ntProtected);
+  FStack.Push(ntVisibility);
   try
-    FStack.Peek.SetAttribute(atVisibility, 'protected');
+    if IsStrict then Value:= 'strict private'
+    else Value:= 'private';
+    FStack.Peek.SetAttribute(atVisibility, Value);
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.VisibilityProtected(IsStrict: boolean = false);
+var
+  Value: string;
+begin
+  FStack.Push(ntVisibility);
+  try
+    if IsStrict then Value:= 'strict protected'
+    else Value:= 'protected';
+    FStack.Peek.SetAttribute(atVisibility, value);
     inherited;
   finally
     FStack.Pop;
@@ -2009,7 +2030,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.VisibilityPublic;
 begin
-  FStack.Push(ntVisibility);//(ntPublic);
+  FStack.Push(ntVisibility);
   try
     FStack.Peek.SetAttribute(atVisibility, 'public');
     inherited;
@@ -2020,7 +2041,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.VisibilityPublished;
 begin
-  FStack.Push(ntVisibility);//(ntPublished);
+  FStack.Push(ntVisibility);
   try
     FStack.Peek.SetAttribute(atVisibility, 'published');
     inherited;
