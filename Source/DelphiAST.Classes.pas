@@ -368,7 +368,11 @@ begin
     end;
   end;
   Assert(Attr <> atInvalid, Binding);
-  SetAttribute(Attr, Value);
+  //Override, virtual and Dynamic are mutually exclusive.
+  if Attr in [atOverride, atVirtual, atDynamic] then begin
+    SetAttribute(atBinding, Binding);
+  end
+  else SetAttribute(Attr, Value);
 end;
 
 

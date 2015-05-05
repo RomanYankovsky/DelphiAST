@@ -19,6 +19,10 @@ type
     atReintroduce,
     atMessage,
     atPath,
+    atBinding,
+    atDeprecated,
+    atLibraryHint,
+    atPlatform,
     atInvalid
   );
 
@@ -26,7 +30,7 @@ const
   AttributeName: array[atKind..atInvalid] of string = ('kind','type','value','class','forwarded',
                                                       'visibility','name','callingconvention',
                                                       'overload', 'override','virtual','dynamic','reintroduce','message',
-                                                      'path', 'invalid');
+                                                      'path', 'binding','deprecated','library','platform','invalid');
   BindingAttributes = [atOverload..atMessage];
 
 type

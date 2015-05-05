@@ -90,6 +90,9 @@ type
     procedure DestructorName; override;
     procedure DirectiveBinding; override;
     procedure DirectiveCalling; override;
+    procedure DirectiveDeprecated; override;
+    procedure DirectiveLibrary; override;
+    procedure DirectivePlatform; override;
     procedure DotOp; override;
     procedure ElseStatement; override;
     procedure EmptyStatement; override;
@@ -758,10 +761,39 @@ begin
   inherited;
 end;
 
-procedure TPasSyntaxTreeBuilder.DirectiveCalling;
+procedure TPasSyntaxTreeBuilder.DirectiveCalling; deprecated;
 begin
   FStack.Peek.SetAttribute(atCallingConvention, Lexer.Token);
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.DirectiveDeprecated; deprecated 'test';
+var
+  DeprecatedText: string;
+begin
+  FStack.Push(ntConstant,false);
+  try
+    inherited;
+  finally
+    if FStack.Peek.HasChildren then
+      DeprecatedText:= FStack.Peek.ChildNodes[0].GetAttribute(atValue)
+    else
+      DeprecatedText:= '';
+    FStack.Peek.Free;
+    FStack.Pop;
+    FStack.Peek.SetAttribute(atDeprecated, DeprecatedText);
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.DirectiveLibrary;
+begin
+  FStack.Peek.SetAttribute(atLibraryHint, 'true');
+  inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.DirectivePlatform;
+begin
+  FStack.Peek.SetAttribute(atPlatform, 'true');
 end;
 
 procedure TPasSyntaxTreeBuilder.DotOp;
