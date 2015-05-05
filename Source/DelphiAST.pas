@@ -761,13 +761,13 @@ begin
   inherited;
 end;
 
-procedure TPasSyntaxTreeBuilder.DirectiveCalling; deprecated;
+procedure TPasSyntaxTreeBuilder.DirectiveCalling;
 begin
   FStack.Peek.SetAttribute(atCallingConvention, Lexer.Token);
   inherited;
 end;
 
-procedure TPasSyntaxTreeBuilder.DirectiveDeprecated; deprecated 'test';
+procedure TPasSyntaxTreeBuilder.DirectiveDeprecated;
 var
   DeprecatedText: string;
 begin
@@ -1987,9 +1987,9 @@ end;
 
 procedure TPasSyntaxTreeBuilder.VisibilityPrivate;
 begin
-  FStack.Push(ntPrivate);
+  FStack.Push(ntVisibility);//(ntPrivate);
   try
-    FStack.Peek.SetAttribute(atVisibility, 'true');
+    FStack.Peek.SetAttribute(atVisibility, 'private');
     inherited;
   finally
     FStack.Pop;
@@ -1998,9 +1998,9 @@ end;
 
 procedure TPasSyntaxTreeBuilder.VisibilityProtected;
 begin
-  FStack.Push(ntProtected);
+  FStack.Push(ntVisibility);//(ntProtected);
   try
-    FStack.Peek.SetAttribute(atVisibility, 'true');
+    FStack.Peek.SetAttribute(atVisibility, 'protected');
     inherited;
   finally
     FStack.Pop;
@@ -2009,9 +2009,9 @@ end;
 
 procedure TPasSyntaxTreeBuilder.VisibilityPublic;
 begin
-  FStack.Push(ntPublic);
+  FStack.Push(ntVisibility);//(ntPublic);
   try
-    FStack.Peek.SetAttribute(atVisibility, 'true');
+    FStack.Peek.SetAttribute(atVisibility, 'public');
     inherited;
   finally
     FStack.Pop;
@@ -2020,9 +2020,9 @@ end;
 
 procedure TPasSyntaxTreeBuilder.VisibilityPublished;
 begin
-  FStack.Push(ntPublished);
+  FStack.Push(ntVisibility);//(ntPublished);
   try
-    FStack.Peek.SetAttribute(atVisibility, 'true');
+    FStack.Peek.SetAttribute(atVisibility, 'published');
     inherited;
   finally
     FStack.Pop;
