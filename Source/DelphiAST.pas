@@ -774,15 +774,14 @@ begin
   FStack.Push(ntConstant,false);
   try
     inherited;
-  finally
     if FStack.Peek.HasChildren then
       DeprecatedText:= FStack.Peek.ChildNodes[0].GetAttribute(atValue)
     else
       DeprecatedText:= '';
-    FStack.Peek.Free;
+  finally
     FStack.Pop;
-    FStack.Peek.SetAttribute(atDeprecated, DeprecatedText);
   end;
+  FStack.Peek.SetAttribute(atDeprecated, DeprecatedText);
 end;
 
 procedure TPasSyntaxTreeBuilder.DirectiveLibrary;
