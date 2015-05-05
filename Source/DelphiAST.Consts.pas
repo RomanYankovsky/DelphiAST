@@ -27,6 +27,8 @@ const
                                                       'visibility','name','callingconvention',
                                                       'overload', 'override','virtual','dynamic','reintroduce','message',
                                                       'path', 'invalid');
+  BindingAttributes = [atOverload..atMessage];
+
 type
   TSyntaxNodeType = (
     ntUnknown,

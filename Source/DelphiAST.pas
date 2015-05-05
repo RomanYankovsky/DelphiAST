@@ -754,7 +754,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.DirectiveBinding;
 begin
-  FStack.Peek.SetAttributeByName(Lowercase(Lexer.Token), 'true');
+  FStack.Peek.SetBindingAttribute(Lowercase(Lexer.Token), 'true');
   inherited;
 end;
 

@@ -30,7 +30,7 @@ type
     function GetAttribute(const Key: TAttributeType): string;
     function HasAttribute(const Key: TAttributeType): boolean;
     procedure SetAttribute(const Key: TAttributeType; const Value: string);
-    procedure SetAttributeByName(const key: string; const Value: string);
+    procedure SetBindingAttribute(const Binding, Value: string);
 
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
     function AddChild(Typ: TSyntaxNodeType): TSyntaxNode; overload;
@@ -62,10 +62,10 @@ type
 
   TExpressionTools = class
   public
-    class function ExprToReverseNotation(Expr: TList<TSyntaxNode>): TList<TSyntaxNode>; static;
-    class procedure NodeListToTree(Expr: TList<TSyntaxNode>; Root: TSyntaxNode); static;
-    class function PrepareExpr(ExprNodes: TList<TSyntaxNode>): TObjectList<TSyntaxNode>; static;
-    class procedure RawNodeListToTree(RawParentNode: TSyntaxNode; RawNodeList: TList<TSyntaxNode>; NewRoot: TSyntaxNode); static;
+    class function ExprToReverseNotation(const Expr: TList<TSyntaxNode>): TList<TSyntaxNode>; static;
+    class procedure NodeListToTree(const Expr: TList<TSyntaxNode>; Root: TSyntaxNode); static;
+    class function PrepareExpr(const ExprNodes: TList<TSyntaxNode>): TObjectList<TSyntaxNode>; static;
+    class procedure RawNodeListToTree(const RawParentNode: TSyntaxNode; RawNodeList: TList<TSyntaxNode>; NewRoot: TSyntaxNode); static;
   end;
 
 implementation
@@ -193,7 +193,7 @@ begin
   inherited;
 end;
 
-class function TExpressionTools.ExprToReverseNotation(Expr: TList<TSyntaxNode>): TList<TSyntaxNode>;
+class function TExpressionTools.ExprToReverseNotation(const Expr: TList<TSyntaxNode>): TList<TSyntaxNode>;
 var
   Stack: TStack<TSyntaxNode>;
   Node: TSyntaxNode;
@@ -239,7 +239,7 @@ begin
   end;
 end;
 
-class procedure TExpressionTools.NodeListToTree(Expr: TList<TSyntaxNode>; Root: TSyntaxNode);
+class procedure TExpressionTools.NodeListToTree(const Expr: TList<TSyntaxNode>; Root: TSyntaxNode);
 
   procedure CopyTree(TreeData: TTreeData; Root: TSyntaxNode);
   var
@@ -284,7 +284,7 @@ begin
   end;
 end;
 
-class function TExpressionTools.PrepareExpr(ExprNodes: TList<TSyntaxNode>): TObjectList<TSyntaxNode>;
+class function TExpressionTools.PrepareExpr(const ExprNodes: TList<TSyntaxNode>): TObjectList<TSyntaxNode>;
 var
   Node, PrevNode: TSyntaxNode;
 begin
@@ -330,7 +330,7 @@ begin
   end;
 end;
 
-class procedure TExpressionTools.RawNodeListToTree(RawParentNode: TSyntaxNode; RawNodeList: TList<TSyntaxNode>;
+class procedure TExpressionTools.RawNodeListToTree(const RawParentNode: TSyntaxNode; RawNodeList: TList<TSyntaxNode>;
   NewRoot: TSyntaxNode);
 var
   PreparedNodeList, ReverseNodeList: TList<TSyntaxNode>;
@@ -355,19 +355,19 @@ begin
   FAttributes.AddOrSetValue(Key, Value);
 end;
 
-procedure TSyntaxNode.SetAttributeByName(const key, Value: string);
+procedure TSyntaxNode.SetBindingAttribute(const Binding, Value: string);
 var
   Attr: TAttributeType;
   i: TAttributeType;
 begin
   Attr:= atInvalid;
-  for i:= atOverload to atMessage do begin
-    if key = AttributeName[i] then begin
+  for i in BindingAttributes do begin
+    if Binding = AttributeName[i] then begin
       Attr:= i;
       break;
     end;
   end;
-  Assert(Attr <> atInvalid, Key);
+  Assert(Attr <> atInvalid, Binding);
   SetAttribute(Attr, Value);
 end;
 
