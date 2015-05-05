@@ -3,6 +3,31 @@ unit DelphiAST.Consts;
 interface
 
 type
+  TAttributeType = (
+    atKind,
+    atType,
+    atValue,
+    atClass,
+    atForwarded,
+    atVisibility,
+    atName,
+    atCallingConvention,
+    atOverload,
+    atOverride,
+    atVirtual,
+    atDynamic,
+    atReintroduce,
+    atMessage,
+    atPath,
+    atInvalid
+  );
+
+const
+  AttributeName: array[atKind..atInvalid] of string = ('kind','type','value','class','forwarded',
+                                                      'visibility','name','callingconvention',
+                                                      'overload', 'override','virtual','dynamic','reintroduce','message',
+                                                      'path', 'invalid');
+type
   TSyntaxNodeType = (
     ntUnknown,
     ntAdd,

@@ -6,12 +6,18 @@ uses
   Generics.Collections, SimpleParser.Lexer.Types, DelphiAST.Consts;
 
 type
+  TAttributes = TDictionary<TAttributeType, string>;
+
+  TSyntaxNodeClass = class of TSyntaxNode;
   TSyntaxNode = class
   private
+    FCol: Integer;
+    FLine: Integer;
     function GetHasChildren: Boolean;
     function GetHasAttributes: Boolean;
   protected
-    FAttributes: TDictionary<string, string>;
+    //FAttributes: TDictionary<string, string>;
+    FAttributes: TAttributes;
     FChildNodes: TObjectList<TSyntaxNode>;
     FTyp: TSyntaxNodeType;
     FParentNode: TSyntaxNode;
@@ -19,25 +25,39 @@ type
     constructor Create(Typ: TSyntaxNodeType);
     destructor Destroy; override;
 
-    function Clone: TSyntaxNode;
+    function Clone: TSyntaxNode; virtual;
 
-    function GetAttribute(const Key: string): string;
-    function HasAttribute(const Key: string): boolean;
-    procedure SetAttribute(const Key: string; Value: string);
+    function GetAttribute(const Key: TAttributeType): string;
+    function HasAttribute(const Key: TAttributeType): boolean;
+    procedure SetAttribute(const Key: TAttributeType; const Value: string);
+    procedure SetAttributeByName(const key: string; const Value: string);
 
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
     function AddChild(Typ: TSyntaxNodeType): TSyntaxNode; overload;
     procedure DeleteChild(Node: TSyntaxNode);
 
     function FindNode(Typ: TSyntaxNodeType): TSyntaxNode;
-    procedure SetPositionAttributes(PosXY: TTokenPoint; const LineStr: string = 'line'; const ColStr: string = 'col');
 
-    property Attributes: TDictionary<string, string> read FAttributes;
+    property Attributes: TAttributes read FAttributes;
     property ChildNodes: TObjectList<TSyntaxNode> read FChildNodes;
     property HasAttributes: Boolean read GetHasAttributes;
     property HasChildren: Boolean read GetHasChildren;
     property Typ: TSyntaxNodeType read FTyp;
     property ParentNode: TSyntaxNode read FParentNode;
+
+    property Col: Integer read FCol write FCol;
+    property Line: Integer read FLine write FLine;
+  end;
+
+  TCompoundSyntaxNode = class(TSyntaxNode)
+  private
+    FEndCol: Integer;
+    FEndLine: Integer;
+  public
+    function Clone: TSyntaxNode; override;
+
+    property EndCol: Integer read FEndCol write FEndCol;
+    property EndLine: Integer read FEndLine write FEndLine;
   end;
 
   TExpressionTools = class
@@ -330,16 +350,27 @@ end;
 
 { TSyntaxNode }
 
-procedure TSyntaxNode.SetAttribute(const Key: string; Value: string);
+procedure TSyntaxNode.SetAttribute(const Key: TAttributeType; const Value: string);
 begin
   FAttributes.AddOrSetValue(Key, Value);
 end;
 
-procedure TSyntaxNode.SetPositionAttributes(PosXY: TTokenPoint; const LineStr, ColStr: string);
+procedure TSyntaxNode.SetAttributeByName(const key, Value: string);
+var
+  Attr: TAttributeType;
+  i: TAttributeType;
 begin
-  SetAttribute(LineStr, IntToStr(PosXY.Y));
-  SetAttribute(ColStr, IntToStr(PosXY.X))
+  Attr:= atInvalid;
+  for i:= atOverload to atMessage do begin
+    if key = AttributeName[i] then begin
+      Attr:= i;
+      break;
+    end;
+  end;
+  Assert(Attr <> atInvalid, Key);
+  SetAttribute(Attr, Value);
 end;
+
 
 function TSyntaxNode.AddChild(Node: TSyntaxNode): TSyntaxNode;
 begin
@@ -359,22 +390,25 @@ end;
 function TSyntaxNode.Clone: TSyntaxNode;
 var
   ChildNode: TSyntaxNode;
-  Attr: TPair<string, string>;
+  Attr: TPair<TAttributeType, string>;
 begin
-  Result := TSyntaxNode.Create(FTyp);
+  Result := TSyntaxNodeClass(Self.ClassType).Create(FTyp);
 
   for ChildNode in FChildNodes do
     Result.AddChild(ChildNode.Clone);
 
   for Attr in FAttributes do
     Result.SetAttribute(Attr.Key, Attr.Value);
+
+  Result.Col := Self.Col;
+  Result.Line := Self.Line;
 end;
 
 constructor TSyntaxNode.Create(Typ: TSyntaxNodeType);
 begin
   inherited Create;
   FTyp := Typ;
-  FAttributes := TDictionary<string, string>.Create;
+  FAttributes := TDictionary<TAttributeType, string>.Create;
   FChildNodes := TObjectList<TSyntaxNode>.Create(True);
   FParentNode := nil;
 end;
@@ -404,7 +438,7 @@ begin
     end;
 end;
 
-function TSyntaxNode.GetAttribute(const Key: string): string;
+function TSyntaxNode.GetAttribute(const Key: TAttributeType): string;
 begin
   if not FAttributes.TryGetValue(Key, Result) then
     Result := '';
@@ -420,9 +454,20 @@ begin
   Result := FChildNodes.Count > 0;
 end;
 
-function TSyntaxNode.HasAttribute(const Key: string): boolean;
+function TSyntaxNode.HasAttribute(const Key: TAttributeType): boolean;
 begin
   result := FAttributes.ContainsKey(key);
+end;
+
+
+{ TCompoundSyntaxNode }
+
+function TCompoundSyntaxNode.Clone: TSyntaxNode;
+begin
+  Result := inherited;
+
+  TCompoundSyntaxNode(Result).EndLine := Self.EndLine;
+  TCompoundSyntaxNode(Result).EndCol := Self.EndCol;
 end;
 
 end.

@@ -4160,10 +4160,6 @@ end;
 
 procedure TmwSimplePasPar.StructuredType;
 begin
-  if TokenID = ptPacked then
-  begin
-    NextToken;
-  end;
   case TokenID of
     ptArray:
       begin
@@ -4426,6 +4422,8 @@ begin
       end;
     ptArray, ptFile, ptPacked, ptRecord, ptSet:
       begin
+        if TokenID = ptPacked then
+          NextToken;
         StructuredType;
       end;
     ptFunction, ptProcedure:

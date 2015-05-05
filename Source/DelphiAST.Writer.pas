@@ -61,7 +61,7 @@ class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
   var
     HasChildren: Boolean;
     NewIndent: string;
-    Attr: TPair<string, string>;
+    Attr: TPair<TAttributeType, string>;
     ChildNode: TSyntaxNode;
   begin
     HasChildren := Node.HasChildren;
@@ -71,8 +71,21 @@ class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
       Builder.Append(Indent);
     end;
     Builder.Append('<' + UpperCase(SyntaxNodeNames[Node.Typ]));
+
+    if Node is TCompoundSyntaxNode then
+    begin
+      Builder.Append(' begin_line="' + IntToStr(TCompoundSyntaxNode(Node).Line) + '"');
+      Builder.Append(' begin_col="' + IntToStr(TCompoundSyntaxNode(Node).Col) + '"');
+      Builder.Append(' end_line="' + IntToStr(TCompoundSyntaxNode(Node).EndLine) + '"');
+      Builder.Append(' end_col="' + IntToStr(TCompoundSyntaxNode(Node).EndCol) + '"');
+    end else
+    begin
+      Builder.Append(' line="' + IntToStr(Node.Line) + '"');
+      Builder.Append(' col="' + IntToStr(Node.Col) + '"');
+    end;
+
     for Attr in Node.Attributes do
-      Builder.Append(' ' + Attr.Key + '="' + XMLEncode(Attr.Value) + '"');
+      Builder.Append(' ' + AttributeName[Attr.Key] + '="' + XMLEncode(Attr.Value) + '"');
     if HasChildren then
       Builder.Append('>')
     else
