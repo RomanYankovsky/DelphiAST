@@ -32,7 +32,7 @@ type
 
     procedure Clear;
     function Peek: TSyntaxNode;
-    procedure Pop;
+    function Pop: TSyntaxNode;
 
     function Push(Typ: TSyntaxNodeType; SetPositionAttributes: Boolean = True): TSyntaxNode; overload;
     function Push(Node: TSyntaxNode; SetPositionAttributes: Boolean = True): TSyntaxNode; overload;
@@ -588,25 +588,24 @@ var
   i: integer;
   extracted: boolean;
 begin
-  FStack.Peek.SetAttribute(atType, 'class');
-  inherited;
-  classDef := FStack.Peek;
-  vis := nil;
-  i := 0;
-  while i < classDef.ChildNodes.Count do
-  begin
-    child := classDef.ChildNodes[i];
-    extracted := false;
-    if child.HasAttribute(atVisibility) then
-      vis := child
-    else if assigned(vis) then
-    begin
-      classDef.ChildNodes.Extract(child);
-      vis.ChildNodes.Add(child);
-      extracted := true;
+  FStack.Push(ntType).SetAttribute(atType, 'class');
+  try
+    inherited;
+  finally
+    classDef:= FStack.Pop;
+    vis:= nil;
+    i:= 0;
+    while i < classDef.ChildNodes.Count do begin
+      child:= classDef.ChildNodes[i];
+      extracted:= false;
+      if child.HasAttribute(atVisibility) then vis:= child
+      else if assigned(vis) then begin
+        classDef.ChildNodes.Extract(child);
+        vis.ChildNodes.Add(child);
+        extracted:= True;
+      end;
+      if not extracted then inc(i);
     end;
-    if not extracted then
-      inc(i);
   end;
 end;
 
@@ -1185,8 +1184,12 @@ end;
 
 procedure TPasSyntaxTreeBuilder.InterfaceType;
 begin
-  FStack.Peek.SetAttribute(atType, 'interface');
-  inherited;
+  FStack.Push(ntType).SetAttribute(atType, 'interface');
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.LabelId;
@@ -1756,8 +1759,12 @@ end;
 
 procedure TPasSyntaxTreeBuilder.StructuredType;
 begin
-  FStack.Peek.SetAttribute(atType, Lexer.Token);
-  inherited;
+  FStack.Push(ntType).SetAttribute(atType, Lexer.Token);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.SubrangeType;
@@ -2126,9 +2133,9 @@ begin
   Result := FStack.Peek;
 end;
 
-procedure TNodeStack.Pop;
+function TNodeStack.Pop: TSyntaxNode;
 begin
-  FStack.Pop;
+  Result:= FStack.Pop;
 end;
 
 function TNodeStack.Push(Node: TSyntaxNode; SetPositionAttributes: Boolean): TSyntaxNode;
