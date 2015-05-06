@@ -3,13 +3,23 @@ unit DelphiAST.Writer;
 interface
 
 uses
-  DelphiAST.Classes, SysUtils;
+  DelphiAST.Classes, DelphiAST.Consts, SysUtils;
 
 type
+  TSyntaxNodeTypes = set of TSyntaxNodeType;
+
   TSyntaxTreeWriter = class
   private
+    /// <summary>
+    ///   Write the node in XML format
+    /// </summary>
+    /// <param name="Include">
+    ///   Set of Nodetypes to include in the xml output.
+    ///   An empty set means include all node types.
+    /// </param>
     class procedure NodeToXML(const Builder: TStringBuilder;
-      const Node: TSyntaxNode; Formatted: Boolean); static;
+  const Node: TSyntaxNode; Formatted: Boolean;
+  const Exclude: TSyntaxNodeTypes = []; Include: TSyntaxNodeTypes = []);
   public
     class function ToXML(const Root: TSyntaxNode;
       Formatted: Boolean = False): string; static;
@@ -18,7 +28,7 @@ type
 implementation
 
 uses
-  Generics.Collections, DelphiAST.Consts;
+  Generics.Collections;
 
 {$I SimpleParser.inc}
 {$IFDEF D18_NEWER}
@@ -27,8 +37,10 @@ uses
 
 { TSyntaxTreeWriter }
 
-class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder; 
-  const Node: TSyntaxNode; Formatted: Boolean);
+class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
+  const Node: TSyntaxNode; Formatted: Boolean; const Exclude: TSyntaxNodeTypes = []; Include: TSyntaxNodeTypes = []);
+var
+  InternalInclude: TSyntaxNodeTypes;
 
   function XMLEncode(const Data: string): string;
   var
@@ -63,52 +75,49 @@ class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
     NewIndent: string;
     Attr: TPair<TAttributeType, string>;
     ChildNode: TSyntaxNode;
+    NodeOK: boolean;
   begin
+    NodeOK:= not(Node.Typ in Exclude) and (Node.Typ in InternalInclude);
     HasChildren := Node.HasChildren;
-    if Formatted then
-    begin
-      NewIndent := Indent + '  ';
-      Builder.Append(Indent);
-    end;
-    Builder.Append('<' + UpperCase(SyntaxNodeNames[Node.Typ]));
+    if NodeOK then begin
+      if Formatted then begin
+        NewIndent:= Indent + '  ';
+        Builder.Append(Indent);
+      end;
+      Builder.Append('<' + UpperCase(SyntaxNodeNames[Node.Typ]));
 
-    if Node is TCompoundSyntaxNode then
-    begin
-      Builder.Append(' begin_line="' + IntToStr(TCompoundSyntaxNode(Node).Line) + '"');
-      Builder.Append(' begin_col="' + IntToStr(TCompoundSyntaxNode(Node).Col) + '"');
-      Builder.Append(' end_line="' + IntToStr(TCompoundSyntaxNode(Node).EndLine) + '"');
-      Builder.Append(' end_col="' + IntToStr(TCompoundSyntaxNode(Node).EndCol) + '"');
-    end else
-    begin
-      Builder.Append(' line="' + IntToStr(Node.Line) + '"');
-      Builder.Append(' col="' + IntToStr(Node.Col) + '"');
-    end;
+      if (Node is TCompoundSyntaxNode) then begin
+        Builder.Append(' begin_line="' + IntToStr(TCompoundSyntaxNode(Node).Line) + '"');
+        Builder.Append(' begin_col="' + IntToStr(TCompoundSyntaxNode(Node).Col) + '"');
+        Builder.Append(' end_line="' + IntToStr(TCompoundSyntaxNode(Node).EndLine) + '"');
+        Builder.Append(' end_col="' + IntToStr(TCompoundSyntaxNode(Node).EndCol) + '"');
+      end else begin
+        Builder.Append(' line="' + IntToStr(Node.Line) + '"');
+        Builder.Append(' col="' + IntToStr(Node.Col) + '"');
+      end;
 
-    for Attr in Node.Attributes do
-      Builder.Append(' ' + AttributeName[Attr.Key] + '="' + XMLEncode(Attr.Value) + '"');
-    if HasChildren then
-      Builder.Append('>')
-    else
-      Builder.Append('/>');
-    if Formatted then
-      Builder.AppendLine;
-    for ChildNode in Node.ChildNodes do
-      NodeToXMLInternal(ChildNode, NewIndent);
-    if HasChildren then
-    begin
-      if Formatted then
-        Builder.Append(Indent); 
-      Builder.Append('</' + UpperCase(SyntaxNodeNames[Node.Typ]) + '>');
-      if Formatted then
-        Builder.AppendLine;
+      for Attr in Node.Attributes do Builder.Append(' ' + AttributeName[Attr.Key] + '="' + XMLEncode(Attr.Value) + '"');
+      if HasChildren then Builder.Append('>')
+      else Builder.Append('/>');
+      if Formatted then Builder.AppendLine;
+    end;
+    for ChildNode in Node.ChildNodes do NodeToXMLInternal(ChildNode, NewIndent);
+    if NodeOK then begin
+      if HasChildren then begin
+        if Formatted then Builder.Append(Indent);
+        Builder.Append('</' + UpperCase(SyntaxNodeNames[Node.Typ]) + '>');
+        if Formatted then Builder.AppendLine;
+      end;
     end;
   end;
-  
+
 begin
+  if Include = [] then InternalInclude:= [ntUnknown..ntWrite]
+  else InternalInclude:= Include;
   NodeToXMLInternal(Node, '');
 end;
 
-class function TSyntaxTreeWriter.ToXML(const Root: TSyntaxNode; 
+class function TSyntaxTreeWriter.ToXML(const Root: TSyntaxNode;
   Formatted: Boolean): string;
 var
   Builder: TStringBuilder;
