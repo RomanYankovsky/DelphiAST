@@ -574,15 +574,19 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ClassReferenceType;
 begin
-  FStack.Peek.SetAttribute(sTYPE, 'classof');
-  inherited ClassReferenceType;
+  FStack.Push(ntType).SetAttribute(sTYPE, 'classof');
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.ClassType;
 var
   classDef, child, vis: TSyntaxNode;
-  i: integer;
-  extracted: boolean;
+  i: Integer;
+  extracted: Boolean;
 begin
   FStack.Push(ntType).SetAttribute(sTYPE, 'class');
   try
@@ -1323,8 +1327,12 @@ end;
 
 procedure TPasSyntaxTreeBuilder.PointerType;
 begin
-  FStack.Peek.SetAttribute(sTYPE, 'pointer');
-  inherited;
+  FStack.Push(ntType).SetAttribute(sTYPE, 'pointer');
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.PositionalArgument;
