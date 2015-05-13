@@ -1,5 +1,7 @@
 unit uMainForm;
 
+{$MODE Delphi}
+
 interface
 
 uses
@@ -27,7 +29,7 @@ implementation
 uses
   DelphiAST, DelphiAST.Writer, DelphiAST.Classes;
 
-{$R *.dfm}
+{$R *.lfm}
 
 function Parse(const FileName: string): string;
 var
