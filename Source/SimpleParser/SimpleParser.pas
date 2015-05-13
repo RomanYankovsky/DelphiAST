@@ -651,7 +651,11 @@ type
 
 function TBytesStreamHelper.GetBytes: TBytes;
 begin
-  Result := Self.FBytes;
+  {$IFNDEF FPC}
+    Result := Self.FBytes;
+  {$ELSE}
+    Result := Self.Bytes;
+  {$ENDIF}
 end;
 
 function TStringStreamHelper.GetDataString: string;
