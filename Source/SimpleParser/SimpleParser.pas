@@ -273,6 +273,7 @@ type
     procedure DirectiveBinding; virtual;
     procedure DirectiveCalling; virtual;
     procedure DirectiveDeprecated; virtual;
+    procedure DirectiveExperimental; virtual;
     procedure DirectiveLibrary; virtual;
     procedure DirectiveLocal; virtual;
     procedure DirectivePlatform; virtual;
@@ -322,6 +323,7 @@ type
     procedure FunctionProcedureBlock; virtual;
     procedure FunctionProcedureName; virtual;
     procedure GotoStatement; virtual;
+    procedure HintingDirective; //not virtual
     procedure Identifier; virtual;
     procedure IdentifierList; virtual;
     procedure IfStatement; virtual;
@@ -806,6 +808,17 @@ begin
   Sender.Next;
 end;
 
+procedure TmwSimplePasPar.HintingDirective;
+begin
+  while ExID in HintingDirectives do
+    case ExID of
+      ptDeprecated: DirectiveDeprecated;
+      ptLibrary: DirectiveLibrary;
+      ptPlatform: DirectivePlatform;
+      ptExperimental: DirectiveExperimental;
+    end;
+end;
+
 procedure TmwSimplePasPar.NextToken;
 begin
   FLexer.NextNoJunk;
@@ -1022,13 +1035,7 @@ procedure TmwSimplePasPar.UnitFile;
 begin
   Expected(ptUnit);
   UnitName;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform, ptExperimental] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-      ptExperimental: NextToken;
-    end;
+  HintingDirective;
 
   Semicolon;
   InterfaceSection;
@@ -1813,7 +1820,7 @@ begin
       NextToken;
       Expected(ptOf);
       case TokenID of
-        ptConst: (*new in ObjectPascal80*) begin
+        ptConst: begin
           NextToken;
         end;
         else begin
@@ -2678,12 +2685,7 @@ begin
   VarNameList;
   Expected(ptColon);
   TypeKind;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  HintingDirective;
   case GenID of
     ptAbsolute: begin
       VarAbsolute;
@@ -2692,12 +2694,7 @@ begin
       VarEqual;
     end;
   end;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  HintingDirective;
 end;
 
 procedure TmwSimplePasPar.VarAbsolute;
@@ -2806,12 +2803,7 @@ begin
   FieldNameList;
   Expected(ptColon);
   TypeKind;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  HintingDirective;
 end;
 
 procedure TmwSimplePasPar.FieldList;
@@ -3410,12 +3402,7 @@ begin
   FieldNameList;
   Expected(ptColon);
   TypeKind;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  HintingDirective;
 end;
 
 procedure TmwSimplePasPar.ObjectType;
@@ -3501,12 +3488,7 @@ begin
   IdentifierList;
   Expected(ptColon);
   TypeKind;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  HintingDirective;
 end;
 
 procedure TmwSimplePasPar.ClassReferenceType;
@@ -3971,12 +3953,7 @@ begin
     CharString;
   end;
 
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  HintingDirective;
 end;
 
 procedure TmwSimplePasPar.ConstantDeclaration;
@@ -3993,12 +3970,7 @@ begin
       SynError(InvalidConstantDeclaration);
     end;
   end;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  HintingDirective;
 end;
 
 procedure TmwSimplePasPar.ConstantColon;
@@ -4118,12 +4090,12 @@ begin
     ptInline: begin
       NextToken;
     end;
-    ptDeprecated: DirectiveDeprecated;
-    ptLibrary: DirectiveLibrary;
-    ptPlatform: DirectivePlatform;
+    ptExperimental, ptPlatform, ptDeprecated, ptLibrary: begin
+      HintingDirective;
+    end;
     ptLocal: DirectiveLocal;
     ptVarargs: DirectiveVarargs;
-    ptFinal, ptExperimental, ptDelayed: NextToken;
+    ptFinal, ptDelayed: NextToken;
     else begin
       SynError(InvalidProceduralDirective);
     end;
@@ -4603,10 +4575,7 @@ end;
 
 procedure TmwSimplePasPar.ClassTypeEnd;
 begin
-  case ExID of
-    ptExperimental: NextToken;
-    ptDeprecated: DirectiveDeprecated;
-  end;
+  HintingDirective;
 end;
 
 procedure TmwSimplePasPar.ObjectTypeEnd;
@@ -4617,6 +4586,11 @@ procedure TmwSimplePasPar.DirectiveDeprecated;
 begin
   ExpectedEx(ptDeprecated);
   if TokenID = ptStringConst then StringConst; //NextToken;
+end;
+
+procedure TmwSimplePasPar.DirectiveExperimental;
+begin
+  ExpectedEx(ptExperimental);
 end;
 
 procedure TmwSimplePasPar.DirectiveLibrary;
@@ -4771,12 +4745,7 @@ end;
 
 procedure TmwSimplePasPar.TypeDirective;
 begin
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  HintingDirective;
 end;
 
 procedure TmwSimplePasPar.InheritedVariableReference;

@@ -77,7 +77,7 @@ var
     ChildNode: TSyntaxNode;
     NodeOK: boolean;
   begin
-    NodeOK:= not(Node.Typ in Exclude) and (Node.Typ in InternalInclude);
+    NodeOK:= (Node.Typ in InternalInclude);
     HasChildren := Node.HasChildren;
     if NodeOK then begin
       if Formatted then begin
@@ -112,8 +112,9 @@ var
   end;
 
 begin
-  if Include = [] then InternalInclude:= [ntUnknown..ntWrite]
+  if Include = [] then InternalInclude:= [Low(TSyntaxNodeType)..High(TSyntaxNodeType)]
   else InternalInclude:= Include;
+  InternalInclude:= InternalInclude - Exclude;
   NodeToXMLInternal(Node, '');
 end;
 

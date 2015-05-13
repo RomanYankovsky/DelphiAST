@@ -271,6 +271,9 @@ type
     TokenID: TptTokenKind;
   end;
 
+const
+  HintingDirectives = [ptDeprecated, ptLibrary, ptPlatform, ptExperimental];
+
 function TokenName(Value: TptTokenKind): string;
 function ptTokenName(Value: TptTokenKind): string;
 function IsTokenIDJunk(const aTokenID: TptTokenKind): Boolean;
