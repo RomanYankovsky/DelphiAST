@@ -94,3 +94,4 @@ $RECYCLE.BIN/
 *.msp
 *.ppu
 *.o
+*.compiled
