@@ -42,7 +42,7 @@ type
 
   TPasSyntaxTreeBuilder = class(TmwSimplePasPar)
   private type
-    TExpressionMethod = reference to procedure;
+    TExpressionMethod = procedure of object;
   private
     procedure BuildExpressionTree(ExpressionMethod: TExpressionMethod);
     procedure ParserMessage(Sender: TObject; const Typ: TMessageEventType; const Msg: string; X, Y: Integer);
@@ -642,12 +642,11 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.ConstantExpression;
+var
+  ExpressionMethod: TExpressionMethod;
 begin
-  BuildExpressionTree(
-    procedure
-    begin
-      inherited ConstantExpression;
-    end);
+  ExpressionMethod := inherited ConstantExpression;
+  BuildExpressionTree(ExpressionMethod);
 end;
 
 procedure TPasSyntaxTreeBuilder.ConstantName;
@@ -859,12 +858,11 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.Expression;
+var
+  ExpressionMethod: TExpressionMethod;
 begin
-  BuildExpressionTree(
-    procedure
-    begin
-      inherited Expression
-    end);
+  ExpressionMethod := inherited Expression;
+  BuildExpressionTree(ExpressionMethod);
 end;
 
 procedure TPasSyntaxTreeBuilder.ExpressionList;
