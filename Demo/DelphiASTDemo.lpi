@@ -61,12 +61,12 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <SearchPaths>
-      <IncludeFiles Value="..\Source;..\Source\SimpleParser;..\..\Generics.Collections\src"/>
-      <OtherUnitFiles Value="..\Source;..\Source\SimpleParser;..\..\Generics.Collections\src"/>
+      <IncludeFiles Value="..\Source;..\Source\SimpleParser;..\..\Generics.Collections\src;$(ProjOutDir)"/>
+      <OtherUnitFiles Value="..\Source;..\Source\SimpleParser;..\..\Generics.Collections\src;..\..\FPC_StringBuilder\src"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
-        <SyntaxMode Value="delphi"/>
+        <SyntaxMode Value="Delphi"/>
       </SyntaxOptions>
     </Parsing>
     <Linking>
