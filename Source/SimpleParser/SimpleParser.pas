@@ -681,12 +681,27 @@ procedure TmwSimplePasPar.Run(const UnitName: string; SourceStream: TStream);
 var
   StringStream: TStringStream;
   OwnStream: Boolean;
+
+  {$IFDEF FPC}
+    Strings: TStringList;
+  {$ENDIF}
 begin
   OwnStream := not (SourceStream is TStringStream);
   if OwnStream then
   begin
+    {$IFNDEF FPC}
     StringStream := TStringStream.Create;
     StringStream.LoadFromStream(SourceStream);
+    {$ELSE}
+      Strings := TStringList.Create;
+      try
+        Strings.LoadFromStream(SourceStream);
+        StringStream := TStringStream.Create('');
+        Strings.SaveToStream(StringStream);
+      finally
+        FreeAndNil(Strings);
+      end;
+    {$ENDIF}
   end
   else
     StringStream := TStringStream(SourceStream);
