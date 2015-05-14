@@ -8,7 +8,7 @@
       <Unit0>
         <Filename Value="DelphiASTDemo.lpr"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="22"/>
+        <UsageCount Value="30"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit0>
@@ -17,7 +17,7 @@
         <IsPartOfProject Value="True"/>
         <HasResources Value="True"/>
         <EditorIndex Value="1"/>
-        <UsageCount Value="22"/>
+        <UsageCount Value="30"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit1>
@@ -27,7 +27,7 @@
         <EditorIndex Value="2"/>
         <TopLine Value="49"/>
         <CursorPos X="29" Y="68"/>
-        <UsageCount Value="22"/>
+        <UsageCount Value="30"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit2>
@@ -37,7 +37,7 @@
         <EditorIndex Value="5"/>
         <TopLine Value="201"/>
         <CursorPos X="8" Y="239"/>
-        <UsageCount Value="22"/>
+        <UsageCount Value="30"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit3>
@@ -45,9 +45,9 @@
         <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="3"/>
-        <TopLine Value="646"/>
-        <CursorPos Y="667"/>
-        <UsageCount Value="11"/>
+        <TopLine Value="648"/>
+        <CursorPos Y="664"/>
+        <UsageCount Value="15"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit4>
@@ -56,7 +56,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="143"/>
         <CursorPos X="92" Y="158"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit5>
       <Unit6>
@@ -65,7 +65,7 @@
         <EditorIndex Value="4"/>
         <TopLine Value="59"/>
         <CursorPos X="48" Y="85"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="15"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit6>
@@ -74,7 +74,7 @@
         <EditorIndex Value="6"/>
         <TopLine Value="65"/>
         <CursorPos X="15" Y="74"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="14"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit7>
@@ -83,7 +83,7 @@
         <EditorIndex Value="7"/>
         <TopLine Value="98"/>
         <CursorPos X="95" Y="124"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="14"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit8>
@@ -91,138 +91,120 @@
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
-        <Caret Line="696" Column="30" TopLine="662"/>
+        <Caret Line="696" Column="30" TopLine="720"/>
       </Position1>
       <Position2>
         <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
-        <Caret Line="156" Column="28" TopLine="133"/>
+        <Caret Line="702" Column="29" TopLine="675"/>
       </Position2>
       <Position3>
-        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
-        <Caret Line="696" Column="30" TopLine="720"/>
+        <Filename Value="..\Source\DelphiAST.Classes.pas"/>
       </Position3>
       <Position4>
-        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
-        <Caret Line="702" Column="29" TopLine="675"/>
+        <Filename Value="..\..\Generics.Collections\src\generics.defaults.pas"/>
       </Position4>
       <Position5>
-        <Filename Value="..\Source\DelphiAST.Classes.pas"/>
+        <Filename Value="..\..\Generics.Collections\src\generics.defaults.pas"/>
+        <Caret Line="85" Column="48" TopLine="59"/>
       </Position5>
       <Position6>
         <Filename Value="..\..\Generics.Collections\src\generics.defaults.pas"/>
+        <Caret Line="129" Column="44" TopLine="103"/>
       </Position6>
       <Position7>
-        <Filename Value="..\..\Generics.Collections\src\generics.defaults.pas"/>
-        <Caret Line="85" Column="48" TopLine="59"/>
+        <Filename Value="..\Source\DelphiAST.pas"/>
+        <Caret Line="1528" Column="14" TopLine="1492"/>
       </Position7>
       <Position8>
-        <Filename Value="..\..\Generics.Collections\src\generics.defaults.pas"/>
-        <Caret Line="129" Column="44" TopLine="103"/>
+        <Filename Value="..\Source\DelphiAST.pas"/>
+        <Caret Line="1518" Column="26" TopLine="1492"/>
       </Position8>
       <Position9>
         <Filename Value="..\Source\DelphiAST.pas"/>
-        <Caret Line="1528" Column="14" TopLine="1492"/>
+        <Caret Line="231" Column="22" TopLine="188"/>
       </Position9>
       <Position10>
         <Filename Value="..\Source\DelphiAST.pas"/>
-        <Caret Line="1518" Column="26" TopLine="1492"/>
+        <Caret Line="234" Column="34" TopLine="190"/>
       </Position10>
       <Position11>
         <Filename Value="..\Source\DelphiAST.pas"/>
-        <Caret Line="231" Column="22" TopLine="188"/>
+        <Caret Line="216" Column="48" TopLine="198"/>
       </Position11>
       <Position12>
-        <Filename Value="..\Source\DelphiAST.pas"/>
-        <Caret Line="234" Column="34" TopLine="190"/>
+        <Filename Value="..\..\Generics.Collections\src\generics.defaults.pas"/>
+        <Caret Line="85" Column="48" TopLine="59"/>
       </Position12>
       <Position13>
         <Filename Value="..\Source\DelphiAST.pas"/>
-        <Caret Line="216" Column="48" TopLine="198"/>
+        <Caret Line="231" Column="49" TopLine="201"/>
       </Position13>
       <Position14>
-        <Filename Value="..\..\Generics.Collections\src\generics.defaults.pas"/>
-        <Caret Line="85" Column="48" TopLine="59"/>
-      </Position14>
-      <Position15>
-        <Filename Value="..\Source\DelphiAST.pas"/>
-        <Caret Line="231" Column="49" TopLine="201"/>
-      </Position15>
-      <Position16>
         <Filename Value="..\Source\DelphiAST.pas"/>
         <Caret Line="52" Column="131" TopLine="31"/>
-      </Position16>
-      <Position17>
+      </Position14>
+      <Position15>
         <Filename Value="..\Source\DelphiAST.Writer.pas"/>
-      </Position17>
-      <Position18>
+      </Position15>
+      <Position16>
         <Filename Value="..\Source\DelphiAST.Writer.pas"/>
         <Caret Line="7" Column="23"/>
+      </Position16>
+      <Position17>
+        <Filename Value="..\..\FPC_StringBuilder\Src\StringBuilderUnit.pas"/>
+      </Position17>
+      <Position18>
+        <Filename Value="..\..\FPC_StringBuilder\Src\StringBuilderUnit.pas"/>
+        <Caret Line="98" Column="26" TopLine="72"/>
       </Position18>
       <Position19>
-        <Filename Value="..\..\FPC_StringBuilder\Src\StringBuilderUnit.pas"/>
+        <Filename Value="..\Source\DelphiAST.Writer.pas"/>
+        <Caret Line="22" Column="48"/>
       </Position19>
       <Position20>
         <Filename Value="..\..\FPC_StringBuilder\Src\StringBuilderUnit.pas"/>
-        <Caret Line="98" Column="26" TopLine="72"/>
+        <Caret Line="30" Column="19" TopLine="16"/>
       </Position20>
       <Position21>
-        <Filename Value="..\Source\DelphiAST.Writer.pas"/>
-        <Caret Line="22" Column="48"/>
+        <Filename Value="..\..\FPC_StringBuilder\Src\StringBuilderUnit.pas"/>
+        <Caret Line="31" Column="26" TopLine="2"/>
       </Position21>
       <Position22>
         <Filename Value="..\..\FPC_StringBuilder\Src\StringBuilderUnit.pas"/>
-        <Caret Line="30" Column="19" TopLine="16"/>
+        <Caret Line="124" Column="95" TopLine="98"/>
       </Position22>
       <Position23>
-        <Filename Value="..\..\FPC_StringBuilder\Src\StringBuilderUnit.pas"/>
-        <Caret Line="31" Column="26" TopLine="2"/>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <Caret Line="662" Column="35" TopLine="637"/>
       </Position23>
       <Position24>
-        <Filename Value="..\..\FPC_StringBuilder\Src\StringBuilderUnit.pas"/>
-        <Caret Line="124" Column="95" TopLine="98"/>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <Caret Line="647" Column="34" TopLine="637"/>
       </Position24>
       <Position25>
         <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
-        <Caret Line="662" Column="35" TopLine="637"/>
+        <Caret Line="678" TopLine="637"/>
       </Position25>
       <Position26>
         <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
-        <Caret Line="647" Column="34" TopLine="637"/>
+        <Caret Line="677" Column="11" TopLine="637"/>
       </Position26>
       <Position27>
         <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
-        <Caret Line="678" TopLine="637"/>
+        <Caret Line="676" TopLine="637"/>
       </Position27>
       <Position28>
         <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
-        <Caret Line="677" Column="11" TopLine="637"/>
+        <Caret Line="693" Column="58" TopLine="686"/>
       </Position28>
       <Position29>
         <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
-        <Caret Line="676" TopLine="637"/>
+        <Caret Line="667" TopLine="646"/>
       </Position29>
       <Position30>
         <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
-        <Caret Line="693" Column="58" TopLine="686"/>
+        <Caret Line="676" Column="24" TopLine="648"/>
       </Position30>
     </JumpHistory>
   </ProjectSession>
-  <Debugging>
-    <BreakPoints Count="2">
-      <Item1>
-        <Kind Value="bpkSource"/>
-        <WatchScope Value="wpsLocal"/>
-        <WatchKind Value="wpkWrite"/>
-        <Source Value="..\Source\SimpleParser\SimpleParser.pas"/>
-        <Line Value="664"/>
-      </Item1>
-      <Item2>
-        <Kind Value="bpkSource"/>
-        <WatchScope Value="wpsLocal"/>
-        <WatchKind Value="wpkWrite"/>
-        <Source Value="..\Source\SimpleParser\SimpleParser.pas"/>
-        <Line Value="675"/>
-      </Item2>
-    </BreakPoints>
-  </Debugging>
 </CONFIG>
