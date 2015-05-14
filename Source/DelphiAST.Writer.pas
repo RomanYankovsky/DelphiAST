@@ -3,6 +3,9 @@ unit DelphiAST.Writer;
 interface
 
 uses
+  {$IFDEF FPC}
+     StringBuilderUnit,
+  {$ENDIF}
   DelphiAST.Classes, SysUtils;
 
 type
