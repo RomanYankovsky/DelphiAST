@@ -1,10 +1,15 @@
 unit uMainForm;
 
+{$MODE Delphi}
+
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls;
+  {$IFNDEF FPC}
+    Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+    Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls;
+  {$ENDIF}
+  SysUtils, Variants, Classes, Controls, Forms, StdCtrls;
 
 type
   TForm2 = class(TForm)
@@ -23,7 +28,7 @@ var
 implementation
 
 uses
-  FileCtrl, IOUtils, DelphiAST, DelphiAST.Classes;
+  FileCtrl, DelphiAST, DelphiAST.Classes;
 
 {$R *.dfm}
 
