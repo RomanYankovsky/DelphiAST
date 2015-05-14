@@ -4,7 +4,7 @@
     <PathDelim Value="\"/>
     <Version Value="9"/>
     <BuildModes Active="Default"/>
-    <Units Count="4">
+    <Units Count="5">
       <Unit0>
         <Filename Value="DelphiASTDemo.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -24,7 +24,6 @@
       <Unit2>
         <Filename Value="..\Source\DelphiAST.Classes.pas"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -40,8 +39,74 @@
         <UsageCount Value="20"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit3>
+      <Unit4>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="644"/>
+        <CursorPos X="11" Y="665"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit4>
     </Units>
-    <JumpHistory HistoryIndex="-1"/>
+    <JumpHistory Count="14" HistoryIndex="13">
+      <Position1>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+      </Position1>
+      <Position2>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <Caret Line="654" Column="18" TopLine="634"/>
+      </Position2>
+      <Position3>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <Caret Line="148" Column="10" TopLine="128"/>
+      </Position3>
+      <Position4>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <Caret Line="654" Column="19" TopLine="696"/>
+      </Position4>
+      <Position5>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <Caret Line="661" Column="11" TopLine="646"/>
+      </Position5>
+      <Position6>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <Caret Line="663" Column="10" TopLine="648"/>
+      </Position6>
+      <Position7>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <Caret Line="664" Column="45" TopLine="649"/>
+      </Position7>
+      <Position8>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <Caret Line="654" Column="23" TopLine="644"/>
+      </Position8>
+      <Position9>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <Caret Line="642" Column="46" TopLine="639"/>
+      </Position9>
+      <Position10>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <Caret Line="147" Column="5" TopLine="133"/>
+      </Position10>
+      <Position11>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <Caret Line="642" Column="42" TopLine="636"/>
+      </Position11>
+      <Position12>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <Caret Line="148" Column="3" TopLine="163"/>
+      </Position12>
+      <Position13>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <Caret Line="655" TopLine="637"/>
+      </Position13>
+      <Position14>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <Caret Line="659" Column="5" TopLine="640"/>
+      </Position14>
+    </JumpHistory>
   </ProjectSession>
   <SkipCheckLCLInterfaces Value="True"/>
 </CONFIG>
