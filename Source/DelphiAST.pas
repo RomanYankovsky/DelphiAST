@@ -210,6 +210,36 @@ type
 
 implementation
 
+{$IFDEF FPC}
+  type
+
+   TStringStreamHelper = class helper for TStringStream
+      class function Create: TStringStream; overload;
+      procedure LoadFromFile(const FileName: string);
+    end;
+
+  { TStringStreamHelper }
+
+  class function TStringStreamHelper.Create: TStringStream;
+  begin
+    Result := TStringStream.Create('');
+  end;
+
+  procedure TStringStreamHelper.LoadFromFile(const FileName: string);
+  var
+    Strings: TStringList;
+  begin
+    Strings := TStringList.Create;
+    try
+      Strings.LoadFromFile(FileName);
+      Strings.SaveToStream(Self);
+    finally
+      FreeAndNil(Strings);
+    end;
+  end;
+{$ENDIF}
+
+
 { TPasSyntaxTreeBuilder }
 
 procedure TPasSyntaxTreeBuilder.AccessSpecifier;
