@@ -1,0 +1,3 @@
+[submodule "FreePascalSupport/Generics.Collection"]
+	path = FreePascalSupport/Generics.Collection
+	url = https://github.com/Wosi/generics.collections.git
