@@ -662,6 +662,7 @@ function TStringStreamHelper.GetDataString: string;
 begin
   // try to read a bom from the buffer to create the correct encoding
   // but only if the encoding is still the default encoding
+  {$IFNDEF FPC}
   if Self.FEncoding = TEncoding.Default then
   begin
     Self.FEncoding := nil;
@@ -670,6 +671,10 @@ begin
   end
   else
     Result := Self.FEncoding.GetString(Bytes, 0, Size);
+  {$ELSE}
+    // todo cw: find out how to work correctly with encodings in FPC
+    Result := Self.DataString;
+  {$ENDIF}
 end;
 
 procedure TmwSimplePasPar.Run(const UnitName: string; SourceStream: TStream);
