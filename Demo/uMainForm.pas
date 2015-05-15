@@ -29,7 +29,12 @@ implementation
 uses
   DelphiAST, DelphiAST.Writer, DelphiAST.Classes;
 
-{$R *.lfm}
+{$IFNDEF FPC}
+  {$R *.dfm}
+{$ELSE}
+  {$R *.lfm}
+{$ENDIF}
+
 
 function Parse(const FileName: string): string;
 var
