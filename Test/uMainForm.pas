@@ -8,8 +8,9 @@ uses
   {$IFNDEF FPC}
     Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
     Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls;
+  {$ELSE}
+    SysUtils, Variants, Classes, Controls, Forms, StdCtrls;
   {$ENDIF}
-  SysUtils, Variants, Classes, Controls, Forms, StdCtrls;
 
 type
   TForm2 = class(TForm)
@@ -28,7 +29,7 @@ var
 implementation
 
 uses
-  FileCtrl, DelphiAST, DelphiAST.Classes;
+  FileCtrl, IOUtils, DelphiAST, DelphiAST.Classes;
 
 {$R *.dfm}
 
