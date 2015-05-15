@@ -1,6 +1,6 @@
 unit uMainForm;
 
-{$MODE Delphi}
+{$IFDEF FPC}{$MODE Delphi}{$ENDIF}
 
 interface
 
