@@ -47,6 +47,8 @@ type
     procedure BuildExpressionTree(ExpressionMethod: TExpressionMethod);
     procedure ParserMessage(Sender: TObject; const Typ: TMessageEventType; const Msg: string; X, Y: Integer);
     function NodeListToString(NamesNode: TSyntaxNode): string;
+    procedure CallInheritedConstantExpression;
+    procedure CallInheritedExpression;
   protected
     FStack: TNodeStack;
 
@@ -675,8 +677,13 @@ procedure TPasSyntaxTreeBuilder.ConstantExpression;
 var
   ExpressionMethod: TExpressionMethod;
 begin
-  ExpressionMethod := inherited ConstantExpression;
+  ExpressionMethod := CallInheritedConstantExpression;
   BuildExpressionTree(ExpressionMethod);
+end;
+
+procedure TPasSyntaxTreeBuilder.CallInheritedConstantExpression;
+begin
+  inherited ConstantExpression;
 end;
 
 procedure TPasSyntaxTreeBuilder.ConstantName;
@@ -891,8 +898,13 @@ procedure TPasSyntaxTreeBuilder.Expression;
 var
   ExpressionMethod: TExpressionMethod;
 begin
-  ExpressionMethod := inherited Expression;
+  ExpressionMethod := CallInheritedExpression;
   BuildExpressionTree(ExpressionMethod);
+end;
+
+procedure TPasSyntaxTreeBuilder.CallInheritedExpression;
+begin
+  inherited Expression;
 end;
 
 procedure TPasSyntaxTreeBuilder.ExpressionList;
