@@ -1,5 +1,7 @@
 unit DelphiAST.Classes;
 
+{$IFDEF FPC}{$MODE DELPHI}{$ENDIF}
+
 interface
 
 uses

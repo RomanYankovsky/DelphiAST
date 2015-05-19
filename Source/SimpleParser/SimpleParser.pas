@@ -141,6 +141,8 @@ Known Issues:
 -----------------------------------------------------------------------------}
 unit SimpleParser;
 
+{$IFDEF FPC}{$MODE DELPHI}{$ENDIF}  
+
 interface
 
 uses
