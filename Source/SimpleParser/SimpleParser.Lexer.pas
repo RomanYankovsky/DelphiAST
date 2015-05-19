@@ -47,6 +47,8 @@ Known Issues:
 
 unit SimpleParser.Lexer;
 
+{$IFDEF FPC}{$MODE DELPHI}{$ENDIF}
+
 {$I SimpleParser.inc}
 
 interface
