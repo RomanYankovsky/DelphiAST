@@ -204,7 +204,8 @@ type
     destructor Destroy; override;
 
     function Run(SourceStream: TStream): TSyntaxNode; reintroduce; overload; virtual;
-    class function Run(const FileName: string): TSyntaxNode; reintroduce; overload; static;
+    class function Run(const FileName: string;
+      InterfaceOnly: Boolean = False): TSyntaxNode; reintroduce; overload; static;
   end;
 
 implementation
@@ -1512,7 +1513,8 @@ begin
   inherited;
 end;
 
-class function TPasSyntaxTreeBuilder.Run(const FileName: string): TSyntaxNode;
+class function TPasSyntaxTreeBuilder.Run(const FileName: string;
+  InterfaceOnly: Boolean): TSyntaxNode;
 var
   Stream: TStringStream;
   Builder: TPasSyntaxTreeBuilder;
@@ -1521,6 +1523,7 @@ begin
   try
     Stream.LoadFromFile(FileName);
     Builder := TPasSyntaxTreeBuilder.Create;
+    Builder.InterfaceOnly := InterfaceOnly;
     try
       Builder.InitDefinesDefinedByCompiler;
       Result := Builder.Run(Stream);
