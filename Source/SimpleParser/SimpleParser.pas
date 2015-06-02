@@ -645,12 +645,13 @@ type
     function GetBytes: TBytes;
     property Bytes: TBytes read GetBytes;
   end;
-  {$IFNDEF FPC}
+
     TStringStreamHelper = class helper for TStringStream
       function GetDataString: string;
+      {$IFNDEF FPC}
       property DataString: string read GetDataString;
+      {$ENDIF}
     end;
-  {$ENDIF}
 
 function TBytesStreamHelper.GetBytes: TBytes;
 begin
@@ -674,6 +675,18 @@ begin
   end
   else
     Result := Self.FEncoding.GetString(Bytes, 0, Size);
+end;
+{$ELSE}
+function TStringStreamHelper.GetDataString: string;
+var
+  Encoding: TEncoding;
+  Bytes: TBytes;
+begin
+  Encoding := nil;
+  SetLength(Bytes, Self.Size);
+  Bytes := BytesOf(DataString);
+  TEncoding.GetBufferEncoding(Bytes, Encoding);
+  Result := Encoding.GetString(Bytes, Length(Encoding.GetPreamble), Size);
 end;
 {$ENDIF}
 
@@ -705,7 +718,7 @@ begin
   end
   else
     StringStream := TStringStream(SourceStream);
-  FLexer.Origin := PChar(StringStream.DataString);
+  FLexer.Origin := PChar(StringStream.GetDataString);
   ParseFile;
   if OwnStream then
     StringStream.Free;
@@ -5726,4 +5739,3 @@ begin
 end;
 
 end.
-
