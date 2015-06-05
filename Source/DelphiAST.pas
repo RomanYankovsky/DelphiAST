@@ -126,6 +126,7 @@ type
     procedure InheritedStatement; override;
     procedure InheritedVariableReference; override;
     procedure InitializationSection; override;
+    procedure InterfaceForward; override;
     procedure InterfaceGUID; override;
     procedure InterfaceSection; override;
     procedure InterfaceType; override;
@@ -1179,6 +1180,12 @@ begin
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.InterfaceForward;
+begin
+  FStack.Peek.SetAttribute('forwarded', 'true');
+  inherited InterfaceForward;
 end;
 
 procedure TPasSyntaxTreeBuilder.InterfaceGUID;
