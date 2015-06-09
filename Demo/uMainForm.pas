@@ -46,7 +46,7 @@ var
   SyntaxTree: TSyntaxNode;
 begin
   Result := '';
-  SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, TIncludeHandler.Create);
+  SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, false, TIncludeHandler.Create);
   try
     Result := TSyntaxTreeWriter.ToXML(SyntaxTree, True);
   finally

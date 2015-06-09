@@ -126,6 +126,7 @@ type
     procedure InheritedStatement; override;
     procedure InheritedVariableReference; override;
     procedure InitializationSection; override;
+    procedure InterfaceForward; override;
     procedure InterfaceGUID; override;
     procedure InterfaceSection; override;
     procedure InterfaceType; override;
@@ -208,7 +209,8 @@ type
     destructor Destroy; override;
 
     function Run(SourceStream: TStream): TSyntaxNode; reintroduce; overload; virtual;
-    class function Run(const FileName: string; IncludeHandler: IIncludeHandler): TSyntaxNode; reintroduce; overload; static;
+    class function Run(const FileName: string;
+      InterfaceOnly: Boolean = False; IncludeHandler: IIncludeHandler = nil): TSyntaxNode; reintroduce; overload; static;
   end;
 
 implementation
@@ -1180,6 +1182,12 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.InterfaceForward;
+begin
+  FStack.Peek.SetAttribute('forwarded', 'true');
+  inherited InterfaceForward;
+end;
+
 procedure TPasSyntaxTreeBuilder.InterfaceGUID;
 begin
   FStack.Push(ntGuid);
@@ -1554,7 +1562,8 @@ begin
   inherited;
 end;
 
-class function TPasSyntaxTreeBuilder.Run(const FileName: string; IncludeHandler: IIncludeHandler): TSyntaxNode;
+class function TPasSyntaxTreeBuilder.Run(const FileName: string;
+  InterfaceOnly: Boolean; IncludeHandler: IIncludeHandler): TSyntaxNode;
 var
   Stream: TStringStream;
   Builder: TPasSyntaxTreeBuilder;
@@ -1563,9 +1572,10 @@ begin
   try
     Stream.LoadFromFile(FileName);
     Builder := TPasSyntaxTreeBuilder.Create;
+    Builder.InterfaceOnly := InterfaceOnly;
     try
-      Builder.IncludeHandler := IncludeHandler;
       Builder.InitDefinesDefinedByCompiler;
+      Builder.IncludeHandler := IncludeHandler;
       Result := Builder.Run(Stream);
     finally
       Builder.Free;
