@@ -207,6 +207,7 @@ type
     function GetInRound: Boolean;
     function GetUseDefines: Boolean;
     procedure SetUseDefines(const Value: Boolean);
+    procedure SetIncludeHandler(IncludeHandler: IIncludeHandler);
   protected
     procedure Expected(Sym: TptTokenKind); virtual;
     procedure ExpectedEx(Sym: TptTokenKind); virtual;
@@ -218,7 +219,6 @@ type
     procedure HandlePtIfDefDirect(Sender: TmwBasePasLex); virtual;
     procedure HandlePtIfNDefDirect(Sender: TmwBasePasLex); virtual;
     procedure HandlePtIfOptDirect(Sender: TmwBasePasLex); virtual;
-    procedure HandlePtIncludeDirect(Sender: TmwBasePasLex); virtual;
     procedure HandlePtResourceDirect(Sender: TmwBasePasLex); virtual;
     procedure HandlePtUndefDirect(Sender: TmwBasePasLex); virtual;
     procedure HandlePtIfDirect(Sender: TmwBasePasLex); virtual;
@@ -569,6 +569,7 @@ type
     property LastNoJunkLen: Integer read FLastNoJunkLen;
 
     property UseDefines: Boolean read GetUseDefines write SetUseDefines;
+    property IncludeHandler: IIncludeHandler write SetIncludeHandler;
   end;
 
 implementation
@@ -722,7 +723,6 @@ begin
   FLexer.OnIfDefDirect := HandlePtIfDefDirect;
   FLexer.OnIfNDefDirect := HandlePtIfNDefDirect;
   FLexer.OnIfOptDirect := HandlePtIfOptDirect;
-  FLexer.OnIncludeDirect := HandlePtIncludeDirect;
   FLexer.OnResourceDirect := HandlePtResourceDirect;
   FLexer.OnUnDefDirect := HandlePtUndefDirect;
   FLexer.OnIfDirect := HandlePtIfDirect;
@@ -860,13 +860,6 @@ begin
 end;
 
 procedure TmwSimplePasPar.HandlePtIfOptDirect(Sender: TmwBasePasLex);
-begin
-  if Assigned(FOnMessage) then
-    FOnMessage(Self, meNotSupported, 'Currently not supported ' + FLexer.Token, FLexer.PosXY.X, FLexer.PosXY.Y);
-  Sender.Next;
-end;
-
-procedure TmwSimplePasPar.HandlePtIncludeDirect(Sender: TmwBasePasLex);
 begin
   if Assigned(FOnMessage) then
     FOnMessage(Self, meNotSupported, 'Currently not supported ' + FLexer.Token, FLexer.PosXY.X, FLexer.PosXY.Y);
@@ -2750,6 +2743,11 @@ begin
     NextToken;
     Expression;
   end;
+end;
+
+procedure TmwSimplePasPar.SetIncludeHandler(IncludeHandler: IIncludeHandler);
+begin
+  FLexer.IncludeHandler := IncludeHandler;
 end;
 
 procedure TmwSimplePasPar.QualifiedIdentifier;

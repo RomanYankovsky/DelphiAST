@@ -105,6 +105,7 @@ type
     FDefineStack: Integer;
     FTopDefineRec: PDefineRec;
     FUseDefines: Boolean;
+    FIncludeHandler: IIncludeHandler;
 
     function KeyHash: Integer;
     function KeyComp(const aKey: string): Boolean;
@@ -268,6 +269,7 @@ type
     function IsIdentifiers(AChar: Char): Boolean; inline;
     function HashValue(AChar: Char): Integer;
     function EvaluateConditionalExpression(const AParams: String): Boolean;
+    procedure IncludeFile;
   protected
     procedure SetLine(const Value: string); virtual;
     procedure SetOrigin(NewValue: PChar); virtual;
@@ -343,6 +345,7 @@ type
     property AsmCode: Boolean read FAsmCode write FAsmCode;
     property DirectiveParamOrigin: PChar read FDirectiveParamOrigin;
     property UseDefines: Boolean read FUseDefines write FUseDefines;
+    property IncludeHandler: IIncludeHandler read FIncludeHandler write FIncludeHandler;
   end;
 
   TmwPasLex = class(TmwBasePasLex)
@@ -1538,8 +1541,10 @@ begin
       end;
     PtIncludeDirect:
       begin
-        if Assigned(FOnIncludeDirect) then
-          FOnIncludeDirect(Self);
+//        if Assigned(FOnIncludeDirect) then
+//          FOnIncludeDirect(Self);
+        if Assigned(FIncludeHandler) then
+          IncludeFile;
       end;
     PtResourceDirect:
       begin
@@ -1973,8 +1978,10 @@ begin
       end;
     PtIncludeDirect:
       begin
-        if Assigned(FOnIncludeDirect) then
-          FOnIncludeDirect(Self);
+//        if Assigned(FOnIncludeDirect) then
+//          FOnIncludeDirect(Self);
+        if Assigned(FIncludeHandler) then
+          IncludeFile;
       end;
     PtResourceDirect:
       begin
@@ -2301,6 +2308,32 @@ begin
   ParamLen := EndPos - TempRun;
   SetString(Result, (FOrigin + TempRun), ParamLen);
   Result := UpperCase(Result);
+end;
+
+procedure TmwBasePasLex.IncludeFile;
+var
+  IndludeFileName, IncludeDirective, Content, Origin: string;
+  IncludedLineCount: integer;
+  CurrentChar: Char;
+begin
+  IncludeDirective := Token;
+  if Length(IncludeDirective) > Length('{$I }') then
+  begin
+    IndludeFileName := Trim(Copy(IncludeDirective, 5, Length(IncludeDirective) - 5));
+    Content := FIncludeHandler.GetIncludeFileContent(IndludeFileName);
+    Origin := FOrigin;
+    Origin := PChar(Copy(Origin, 1, Run - Length(IncludeDirective)) + Content + Copy(Origin, Run + 1, Length(Origin)));
+    FOrigin :=PChar(Origin);
+    Run := Run - Length(IncludeDirective);
+    IncludedLineCount := 1;
+    for CurrentChar in Content do
+      if CurrentChar = #10 then
+        Inc(IncludedLineCount);
+    FLineNumber := FLineNumber - IncludedLineCount;
+
+    //RunAhead := Run;
+    Next;
+  end;
 end;
 
 procedure TmwBasePasLex.Init;
