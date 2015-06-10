@@ -385,8 +385,14 @@ type
 
 implementation
 
+uses
+  StrUtils;
+
 type
   TmwPasLexExpressionEvaluation = (leeNone, leeAnd, leeOr);
+
+const
+  INCLUDE_BUFFER_SIZE = 1024*1024;
 
 procedure MakeIdentTable;
 var
@@ -1314,7 +1320,10 @@ end;
 
 procedure TmwBasePasLex.SetOrigin(NewValue: PChar);
 begin
-  FOrigin := NewValue;
+  //FOrigin := NewValue;
+  FreeMem(FOrigin);
+  GetMem(FOrigin, INCLUDE_BUFFER_SIZE);
+  StrPCopy(FOrigin, NewValue);
   Init;
   Next;
 end;
@@ -2312,8 +2321,9 @@ end;
 
 procedure TmwBasePasLex.IncludeFile;
 var
-  IndludeFileName, IncludeDirective, Content, Origin: string;
-  IncludedLineCount: integer;
+  IndludeFileName, IncludeDirective, Content, Origin, BehindIncludedContent: string;
+  pBehindIncludedContent: PChar;
+  IncludedLineCount, i: integer;
   CurrentChar: Char;
 begin
   IncludeDirective := Token;
@@ -2321,18 +2331,29 @@ begin
   begin
     IndludeFileName := Trim(Copy(IncludeDirective, 5, Length(IncludeDirective) - 5));
     Content := FIncludeHandler.GetIncludeFileContent(IndludeFileName);
-    Origin := FOrigin;
-    Origin := PChar(Copy(Origin, 1, Run - Length(IncludeDirective)) + Content + Copy(Origin, Run + 1, Length(Origin)));
-    FOrigin :=PChar(Origin);
-    Run := Run - Length(IncludeDirective);
-    IncludedLineCount := 1;
-    for CurrentChar in Content do
-      if CurrentChar = #10 then
-        Inc(IncludedLineCount);
-    FLineNumber := FLineNumber - IncludedLineCount;
+    for i := 1 to length(content) do
+      if Content[i] < #32 then
+        Content[i] := ' ';
 
-    //RunAhead := Run;
-    Next;
+    Origin := FOrigin;
+    GetMem(pBehindIncludedContent, INCLUDE_BUFFER_SIZE);
+    try
+      StrPCopy(pBehindIncludedContent, MidStr(Origin, Run+1, Length(Origin)));
+      BehindIncludedContent := pBehindIncludedContent;
+      Content :=Content + BehindIncludedContent;
+      StrPCopy(@FOrigin[Run - Length(IncludeDirective)], Content);
+
+      Run := Run - Length(IncludeDirective);
+      IncludedLineCount := 1;
+      for CurrentChar in Content do
+        if CurrentChar = #10 then
+          Inc(IncludedLineCount);
+      FLineNumber := FLineNumber - IncludedLineCount;
+
+      Next;
+    finally
+      FreeMem(pBehindIncludedContent);
+    end;
   end;
 end;
 
