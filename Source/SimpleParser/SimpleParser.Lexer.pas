@@ -2331,9 +2331,9 @@ begin
   begin
     IndludeFileName := Trim(Copy(IncludeDirective, 5, Length(IncludeDirective) - 5));
     Content := FIncludeHandler.GetIncludeFileContent(IndludeFileName);
-    for i := 1 to length(content) do
-      if Content[i] < #32 then
-        Content[i] := ' ';
+//    for i := 1 to length(content) do
+//      if Content[i] < #32 then
+//        Content[i] := ' ';
 
     Origin := FOrigin;
     GetMem(pBehindIncludedContent, INCLUDE_BUFFER_SIZE);
@@ -2344,11 +2344,12 @@ begin
       StrPCopy(@FOrigin[Run - Length(IncludeDirective)], Content);
 
       Run := Run - Length(IncludeDirective);
+
       IncludedLineCount := 1;
       for CurrentChar in Content do
         if CurrentChar = #10 then
           Inc(IncludedLineCount);
-      FLineNumber := FLineNumber - IncludedLineCount;
+      //FLineNumber := FLineNumber - IncludedLineCount;
 
       Next;
     finally
@@ -2658,7 +2659,9 @@ end;
 procedure TmwPasLex.SetOrigin(NewValue: PChar);
 begin
   inherited SetOrigin(NewValue);
-  FAheadLex.SetOrigin(NewValue);
+  FAheadLex.FOrigin := Self.Origin;
+  FAheadLex.Init;
+  FAheadLex.Next;
 end;
 
 procedure TmwPasLex.SetLine(const Value: string);
