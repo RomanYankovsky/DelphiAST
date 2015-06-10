@@ -272,6 +272,7 @@ type
     function HashValue(AChar: Char): Integer;
     function EvaluateConditionalExpression(const AParams: String): Boolean;
     procedure IncludeFile;
+    function GetIncludeFileNameFromToken(const IncludeToken: string): string;
   protected
     procedure SetLine(const Value: string); virtual;
     procedure SetOrigin(NewValue: PChar); virtual;
@@ -2329,6 +2330,24 @@ begin
   Result := UpperCase(Result);
 end;
 
+function TmwBasePasLex.GetIncludeFileNameFromToken(const IncludeToken: string): string;
+var
+  FileNameStartPos, CurrentPos: integer;
+  TrimmedToken: string;
+begin
+  TrimmedToken := Trim(IncludeToken);
+  CurrentPos := 1;
+  while TrimmedToken[CurrentPos] > #32 do
+    inc(CurrentPos);
+  while TrimmedToken[CurrentPos] <= #32 do
+    inc(CurrentPos);
+  FileNameStartPos := CurrentPos;
+  while (TrimmedToken[CurrentPos] > #32) and (TrimmedToken[CurrentPos] <> '}')  do
+    inc(CurrentPos);
+
+  Result := Copy(TrimmedToken, FileNameStartPos, CurrentPos - FileNameStartPos);
+end;
+
 procedure TmwBasePasLex.IncludeFile;
 var
   IndludeFileName, IncludeDirective, Content, Origin, BehindIncludedContent: string;
@@ -2338,48 +2357,44 @@ var
   sl:TstringList;
 begin
   IncludeDirective := Token;
-  if Length(IncludeDirective) > Length('{$I }') then
-  begin
-    IndludeFileName := Trim(Copy(IncludeDirective, 5, Length(IncludeDirective) - 5));
-    Content := FIncludeHandler.GetIncludeFileContent(IndludeFileName) + #10#13;
+  IndludeFileName := GetIncludeFileNameFromToken(IncludeDirective);
+  Content := FIncludeHandler.GetIncludeFileContent(IndludeFileName) + #10#13;
 
-    Origin := FOrigin;
-    GetMem(pBehindIncludedContent, INCLUDE_BUFFER_SIZE);
-    try
-      StrPCopy(pBehindIncludedContent, MidStr(Origin, Run+1, Length(Origin)));
-      BehindIncludedContent := pBehindIncludedContent;
-      Run := Run - Length(IncludeDirective);
-      EndOfIncludedArea := Run + Length(Content);
+  Origin := FOrigin;
+  GetMem(pBehindIncludedContent, INCLUDE_BUFFER_SIZE);
+  try
+    StrPCopy(pBehindIncludedContent, MidStr(Origin, Run+1, Length(Origin)));
+    BehindIncludedContent := pBehindIncludedContent;
+    Run := Run - Length(IncludeDirective);
+    EndOfIncludedArea := Run + Length(Content);
 
-      //for CurrentChar in Content do
-      i:=1;
-      while i <= Length(Content) do
+    i := 1;
+    while i <= Length(Content) do
+    begin
+      if Content[i] = #10 then
+        Inc(IncludedLineCount)
+      else if Content[i] = #13 then
       begin
-        if Content[i] = #10 then
-          Inc(IncludedLineCount)
-        else if Content[i] = #13 then
-        begin
-          Inc(IncludedLineCount);
-          if Content[i+1] = #10 then
-            inc(i);
-        end;
-
-        inc(i);
+        Inc(IncludedLineCount);
+        if (i+1 <= Length(Content)) and (Content[i+1] = #10) then
+          inc(i);
       end;
 
-      Content := Content + BehindIncludedContent;
-      StrPCopy(@FOrigin[Run], Content);
-
-      FOrigin[Run + Length(Content)] := #0;
-      sl := TstringList.Create;
-      sl.Text := FOrigin;
-      sl.SaveToFile('d:\inc.test.pas');
-      sl.Free;
-
-      Next;
-    finally
-      FreeMem(pBehindIncludedContent);
+      inc(i);
     end;
+
+    Content := Content + BehindIncludedContent;
+    StrPCopy(@FOrigin[Run], Content);
+
+    FOrigin[Run + Length(Content)] := #0;
+    sl := TstringList.Create;
+    sl.Text := FOrigin;
+    sl.SaveToFile('d:\inc.test.pas');
+    sl.Free;
+
+    Next;
+  finally
+    FreeMem(pBehindIncludedContent);
   end;
 end;
 
