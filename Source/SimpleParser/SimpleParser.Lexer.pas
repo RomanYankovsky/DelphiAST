@@ -273,6 +273,7 @@ type
     function EvaluateConditionalExpression(const AParams: String): Boolean;
     procedure IncludeFile;
     function GetIncludeFileNameFromToken(const IncludeToken: string): string;
+    procedure UpdateIncludedLineCount(const IncludedContent: string);
   protected
     procedure SetLine(const Value: string); virtual;
     procedure SetOrigin(NewValue: PChar); virtual;
@@ -2348,17 +2349,33 @@ begin
   Result := Copy(TrimmedToken, FileNameStartPos, CurrentPos - FileNameStartPos);
 end;
 
+procedure TmwBasePasLex.UpdateIncludedLineCount(const IncludedContent: string);
+var
+  i: Integer;
+begin
+  i := 1;
+  while i <= Length(IncludedContent) do
+  begin
+    if IncludedContent[i] = ''#10'' then
+      Inc(IncludedLineCount)
+    else if IncludedContent[i] = ''#13'' then
+    begin
+      Inc(IncludedLineCount);
+      if (i + 1 <= Length(IncludedContent)) and (IncludedContent[i + 1] = ''#10'') then
+        inc(i);
+    end;
+    inc(i);
+  end;
+end;
+
 procedure TmwBasePasLex.IncludeFile;
 var
   IndludeFileName, IncludeDirective, Content, Origin, BehindIncludedContent: string;
   pBehindIncludedContent: PChar;
-  i: integer;
-  CurrentChar: Char;
-  sl:TstringList;
 begin
   IncludeDirective := Token;
   IndludeFileName := GetIncludeFileNameFromToken(IncludeDirective);
-  Content := FIncludeHandler.GetIncludeFileContent(IndludeFileName) + #10#13;
+  Content := FIncludeHandler.GetIncludeFileContent(IndludeFileName) + #13#10;
 
   Origin := FOrigin;
   GetMem(pBehindIncludedContent, INCLUDE_BUFFER_SIZE);
@@ -2367,30 +2384,11 @@ begin
     BehindIncludedContent := pBehindIncludedContent;
     Run := Run - Length(IncludeDirective);
     EndOfIncludedArea := Run + Length(Content);
-
-    i := 1;
-    while i <= Length(Content) do
-    begin
-      if Content[i] = #10 then
-        Inc(IncludedLineCount)
-      else if Content[i] = #13 then
-      begin
-        Inc(IncludedLineCount);
-        if (i+1 <= Length(Content)) and (Content[i+1] = #10) then
-          inc(i);
-      end;
-
-      inc(i);
-    end;
+    UpdateIncludedLineCount(Content);
 
     Content := Content + BehindIncludedContent;
     StrPCopy(@FOrigin[Run], Content);
-
     FOrigin[Run + Length(Content)] := #0;
-    sl := TstringList.Create;
-    sl.Text := FOrigin;
-    sl.SaveToFile('d:\inc.test.pas');
-    sl.Free;
 
     Next;
   finally
