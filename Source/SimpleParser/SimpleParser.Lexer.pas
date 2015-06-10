@@ -108,6 +108,7 @@ type
     FTopDefineRec: PDefineRec;
     FUseDefines: Boolean;
     FIncludeHandler: IIncludeHandler;
+    FUseSharedOrigin: Boolean;
 
     function KeyHash: Integer;
     function KeyComp(const aKey: string): Boolean;
@@ -347,7 +348,7 @@ type
     property OnResourceDirect: TDirectiveEvent read FOnResourceDirect write SetOnResourceDirect;
     property OnUnDefDirect: TDirectiveEvent read FOnUnDefDirect write SetOnUnDefDirect;
     property AsmCode: Boolean read FAsmCode write FAsmCode;
-    //property DirectiveParamOrigin: PChar read FDirectiveParamOrigin;
+    property DirectiveParamOrigin: PChar read FDirectiveParamOrigin;
     property UseDefines: Boolean read FUseDefines write FUseDefines;
     property IncludeHandler: IIncludeHandler read FIncludeHandler write FIncludeHandler;
   end;
@@ -396,7 +397,7 @@ type
   TmwPasLexExpressionEvaluation = (leeNone, leeAnd, leeOr);
 
 const
-  INCLUDE_BUFFER_SIZE = 1024*1024*50;
+  INCLUDE_BUFFER_SIZE = 1024*1024;
 
 procedure MakeIdentTable;
 var
@@ -1301,7 +1302,7 @@ end;
 constructor TmwBasePasLex.Create;
 begin
   inherited Create;
-  FOrigin := nil;
+  GetMem(FOrigin, INCLUDE_BUFFER_SIZE);
   InitIdent;
   MakeMethodTables;
   FExID := ptUnKnown;
@@ -1309,6 +1310,7 @@ begin
   FUseDefines := True;
   FDefines := TStringList.Create;
   FTopDefineRec := nil;
+  FUseSharedOrigin := false;
   ClearDefines;
 end;
 
@@ -1316,7 +1318,8 @@ destructor TmwBasePasLex.Destroy;
 begin
   ClearDefines; //If we don't do this, we get a memory leak
   FDefines.Free;
-  FOrigin := nil;
+  if not FUseSharedOrigin then
+    FreeMem(FOrigin);
   inherited Destroy;
 end;
 
@@ -1332,9 +1335,10 @@ end;
 
 procedure TmwBasePasLex.SetOrigin(NewValue: PChar);
 begin
-  //FOrigin := NewValue;
-  FreeMem(FOrigin);
-  GetMem(FOrigin, INCLUDE_BUFFER_SIZE);
+  if not FUseSharedOrigin then
+    FreeMem(FOrigin);
+  FUseSharedOrigin := false;
+  GetMem(FOrigin, Length(String(NewValue)) + INCLUDE_BUFFER_SIZE);
   StrPCopy(FOrigin, NewValue);
   Init;
   Next;
@@ -2700,6 +2704,7 @@ procedure TmwPasLex.SetOrigin(NewValue: PChar);
 begin
   inherited SetOrigin(NewValue);
   FAheadLex.FOrigin := Self.Origin;
+  FAheadLex.FUseSharedOrigin := true;
   FAheadLex.Init;
   FAheadLex.Next;
 end;
