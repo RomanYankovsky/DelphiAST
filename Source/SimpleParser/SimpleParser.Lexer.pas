@@ -79,6 +79,8 @@ type
     Run: Integer;
     RunAhead: Integer;
     TempRun: Integer;
+    EndOfIncludedArea: Integer;
+    IncludedLineCount: Integer;
     FIdentFuncTable: array[0..191] of function: TptTokenKind of object;
     FTokenPos: Integer;
     FLineNumber: Integer;
@@ -343,7 +345,7 @@ type
     property OnResourceDirect: TDirectiveEvent read FOnResourceDirect write SetOnResourceDirect;
     property OnUnDefDirect: TDirectiveEvent read FOnUnDefDirect write SetOnUnDefDirect;
     property AsmCode: Boolean read FAsmCode write FAsmCode;
-    property DirectiveParamOrigin: PChar read FDirectiveParamOrigin;
+    //property DirectiveParamOrigin: PChar read FDirectiveParamOrigin;
     property UseDefines: Boolean read FUseDefines write FUseDefines;
     property IncludeHandler: IIncludeHandler read FIncludeHandler write FIncludeHandler;
   end;
@@ -392,7 +394,7 @@ type
   TmwPasLexExpressionEvaluation = (leeNone, leeAnd, leeOr);
 
 const
-  INCLUDE_BUFFER_SIZE = 1024*1024;
+  INCLUDE_BUFFER_SIZE = 1024*1024*50;
 
 procedure MakeIdentTable;
 var
@@ -466,8 +468,16 @@ end;
 
 function TmwBasePasLex.GetPosXY: TTokenPoint;
 begin
-  Result.X := FTokenPos - FLinePos + 1;
-  Result.Y := FLineNumber + 1;
+  if Run > EndOfIncludedArea then
+  begin
+    Result.X := FTokenPos - FLinePos + 1;
+    Result.Y := FLineNumber + 1 - IncludedLineCount;
+  end
+  else
+  begin
+    Result.X := -1;
+    Result.Y := -1;
+  end;
 end;
 
 procedure TmwBasePasLex.InitIdent;
@@ -1413,7 +1423,7 @@ begin
         begin
           Inc(Run);
           if FOrigin[Run] = #10 then Inc(Run);
-            Inc(FLineNumber);
+          Inc(FLineNumber);
           FLinePos := Run;
         end;
     else
@@ -2323,33 +2333,48 @@ procedure TmwBasePasLex.IncludeFile;
 var
   IndludeFileName, IncludeDirective, Content, Origin, BehindIncludedContent: string;
   pBehindIncludedContent: PChar;
-  IncludedLineCount, i: integer;
+  i: integer;
   CurrentChar: Char;
+  sl:TstringList;
 begin
   IncludeDirective := Token;
   if Length(IncludeDirective) > Length('{$I }') then
   begin
     IndludeFileName := Trim(Copy(IncludeDirective, 5, Length(IncludeDirective) - 5));
-    Content := FIncludeHandler.GetIncludeFileContent(IndludeFileName);
-//    for i := 1 to length(content) do
-//      if Content[i] < #32 then
-//        Content[i] := ' ';
+    Content := FIncludeHandler.GetIncludeFileContent(IndludeFileName) + #10#13;
 
     Origin := FOrigin;
     GetMem(pBehindIncludedContent, INCLUDE_BUFFER_SIZE);
     try
       StrPCopy(pBehindIncludedContent, MidStr(Origin, Run+1, Length(Origin)));
       BehindIncludedContent := pBehindIncludedContent;
-      Content :=Content + BehindIncludedContent;
-      StrPCopy(@FOrigin[Run - Length(IncludeDirective)], Content);
-
       Run := Run - Length(IncludeDirective);
+      EndOfIncludedArea := Run + Length(Content);
 
-      IncludedLineCount := 1;
-      for CurrentChar in Content do
-        if CurrentChar = #10 then
+      //for CurrentChar in Content do
+      i:=1;
+      while i <= Length(Content) do
+      begin
+        if Content[i] = #10 then
+          Inc(IncludedLineCount)
+        else if Content[i] = #13 then
+        begin
           Inc(IncludedLineCount);
-      //FLineNumber := FLineNumber - IncludedLineCount;
+          if Content[i+1] = #10 then
+            inc(i);
+        end;
+
+        inc(i);
+      end;
+
+      Content := Content + BehindIncludedContent;
+      StrPCopy(@FOrigin[Run], Content);
+
+      FOrigin[Run + Length(Content)] := #0;
+      sl := TstringList.Create;
+      sl.Text := FOrigin;
+      sl.SaveToFile('d:\inc.test.pas');
+      sl.Free;
 
       Next;
     finally
@@ -2364,6 +2389,8 @@ begin
   FLineNumber := 0;
   FLinePos := 0;
   Run := 0;
+  EndOfIncludedArea := -1;
+  IncludedLineCount := 0;
 end;
 
 procedure TmwBasePasLex.InitFrom(ALexer: TmwBasePasLex);
