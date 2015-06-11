@@ -276,6 +276,7 @@ type
     procedure IncludeFile;
     function GetIncludeFileNameFromToken(const IncludeToken: string): string;
     procedure UpdateIncludedLineCount(const IncludedContent: string);
+    procedure SetSharedOrigin(SharedValue: PChar);
   protected
     procedure SetLine(const Value: string); virtual;
     procedure SetOrigin(NewValue: PChar); virtual;
@@ -1340,9 +1341,23 @@ begin
   if not FUseSharedOrigin then
     FreeMem(FOrigin, BufferSize);
   FUseSharedOrigin := false;
+
   BufferSize := Length(String(NewValue)) + INCLUDE_BUFFER_SIZE * SizeOf(Char);
   GetMem(FOrigin, BufferSize);
   StrPCopy(FOrigin, NewValue);
+
+  Init;
+  Next;
+end;
+
+procedure TmwBasePasLex.SetSharedOrigin(SharedValue: PChar);
+begin
+  if not FUseSharedOrigin then
+    FreeMem(FOrigin, BufferSize);
+
+  FUseSharedOrigin := true;
+  FOrigin := SharedValue;
+
   Init;
   Next;
 end;
@@ -2417,13 +2432,7 @@ end;
 
 procedure TmwBasePasLex.InitFrom(ALexer: TmwBasePasLex);
 begin
-  if not FUseSharedOrigin then
-    FreeMem(FOrigin, BufferSize);
-
-  FOrigin := ALexer.Origin;
-  FUseSharedOrigin := true;
-  Init;
-  Next;
+  SetSharedOrigin(ALexer.Origin);
   FCommentState := ALexer.FCommentState;
   FLineNumber := ALexer.FLineNumber;
   FLinePos := ALexer.FLinePos;
@@ -2716,12 +2725,7 @@ end;
 procedure TmwPasLex.SetOrigin(NewValue: PChar);
 begin
   inherited SetOrigin(NewValue);
-  if not FAheadLex.FUseSharedOrigin then
-    FreeMem(FAheadLex.FOrigin, FAheadLex.BufferSize);
-  FAheadLex.FOrigin := Self.Origin;
-  FAheadLex.FUseSharedOrigin := true;
-  FAheadLex.Init;
-  FAheadLex.Next;
+  FAheadLex.SetSharedOrigin(Self.Origin);
 end;
 
 procedure TmwPasLex.SetLine(const Value: string);
