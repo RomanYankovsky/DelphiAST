@@ -399,7 +399,7 @@ type
   TmwPasLexExpressionEvaluation = (leeNone, leeAnd, leeOr);
 
 const
-  INCLUDE_BUFFER_SIZE = 1024*1024;//*1024;
+  INCLUDE_BUFFER_SIZE = 1024*1024;
 
 procedure MakeIdentTable;
 var
