@@ -2778,7 +2778,7 @@ begin
   Result.ExID := FExID;
   Result.LineNumber := FLineNumber;
   Result.LinePos := FLinePos;
-  Result.Origin := FOrigin; //todo cw: is this important?
+  Result.Origin := FOrigin;
   Result.RunPos := Run;
   Result.TokenPos := FTokenPos;
   Result.TokenID := FTokenID;
@@ -2790,7 +2790,7 @@ begin
   FExID := Value.ExID;
   FLineNumber := Value.LineNumber;
   FLinePos := Value.LinePos;
-  FOrigin := Value.Origin;   //todo cw: is this important
+  FOrigin := Value.Origin;
   Run := Value.RunPos;
   FTokenPos := Value.TokenPos;
   FTokenID := Value.TokenID;
