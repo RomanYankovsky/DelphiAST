@@ -81,6 +81,7 @@ type
     TempRun: Integer;
     EndOfIncludedArea: Integer;
     IncludedLineCount: Integer;
+    BufferSize: integer;
     FIdentFuncTable: array[0..191] of function: TptTokenKind of object;
     FTokenPos: Integer;
     FLineNumber: Integer;
@@ -397,7 +398,7 @@ type
   TmwPasLexExpressionEvaluation = (leeNone, leeAnd, leeOr);
 
 const
-  INCLUDE_BUFFER_SIZE = 1024*1024;
+  INCLUDE_BUFFER_SIZE = 1024*1024;//*1024;
 
 procedure MakeIdentTable;
 var
@@ -1302,7 +1303,8 @@ end;
 constructor TmwBasePasLex.Create;
 begin
   inherited Create;
-  GetMem(FOrigin, INCLUDE_BUFFER_SIZE);
+  BufferSize := INCLUDE_BUFFER_SIZE + SizeOf(Char);
+  GetMem(FOrigin, BufferSize);
   InitIdent;
   MakeMethodTables;
   FExID := ptUnKnown;
@@ -1319,7 +1321,7 @@ begin
   ClearDefines; //If we don't do this, we get a memory leak
   FDefines.Free;
   if not FUseSharedOrigin then
-    FreeMem(FOrigin);
+    FreeMem(FOrigin, BufferSize);
   inherited Destroy;
 end;
 
@@ -1336,9 +1338,10 @@ end;
 procedure TmwBasePasLex.SetOrigin(NewValue: PChar);
 begin
   if not FUseSharedOrigin then
-    FreeMem(FOrigin);
+    FreeMem(FOrigin, BufferSize);
   FUseSharedOrigin := false;
-  GetMem(FOrigin, Length(String(NewValue)) + INCLUDE_BUFFER_SIZE);
+  BufferSize := Length(String(NewValue)) + INCLUDE_BUFFER_SIZE * SizeOf(Char);
+  GetMem(FOrigin, BufferSize);
   StrPCopy(FOrigin, NewValue);
   Init;
   Next;
@@ -2376,13 +2379,15 @@ procedure TmwBasePasLex.IncludeFile;
 var
   IndludeFileName, IncludeDirective, Content, Origin, BehindIncludedContent: string;
   pBehindIncludedContent: PChar;
+  TempBufferSize: integer;
 begin
   IncludeDirective := Token;
   IndludeFileName := GetIncludeFileNameFromToken(IncludeDirective);
   Content := FIncludeHandler.GetIncludeFileContent(IndludeFileName) + #13#10;
 
   Origin := FOrigin;
-  GetMem(pBehindIncludedContent, INCLUDE_BUFFER_SIZE);
+  TempBufferSize := INCLUDE_BUFFER_SIZE + SizeOf(Char);
+  GetMem(pBehindIncludedContent, TempBufferSize);
   try
     StrPCopy(pBehindIncludedContent, MidStr(Origin, Run+1, Length(Origin)));
     BehindIncludedContent := pBehindIncludedContent;
@@ -2396,7 +2401,7 @@ begin
 
     Next;
   finally
-    FreeMem(pBehindIncludedContent);
+    FreeMem(pBehindIncludedContent, TempBufferSize);
   end;
 end;
 
@@ -2412,7 +2417,13 @@ end;
 
 procedure TmwBasePasLex.InitFrom(ALexer: TmwBasePasLex);
 begin
-  Origin := ALexer.Origin;
+  if not FUseSharedOrigin then
+    FreeMem(FOrigin, BufferSize);
+
+  FOrigin := ALexer.Origin;
+  FUseSharedOrigin := true;
+  Init;
+  Next;
   FCommentState := ALexer.FCommentState;
   FLineNumber := ALexer.FLineNumber;
   FLinePos := ALexer.FLinePos;
@@ -2595,6 +2606,8 @@ end;
 
 procedure TmwBasePasLex.SetLine(const Value: string);
 begin
+  if not FUseSharedOrigin then
+    FreeMem(FOrigin, BufferSize);
   FOrigin := PChar(Value);
   InitLine;
   Next;
@@ -2703,6 +2716,8 @@ end;
 procedure TmwPasLex.SetOrigin(NewValue: PChar);
 begin
   inherited SetOrigin(NewValue);
+  if not FAheadLex.FUseSharedOrigin then
+    FreeMem(FAheadLex.FOrigin, FAheadLex.BufferSize);
   FAheadLex.FOrigin := Self.Origin;
   FAheadLex.FUseSharedOrigin := true;
   FAheadLex.Init;
@@ -2759,7 +2774,7 @@ begin
   Result.ExID := FExID;
   Result.LineNumber := FLineNumber;
   Result.LinePos := FLinePos;
-  Result.Origin := FOrigin;
+  Result.Origin := FOrigin; //todo cw: is this important?
   Result.RunPos := Run;
   Result.TokenPos := FTokenPos;
   Result.TokenID := FTokenID;
@@ -2771,7 +2786,7 @@ begin
   FExID := Value.ExID;
   FLineNumber := Value.LineNumber;
   FLinePos := Value.LinePos;
-  FOrigin := Value.Origin;
+  FOrigin := Value.Origin;   //todo cw: is this important
   Run := Value.RunPos;
   FTokenPos := Value.TokenPos;
   FTokenID := Value.TokenID;
