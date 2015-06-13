@@ -31,13 +31,13 @@ end.
     <USES line="5" col="1">
       <UNIT line="6" col="3" name="Unit2"/>
     </USES>
-    <METHOD line="8" col="1" name="Sum" kind="function">
+    <METHOD line="8" col="1" kind="function" name="Sum">
       <PARAMETERS line="8" col="13">
-        <PARAMETER>
+        <PARAMETER line="8" col="14">
           <NAME line="8" col="14" value="A"/>
           <TYPE line="8" col="20" name="Integer"/>
         </PARAMETER>
-        <PARAMETER>
+        <PARAMETER line="8" col="17">
           <NAME line="8" col="17" value="B"/>
           <TYPE line="8" col="20" name="Integer"/>
         </PARAMETER>
@@ -48,13 +48,13 @@ end.
     </METHOD>
   </INTERFACE>
   <IMPLEMENTATION line="10" col="1">
-    <METHOD line="12" col="1" name="Sum" kind="function">
+    <METHOD line="12" col="1" kind="function" name="Sum">
       <PARAMETERS line="12" col="13">
-        <PARAMETER>
+        <PARAMETER line="12" col="14">
           <NAME line="12" col="14" value="A"/>
           <TYPE line="12" col="20" name="Integer"/>
         </PARAMETER>
-        <PARAMETER>
+        <PARAMETER line="12" col="17">
           <NAME line="12" col="17" value="B"/>
           <TYPE line="12" col="20" name="Integer"/>
         </PARAMETER>
@@ -62,12 +62,12 @@ end.
       <RETURNTYPE line="12" col="30">
         <TYPE line="12" col="30" name="Integer"/>
       </RETURNTYPE>
-      <STATEMENTS end_line="15" begin_line="14" end_col="1" begin_col="3">
+      <STATEMENTS begin_line="13" begin_col="1" end_line="15" end_col="4">
         <ASSIGN line="14" col="3">
-          <LHS>
+          <LHS line="14" col="3">
             <IDENTIFIER line="14" col="3" name="Result"/>
           </LHS>
-          <RHS>
+          <RHS line="14" col="13">
             <EXPRESSION line="14" col="13">
               <ADD line="14" col="15">
                 <IDENTIFIER line="14" col="13" name="A"/>
