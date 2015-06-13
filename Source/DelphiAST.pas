@@ -136,7 +136,6 @@ type
     procedure MainUsedUnitStatement; override;
     procedure MethodKind; override;
     procedure MultiplicativeOperator; override;
-    procedure NewFormalParameterType; override;
     procedure NotOp; override;
     procedure NilToken; override;
     procedure Number; override;
@@ -1313,12 +1312,6 @@ begin
   finally
     FStack.Pop;
   end;
-end;
-
-procedure TPasSyntaxTreeBuilder.NewFormalParameterType;
-begin
-  FStack.AddChild(ntType).SetAttribute(sNAME, Lexer.Token);
-  inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.NilToken;

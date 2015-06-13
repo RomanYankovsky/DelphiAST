@@ -374,7 +374,7 @@ type
     procedure MainUsesClause; virtual;
     procedure MethodKind; virtual;
     procedure MultiplicativeOperator; virtual;
-    procedure NewFormalParameterType; virtual;
+    procedure FormalParameterType; virtual;
     procedure NotOp; virtual;
     procedure NilToken; virtual;
     procedure Number; virtual;
@@ -394,7 +394,6 @@ type
     procedure ObjectType; virtual;
     procedure ObjectTypeEnd; virtual;
     procedure ObjectVisibility; virtual;
-    procedure OldFormalParameterType; virtual;
     procedure OrdinalIdentifier; virtual;
     procedure OrdinalType; virtual;
     procedure OutParameter; virtual;
@@ -1970,7 +1969,7 @@ begin
     ptColon:
       begin
         NextToken;
-        NewFormalParameterType;
+        FormalParameterType;
         if TokenID = ptEqual then
         begin
           NextToken;
@@ -1988,7 +1987,7 @@ begin
     ptColon:
       begin
         NextToken;
-        NewFormalParameterType;
+        FormalParameterType;
       end
   end;
 end;
@@ -2001,7 +2000,7 @@ begin
     ptColon:
       begin
         NextToken;
-        NewFormalParameterType;
+        FormalParameterType;
       end
   end;
 end;
@@ -2013,7 +2012,7 @@ begin
       begin
         ParameterNameList;
         Expected(ptColon);
-        NewFormalParameterType;
+        FormalParameterType;
         if TokenID = ptEqual then
         begin
           NextToken;
@@ -2048,47 +2047,9 @@ begin
   Expected(ptIdentifier);
 end;
 
-procedure TmwSimplePasPar.NewFormalParameterType;
+procedure TmwSimplePasPar.FormalParameterType;
 begin
-  case TokenID of
-    ptArray:
-      begin
-        NextToken;
-        Expected(ptOf);
-        case TokenID of
-          ptConst: (*new in ObjectPascal80*)
-            begin
-              NextToken;
-            end;
-        else
-          begin
-            OldFormalParameterType;
-          end;
-        end;
-      end;
-  else
-    begin
-      OldFormalParameterType;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.OldFormalParameterType;
-begin
-  case TokenID of
-    ptString:
-      begin
-        NextToken;
-      end;
-    ptFile:
-      begin
-        FileType;
-      end;
-  else
-    begin
-      TypeID;
-    end;
-  end;
+  TypeID;
 end;
 
 procedure TmwSimplePasPar.FunctionMethodDeclaration;
@@ -2469,7 +2430,7 @@ begin
     ptColon:
       begin
         NextToken;
-        NewFormalParameterType;
+        FormalParameterType;
         if TokenID = ptEqual then
         begin
           NextToken;
@@ -4932,7 +4893,22 @@ begin
     ptFile:
       begin
         FileType;
-      end
+      end;
+    ptArray:
+      begin
+        NextToken;
+        Expected(ptOf);
+        case TokenID of
+          ptConst: (*new in ObjectPascal80*)
+            begin
+              NextToken;
+            end;
+        else
+          begin
+            TypeID;
+          end;
+        end;
+      end;
   else
     Expected(ptIdentifier);
   end;
