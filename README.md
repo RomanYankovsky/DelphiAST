@@ -1,7 +1,7 @@
-### Fork for Free Pascal and Lazarus compatibility
-
 ### Abstract Syntax Tree Builder for Delphi 
 With DelphiAST you can take real Delphi code and get an abstract syntax tree. One unit at time and without a symbol table though. 
+
+Free Pascal and Lazarus compatible.
 
 #### Sample input
 ```delphi
