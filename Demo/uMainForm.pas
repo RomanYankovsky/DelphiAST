@@ -16,13 +16,16 @@ type
     OpenDialog1: TOpenDialog;
     procedure OpenDelphiUnit1Click(Sender: TObject);
   private
-     function Parse(const FileName: string): string;
-     procedure HandleMessage(Sender: TObject; const Typ: TMessageEventType; const Msg: string; X, Y: Integer);
+    function Parse(const FileName: string): string;
   public
     { Public declarations }
   end;
 
   TIncludeHandler = class(TInterfacedObject, IIncludeHandler)
+  private
+    FPath: string;
+  public
+    constructor Create(const Path: string);
     function GetIncludeFileContent(const FileName: string): string;
   end;
 
@@ -32,7 +35,7 @@ var
 implementation
 
 uses
-  DelphiAST, DelphiAST.Writer, DelphiAST.Classes;
+  DelphiAST, DelphiAST.Writer, DelphiAST.Classes, IOUtils;
 
 {$IFNDEF FPC}
   {$R *.dfm}
@@ -40,27 +43,18 @@ uses
   {$R *.lfm}
 {$ENDIF}
 
-
 function TForm1.Parse(const FileName: string): string;
 var
   SyntaxTree: TSyntaxNode;
 begin
   Result := '';
-  SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, false, TIncludeHandler.Create);
+  SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, False,
+    TIncludeHandler.Create(ExtractFilePath(FileName)));
   try
     Result := TSyntaxTreeWriter.ToXML(SyntaxTree, True);
   finally
     SyntaxTree.Free;
   end;
-end;
-
-procedure TForm1.HandleMessage(Sender: TObject; const Typ: TMessageEventType; const Msg: string; X, Y: Integer);
-var
-  sTyp: string;
-begin
-  if Typ = meError then sTyp := 'meError - ' else sTyp := 'meNotSupported - ';
-
-  ShowMessage(sTyp + Msg)
 end;
 
 procedure TForm1.OpenDelphiUnit1Click(Sender: TObject);
@@ -78,12 +72,23 @@ end;
 
 { TIncludeHandler }
 
-function TIncludeHandler.GetIncludeFileContent(const FileName: string): string;
+constructor TIncludeHandler.Create(const Path: string);
 begin
-  //ShowMessage(FileName);
-  Result := '';
-  if FileName <> 'CompilerSettings.inc' then
-    Result := 'abc,' + #13#10 + 'def,' + #13#10 + 'ghi';
+  inherited Create;
+  FPath := Path;
+end;
+
+function TIncludeHandler.GetIncludeFileContent(const FileName: string): string;
+var
+  FileContent: TStringList;
+begin
+  FileContent := TStringList.Create;
+  try
+    FileContent.LoadFromFile(TPath.Combine(FPath, FileName));
+    Result := FileContent.Text;
+  finally
+    FileContent.Free;
+  end;
 end;
 
 end.
