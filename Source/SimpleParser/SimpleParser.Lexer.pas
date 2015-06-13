@@ -47,6 +47,8 @@ Known Issues:
 
 unit SimpleParser.Lexer;
 
+{$IFDEF FPC}{$MODE DELPHI}{$ENDIF}
+
 {$I SimpleParser.inc}
 
 interface
@@ -77,6 +79,9 @@ type
     Run: Integer;
     RunAhead: Integer;
     TempRun: Integer;
+    EndOfIncludedArea: Integer;
+    IncludedLineCount: Integer;
+    BufferSize: integer;
     FIdentFuncTable: array[0..191] of function: TptTokenKind of object;
     FTokenPos: Integer;
     FLineNumber: Integer;
@@ -103,6 +108,8 @@ type
     FDefineStack: Integer;
     FTopDefineRec: PDefineRec;
     FUseDefines: Boolean;
+    FIncludeHandler: IIncludeHandler;
+    FUseSharedOrigin: Boolean;
 
     function KeyHash: Integer;
     function KeyComp(const aKey: string): Boolean;
@@ -266,6 +273,10 @@ type
     function IsIdentifiers(AChar: Char): Boolean; inline;
     function HashValue(AChar: Char): Integer;
     function EvaluateConditionalExpression(const AParams: String): Boolean;
+    procedure IncludeFile;
+    function GetIncludeFileNameFromToken(const IncludeToken: string): string;
+    procedure UpdateIncludedLineCount(const IncludedContent: string);
+    procedure SetSharedOrigin(SharedValue: PChar);
   protected
     procedure SetLine(const Value: string); virtual;
     procedure SetOrigin(NewValue: PChar); virtual;
@@ -341,6 +352,7 @@ type
     property AsmCode: Boolean read FAsmCode write FAsmCode;
     property DirectiveParamOrigin: PChar read FDirectiveParamOrigin;
     property UseDefines: Boolean read FUseDefines write FUseDefines;
+    property IncludeHandler: IIncludeHandler read FIncludeHandler write FIncludeHandler;
   end;
 
   TmwPasLex = class(TmwBasePasLex)
@@ -380,8 +392,14 @@ type
 
 implementation
 
+uses
+  StrUtils;
+
 type
   TmwPasLexExpressionEvaluation = (leeNone, leeAnd, leeOr);
+
+const
+  INCLUDE_BUFFER_SIZE = 1024*1024;
 
 procedure MakeIdentTable;
 var
@@ -455,8 +473,16 @@ end;
 
 function TmwBasePasLex.GetPosXY: TTokenPoint;
 begin
-  Result.X := FTokenPos - FLinePos + 1;
-  Result.Y := FLineNumber + 1;
+  if Run > EndOfIncludedArea then
+  begin
+    Result.X := FTokenPos - FLinePos + 1;
+    Result.Y := FLineNumber + 1 - IncludedLineCount;
+  end
+  else
+  begin
+    Result.X := -1;
+    Result.Y := -1;
+  end;
 end;
 
 procedure TmwBasePasLex.InitIdent;
@@ -1278,7 +1304,8 @@ end;
 constructor TmwBasePasLex.Create;
 begin
   inherited Create;
-  FOrigin := nil;
+  BufferSize := INCLUDE_BUFFER_SIZE + SizeOf(Char);
+  GetMem(FOrigin, BufferSize);
   InitIdent;
   MakeMethodTables;
   FExID := ptUnKnown;
@@ -1286,6 +1313,7 @@ begin
   FUseDefines := True;
   FDefines := TStringList.Create;
   FTopDefineRec := nil;
+  FUseSharedOrigin := false;
   ClearDefines;
 end;
 
@@ -1293,7 +1321,8 @@ destructor TmwBasePasLex.Destroy;
 begin
   ClearDefines; //If we don't do this, we get a memory leak
   FDefines.Free;
-  FOrigin := nil;
+  if not FUseSharedOrigin then
+    FreeMem(FOrigin, BufferSize);
   inherited Destroy;
 end;
 
@@ -1309,7 +1338,26 @@ end;
 
 procedure TmwBasePasLex.SetOrigin(NewValue: PChar);
 begin
-  FOrigin := NewValue;
+  if not FUseSharedOrigin then
+    FreeMem(FOrigin, BufferSize);
+  FUseSharedOrigin := false;
+
+  BufferSize := Length(String(NewValue)) + INCLUDE_BUFFER_SIZE * SizeOf(Char);
+  GetMem(FOrigin, BufferSize);
+  StrPCopy(FOrigin, NewValue);
+
+  Init;
+  Next;
+end;
+
+procedure TmwBasePasLex.SetSharedOrigin(SharedValue: PChar);
+begin
+  if not FUseSharedOrigin then
+    FreeMem(FOrigin, BufferSize);
+
+  FUseSharedOrigin := true;
+  FOrigin := SharedValue;
+
   Init;
   Next;
 end;
@@ -1399,7 +1447,7 @@ begin
         begin
           Inc(Run);
           if FOrigin[Run] = #10 then Inc(Run);
-            Inc(FLineNumber);
+          Inc(FLineNumber);
           FLinePos := Run;
         end;
     else
@@ -1536,8 +1584,10 @@ begin
       end;
     PtIncludeDirect:
       begin
-        if Assigned(FOnIncludeDirect) then
-          FOnIncludeDirect(Self);
+//        if Assigned(FOnIncludeDirect) then
+//          FOnIncludeDirect(Self);
+        if Assigned(FIncludeHandler) then
+          IncludeFile;
       end;
     PtResourceDirect:
       begin
@@ -1971,8 +2021,10 @@ begin
       end;
     PtIncludeDirect:
       begin
-        if Assigned(FOnIncludeDirect) then
-          FOnIncludeDirect(Self);
+//        if Assigned(FOnIncludeDirect) then
+//          FOnIncludeDirect(Self);
+        if Assigned(FIncludeHandler) then
+          IncludeFile;
       end;
     PtResourceDirect:
       begin
@@ -2301,17 +2353,86 @@ begin
   Result := UpperCase(Result);
 end;
 
+function TmwBasePasLex.GetIncludeFileNameFromToken(const IncludeToken: string): string;
+var
+  FileNameStartPos, CurrentPos: integer;
+  TrimmedToken: string;
+begin
+  TrimmedToken := Trim(IncludeToken);
+  CurrentPos := 1;
+  while TrimmedToken[CurrentPos] > #32 do
+    inc(CurrentPos);
+  while TrimmedToken[CurrentPos] <= #32 do
+    inc(CurrentPos);
+  FileNameStartPos := CurrentPos;
+  while (TrimmedToken[CurrentPos] > #32) and (TrimmedToken[CurrentPos] <> '}')  do
+    inc(CurrentPos);
+
+  Result := Copy(TrimmedToken, FileNameStartPos, CurrentPos - FileNameStartPos);
+end;
+
+procedure TmwBasePasLex.UpdateIncludedLineCount(const IncludedContent: string);
+var
+  i: Integer;
+begin
+  i := 1;
+  while i <= Length(IncludedContent) do
+  begin
+    if IncludedContent[i] = ''#10'' then
+      Inc(IncludedLineCount)
+    else if IncludedContent[i] = ''#13'' then
+    begin
+      Inc(IncludedLineCount);
+      if (i + 1 <= Length(IncludedContent)) and (IncludedContent[i + 1] = ''#10'') then
+        inc(i);
+    end;
+    inc(i);
+  end;
+end;
+
+procedure TmwBasePasLex.IncludeFile;
+var
+  IndludeFileName, IncludeDirective, Content, Origin, BehindIncludedContent: string;
+  pBehindIncludedContent: PChar;
+  TempBufferSize: integer;
+begin
+  IncludeDirective := Token;
+  IndludeFileName := GetIncludeFileNameFromToken(IncludeDirective);
+  Content := FIncludeHandler.GetIncludeFileContent(IndludeFileName) + #13#10;
+
+  Origin := FOrigin;
+  TempBufferSize := INCLUDE_BUFFER_SIZE + SizeOf(Char);
+  GetMem(pBehindIncludedContent, TempBufferSize);
+  try
+    StrPCopy(pBehindIncludedContent, MidStr(Origin, Run+1, Length(Origin)));
+    BehindIncludedContent := pBehindIncludedContent;
+    Run := Run - Length(IncludeDirective);
+    EndOfIncludedArea := Run + Length(Content);
+    UpdateIncludedLineCount(Content);
+
+    Content := Content + BehindIncludedContent;
+    StrPCopy(@FOrigin[Run], Content);
+    FOrigin[Run + Length(Content)] := #0;
+
+    Next;
+  finally
+    FreeMem(pBehindIncludedContent, TempBufferSize);
+  end;
+end;
+
 procedure TmwBasePasLex.Init;
 begin
   FCommentState := csNo;
   FLineNumber := 0;
   FLinePos := 0;
   Run := 0;
+  EndOfIncludedArea := -1;
+  IncludedLineCount := 0;
 end;
 
 procedure TmwBasePasLex.InitFrom(ALexer: TmwBasePasLex);
 begin
-  Origin := ALexer.Origin;
+  SetSharedOrigin(ALexer.Origin);
   FCommentState := ALexer.FCommentState;
   FLineNumber := ALexer.FLineNumber;
   FLinePos := ALexer.FLinePos;
@@ -2494,6 +2615,8 @@ end;
 
 procedure TmwBasePasLex.SetLine(const Value: string);
 begin
+  if not FUseSharedOrigin then
+    FreeMem(FOrigin, BufferSize);
   FOrigin := PChar(Value);
   InitLine;
   Next;
@@ -2602,7 +2725,7 @@ end;
 procedure TmwPasLex.SetOrigin(NewValue: PChar);
 begin
   inherited SetOrigin(NewValue);
-  FAheadLex.SetOrigin(NewValue);
+  FAheadLex.SetSharedOrigin(Self.Origin);
 end;
 
 procedure TmwPasLex.SetLine(const Value: string);

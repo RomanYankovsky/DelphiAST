@@ -1,6 +1,6 @@
 object Form2: TForm2
-  Left = 0
-  Top = 0
+  Left = -3
+  Top = 81
   Caption = 'DelphiAST Test Application'
   ClientHeight = 231
   ClientWidth = 687
@@ -10,7 +10,7 @@ object Form2: TForm2
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
+  OldCreateOrder = True
   DesignSize = (
     687
     231)
@@ -29,7 +29,6 @@ object Form2: TForm2
     Font.Style = []
     ParentFont = False
     TabOrder = 0
-    ExplicitWidth = 505
   end
   object btnRun: TButton
     Left = 604
@@ -40,6 +39,5 @@ object Form2: TForm2
     Caption = 'Run'
     TabOrder = 1
     OnClick = btnRunClick
-    ExplicitLeft = 422
   end
 end

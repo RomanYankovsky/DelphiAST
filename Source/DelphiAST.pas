@@ -1,5 +1,7 @@
 unit DelphiAST;
 
+{$IFDEF FPC}{$MODE DELPHI}{$ENDIF}  
+
 interface
 
 uses
@@ -42,11 +44,13 @@ type
 
   TPasSyntaxTreeBuilder = class(TmwSimplePasPar)
   private type
-    TExpressionMethod = reference to procedure;
+    TExpressionMethod = procedure of object;
   private
     procedure BuildExpressionTree(ExpressionMethod: TExpressionMethod);
     procedure ParserMessage(Sender: TObject; const Typ: TMessageEventType; const Msg: string; X, Y: Integer);
     function NodeListToString(NamesNode: TSyntaxNode): string;
+    procedure CallInheritedConstantExpression;
+    procedure CallInheritedExpression;
   protected
     FStack: TNodeStack;
 
@@ -206,10 +210,40 @@ type
 
     function Run(SourceStream: TStream): TSyntaxNode; reintroduce; overload; virtual;
     class function Run(const FileName: string;
-      InterfaceOnly: Boolean = False): TSyntaxNode; reintroduce; overload; static;
+      InterfaceOnly: Boolean = False; IncludeHandler: IIncludeHandler = nil): TSyntaxNode; reintroduce; overload; static;
   end;
 
 implementation
+
+{$IFDEF FPC}
+  type
+
+   TStringStreamHelper = class helper for TStringStream
+      class function Create: TStringStream; overload;
+      procedure LoadFromFile(const FileName: string);
+    end;
+
+  { TStringStreamHelper }
+
+  class function TStringStreamHelper.Create: TStringStream;
+  begin
+    Result := TStringStream.Create('');
+  end;
+
+  procedure TStringStreamHelper.LoadFromFile(const FileName: string);
+  var
+    Strings: TStringList;
+  begin
+    Strings := TStringList.Create;
+    try
+      Strings.LoadFromFile(FileName);
+      Strings.SaveToStream(Self);
+    finally
+      FreeAndNil(Strings);
+    end;
+  end;
+{$ENDIF}
+
 
 { TPasSyntaxTreeBuilder }
 
@@ -643,12 +677,16 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.ConstantExpression;
+var
+  ExpressionMethod: TExpressionMethod;
 begin
-  BuildExpressionTree(
-    procedure
-    begin
-      inherited ConstantExpression;
-    end);
+  ExpressionMethod := CallInheritedConstantExpression;
+  BuildExpressionTree(ExpressionMethod);
+end;
+
+procedure TPasSyntaxTreeBuilder.CallInheritedConstantExpression;
+begin
+  inherited ConstantExpression;
 end;
 
 procedure TPasSyntaxTreeBuilder.ConstantName;
@@ -860,12 +898,16 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.Expression;
+var
+  ExpressionMethod: TExpressionMethod;
 begin
-  BuildExpressionTree(
-    procedure
-    begin
-      inherited Expression
-    end);
+  ExpressionMethod := CallInheritedExpression;
+  BuildExpressionTree(ExpressionMethod);
+end;
+
+procedure TPasSyntaxTreeBuilder.CallInheritedExpression;
+begin
+  inherited Expression;
 end;
 
 procedure TPasSyntaxTreeBuilder.ExpressionList;
@@ -1521,7 +1563,7 @@ begin
 end;
 
 class function TPasSyntaxTreeBuilder.Run(const FileName: string;
-  InterfaceOnly: Boolean): TSyntaxNode;
+  InterfaceOnly: Boolean; IncludeHandler: IIncludeHandler): TSyntaxNode;
 var
   Stream: TStringStream;
   Builder: TPasSyntaxTreeBuilder;
@@ -1533,6 +1575,7 @@ begin
     Builder.InterfaceOnly := InterfaceOnly;
     try
       Builder.InitDefinesDefinedByCompiler;
+      Builder.IncludeHandler := IncludeHandler;
       Result := Builder.Run(Stream);
     finally
       Builder.Free;
