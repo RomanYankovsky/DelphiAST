@@ -7,10 +7,11 @@ interface
 uses
   {$IFNDEF FPC}
     Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-    Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls;
+    Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
   {$ELSE}
-    SysUtils, Variants, Classes, Controls, Forms, StdCtrls;
+    SysUtils, Variants, Classes, Controls, Forms, StdCtrls,
   {$ENDIF}
+  SimpleParser.Lexer.Types;
 
 type
   TForm2 = class(TForm)
@@ -21,6 +22,14 @@ type
     { Private declarations }
   public
     { Public declarations }
+  end;
+
+  TIncludeHandler = class(TInterfacedObject, IIncludeHandler)
+  private
+    FPath: string;
+  public
+    constructor Create(const Path: string);
+    function GetIncludeFileContent(const FileName: string): string;
   end;
 
 var
@@ -47,7 +56,7 @@ begin
   for FileName in TDirectory.GetFiles(Path, '*.pas', TSearchOption.soAllDirectories) do
   begin
     try
-      SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName);
+      SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, False, TIncludeHandler.Create(Path));
       try
         memLog.Lines.Add('OK:     ' + FileName);
       finally
@@ -62,6 +71,27 @@ begin
         memLog.Repaint;
       end;
     end;
+  end;
+end;
+
+{ TIncludeHandler }
+
+constructor TIncludeHandler.Create(const Path: string);
+begin
+  inherited Create;
+  FPath := Path;
+end;
+
+function TIncludeHandler.GetIncludeFileContent(const FileName: string): string;
+var
+  FileContent: TStringList;
+begin
+  FileContent := TStringList.Create;
+  try
+    FileContent.LoadFromFile(TPath.Combine(FPath, FileName));
+    Result := FileContent.Text;
+  finally
+    FileContent.Free;
   end;
 end;
 
