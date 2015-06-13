@@ -81,6 +81,7 @@ type
     procedure ClassProperty; override;
     procedure ClassReferenceType; override;
     procedure ClassType; override;
+    procedure CompoundStatement; override;
     procedure ConstParameter; override;
     procedure ConstantDeclaration; override;
     procedure ConstantExpression; override;
@@ -664,6 +665,18 @@ begin
   FStack.Peek.SetAttribute('kind', 'constructor');
   FStack.Peek.SetAttribute('name', Lexer.Token);
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.CompoundStatement;
+begin
+  FStack.Push(FStack.Peek.AddChild(TCompoundSyntaxNode.Create(ntStatements)));
+  try
+    inherited;
+    TCompoundSyntaxNode(FStack.Peek).EndCol := Lexer.PosXY.X;
+    TCompoundSyntaxNode(FStack.Peek).EndLine := Lexer.PosXY.Y;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.ConstantDeclaration;

@@ -455,6 +455,7 @@ type
     procedure SkipCRLFco; virtual;
     procedure SkipCRLF; virtual;
     procedure Statement; virtual;
+    procedure Statements; virtual;
     procedure StatementList; virtual;
     procedure StorageExpression; virtual;
     procedure StorageIdentifier; virtual;
@@ -2580,6 +2581,11 @@ begin
 end;
 
 procedure TmwSimplePasPar.StatementList;
+begin
+  Statements;
+end;
+
+procedure TmwSimplePasPar.Statements;
 begin {removed ptIntegerConst jdj-Put back in for labels}
   while TokenID in [ptAddressOp, ptAsm, ptBegin, ptCase, ptDoubleAddressOp,
     ptFor, ptGoTo, ptIdentifier, ptIf, ptInherited, ptInline, ptIntegerConst,
@@ -5092,7 +5098,7 @@ end;
 procedure TmwSimplePasPar.CompoundStatement;
 begin
   Expected(ptBegin);
-  StatementList;
+  Statements;
   Expected(ptEnd);
 end;
 
