@@ -1,6 +1,6 @@
-[submodule "FreePascalSupport/Generics.Collection"]
+[submodule "Source/FreePascalSupport/Generics.Collection"]
 	path = Source/FreePascalSupport/Generics.Collection
 	url = https://github.com/Wosi/generics.collections.git
-[submodule "FreePascalSupport/FPC_StringBuilder"]
+[submodule "Source/FreePascalSupport/FPC_StringBuilder"]
 	path = Source/FreePascalSupport/FPC_StringBuilder
 	url = https://github.com/Wosi/FPC_StringBuilder.git
