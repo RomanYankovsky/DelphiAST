@@ -36,8 +36,7 @@
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="4"/>
-        <TopLine Value="201"/>
-        <CursorPos X="8" Y="239"/>
+        <CursorPos X="22" Y="8"/>
         <UsageCount Value="31"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -85,7 +84,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit8>
     </Units>
-    <JumpHistory Count="20" HistoryIndex="19">
+    <JumpHistory Count="21" HistoryIndex="20">
       <Position1>
         <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
         <Caret Line="702" Column="29" TopLine="675"/>
@@ -164,6 +163,10 @@
         <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
         <Caret Line="676" Column="24" TopLine="648"/>
       </Position20>
+      <Position21>
+        <Filename Value="..\Source\DelphiAST.pas"/>
+        <Caret Line="239" Column="8" TopLine="201"/>
+      </Position21>
     </JumpHistory>
   </ProjectSession>
 </CONFIG>
