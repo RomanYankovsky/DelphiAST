@@ -1304,7 +1304,7 @@ end;
 constructor TmwBasePasLex.Create;
 begin
   inherited Create;
-  BufferSize := INCLUDE_BUFFER_SIZE + SizeOf(Char);
+  BufferSize := INCLUDE_BUFFER_SIZE * SizeOf(Char);
   GetMem(FOrigin, BufferSize);
   InitIdent;
   MakeMethodTables;
@@ -1342,7 +1342,7 @@ begin
     FreeMem(FOrigin, BufferSize);
   FUseSharedOrigin := false;
 
-  BufferSize := Length(String(NewValue)) + INCLUDE_BUFFER_SIZE * SizeOf(Char);
+  BufferSize := (Length(String(NewValue)) + INCLUDE_BUFFER_SIZE) * SizeOf(Char);
   GetMem(FOrigin, BufferSize);
   StrPCopy(FOrigin, NewValue);
 
@@ -2401,7 +2401,7 @@ begin
   Content := FIncludeHandler.GetIncludeFileContent(IndludeFileName) + #13#10;
 
   Origin := FOrigin;
-  TempBufferSize := INCLUDE_BUFFER_SIZE + SizeOf(Char);
+  TempBufferSize := (Length(Origin) + INCLUDE_BUFFER_SIZE) * SizeOf(Char);
   GetMem(pBehindIncludedContent, TempBufferSize);
   try
     StrPCopy(pBehindIncludedContent, MidStr(Origin, Run+1, Length(Origin)));
