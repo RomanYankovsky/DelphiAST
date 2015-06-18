@@ -61,8 +61,8 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <SearchPaths>
-      <IncludeFiles Value="..\Source;..\Source\SimpleParser;..\..\Generics.Collections\src;$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\Source;..\FreePascalSupport\FPC_StringBuilder\Src;..\FreePascalSupport\Generics.Collection\src;..\Source\SimpleParser"/>
+      <IncludeFiles Value="..\Source;..\Source\SimpleParser;..\Source\FreePascalSupport\Generics.Collections\src;$(ProjOutDir)"/>
+      <OtherUnitFiles Value="..\Source;..\Source\FreePascalSupport\FPC_StringBuilder\Src;..\Source\FreePascalSupport\Generics.Collection\src;..\Source\FreePascalSupport;..\Source\SimpleParser"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>

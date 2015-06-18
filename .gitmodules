@@ -2,5 +2,7 @@
 	path = Source/FreePascalSupport/Generics.Collection
 	url = https://github.com/Wosi/generics.collections.git
 [submodule "Source/FreePascalSupport/FPC_StringBuilder"]
-	path = Source/FreePascalSupport/FPC_StringBuilder
-	url = https://github.com/Wosi/FPC_StringBuilder.git
+	
+        path = Source/FreePascalSupport/FPC_StringBuilder
+	
+        url = https://github.com/Wosi/FPC_StringBuilder.git

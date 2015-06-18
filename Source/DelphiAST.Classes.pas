@@ -59,6 +59,8 @@ type
   end;
 
   TExpressionTools = class
+  private
+    class function CreateNodeWithParentsPosition(NodeType: TSyntaxNodeType; ParentNode: TSyntaxNode): TSyntaxNode;
   public
     class function ExprToReverseNotation(Expr: TList<TSyntaxNode>): TList<TSyntaxNode>; static;
     class procedure NodeListToTree(Expr: TList<TSyntaxNode>; Root: TSyntaxNode); static;
@@ -297,25 +299,25 @@ begin
       if Assigned(PrevNode) and IsRoundOpen(Node.Typ) then
       begin
         if not TOperators.IsOpName(PrevNode.Typ) and not IsRoundOpen(PrevNode.Typ) then
-          Result.Add(TSyntaxNode.Create(ntCall));
+          Result.Add(CreateNodeWithParentsPosition(ntCall, Node.ParentNode));
 
         if TOperators.IsOpName(PrevNode.Typ)
           and (TOperators.Items[PrevNode.Typ].Kind = okUnary)
           and (TOperators.Items[PrevNode.Typ].AssocType = atLeft)
         then
-          Result.Add(TSyntaxNode.Create(ntCall));
+          Result.Add(CreateNodeWithParentsPosition(ntCall, Node.ParentNode));
       end;
 
       if Assigned(PrevNode) and (Node.Typ = ntTypeArgs) then
       begin
         if not TOperators.IsOpName(PrevNode.Typ) and (PrevNode.Typ <> ntTypeArgs) then
-          Result.Add(TSyntaxNode.Create(ntGeneric));
+          Result.Add(CreateNodeWithParentsPosition(ntGeneric, Node.ParentNode));
 
         if TOperators.IsOpName(PrevNode.Typ)
           and (TOperators.Items[PrevNode.Typ].Kind = okUnary)
           and (TOperators.Items[PrevNode.Typ].AssocType = atLeft)
         then
-          Result.Add(TSyntaxNode.Create(ntGeneric));
+          Result.Add(CreateNodeWithParentsPosition(ntGeneric, Node.ParentNode));
       end;
 
       if Node.Typ <> ntAlignmentParam then
@@ -326,6 +328,13 @@ begin
     FreeAndNil(Result);
     raise;
   end;
+end;
+
+class function TExpressionTools.CreateNodeWithParentsPosition(NodeType: TSyntaxNodeType; ParentNode: TSyntaxNode): TSyntaxNode;
+begin
+  Result := TSyntaxNode.Create(NodeType);
+  Result.Line := ParentNode.Line;
+  Result.Col := ParentNode.Col; 
 end;
 
 class procedure TExpressionTools.RawNodeListToTree(RawParentNode: TSyntaxNode; RawNodeList: TList<TSyntaxNode>;
