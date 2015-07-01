@@ -264,6 +264,7 @@ type
     procedure ClassMethodResolution; virtual;
     procedure ClassProcedureHeading; virtual;
     procedure ClassClass; virtual;
+    procedure ClassConstraint; virtual; 
     procedure ClassMethod; virtual;
     procedure ClassProperty; virtual;
     procedure ClassReferenceType; virtual;
@@ -280,6 +281,7 @@ type
     procedure ConstantValue; virtual;
     procedure ConstantValueTyped; virtual;
     procedure ConstParameter; virtual;
+    procedure ConstructorConstraint; virtual; 
     procedure ConstructorHeading; virtual;
     procedure ConstructorName; virtual;
     procedure ConstSection; virtual;
@@ -428,6 +430,7 @@ type
     procedure RealIdentifier; virtual;
     procedure RealType; virtual;
     procedure RecordConstant; virtual;
+    procedure RecordConstraint; virtual; 
     procedure RecordFieldConstant; virtual;
     procedure RecordType; virtual;
     procedure RecordVariant; virtual;
@@ -1681,8 +1684,11 @@ procedure TmwSimplePasPar.Constraint;
 begin
   while TokenId in [ptConstructor, ptRecord, ptClass, ptIdentifier] do
   begin
+//    writeln(IntTostr(TokenID));
     case TokenId of
-      ptConstructor, ptRecord, ptClass: NextToken;
+      ptConstructor: ConstructorConstraint;
+      ptRecord: RecordConstraint;
+      ptClass: ClassConstraint;
       ptIdentifier: TypeId;
     end;
     if TokenId = ptComma then
@@ -1697,6 +1703,11 @@ begin
   begin
     Constraint;
   end;
+end;
+
+procedure TmwSimplePasPar.ConstructorConstraint;
+begin
+  Expected(ptConstructor);
 end;
 
 procedure TmwSimplePasPar.ConstructorHeading;
@@ -4251,6 +4262,11 @@ begin
   Expected(ptRoundClose);
 end;
 
+procedure TmwSimplePasPar.RecordConstraint;
+begin
+  Expected(ptRecord);
+end;
+
 procedure TmwSimplePasPar.ArrayConstant;
 begin
   Expected(ptRoundOpen);
@@ -5300,6 +5316,11 @@ begin
 end;
 
 procedure TmwSimplePasPar.ClassClass;
+begin
+  Expected(ptClass);
+end;
+
+procedure TmwSimplePasPar.ClassConstraint;
 begin
   Expected(ptClass);
 end;
