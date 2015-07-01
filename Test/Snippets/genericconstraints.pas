@@ -9,10 +9,18 @@ type
   TBar<T1: TComponent; T2: IUnknown> = class(TObject);           // T1 inherits from TComponent, T2 implements IUnknown
   TBaz<TThreeConstraints: TComponent, IUnknown, constructor> = class(TObject);   // TThreeConstraints inherits from TComponent, implements IUnknown and has a constructor without parameters
   TBaz<TComma1, TComma2: class> = class(TObject);                // TComma1 and TComma2 are classes
-  TBax<T1: class; T2: record> = class(TObject);                  // T1 is a class, T2 is a record
-
-  function Sum(a, b: integer): integer;
+  TBax<T1: class; T2: record> = class(TObject)                   // T1 is a class, T2 is a record
+  public
+    procedure DoStuff;
+  end;
 
 implementation
+
+{ TBax<T1, T2> }
+
+procedure TBax<T1, T2>.DoStuff;
+begin
+//
+end;
 
 end.

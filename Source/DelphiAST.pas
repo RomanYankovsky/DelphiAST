@@ -1118,7 +1118,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.FunctionProcedureName;
 var
-  ChildNode, nameNode, TypeParam: TSyntaxNode;
+  ChildNode, nameNode, TypeParam, TypeNode: TSyntaxNode;
   FullName, TypeParams: string;
 begin
   FStack.Push(ntName);
@@ -1127,15 +1127,19 @@ begin
     inherited;
     for ChildNode in nameNode.ChildNodes do
     begin
-      if ChildNode.Typ = ntTypeParams then //todo cw: repair without constraints
+      if ChildNode.Typ = ntTypeParams then
       begin
         TypeParams := '';
 
         for TypeParam in ChildNode.ChildNodes do
         begin
-          if TypeParams <> '' then
-            TypeParams := TypeParams + ',';
-          TypeParams := TypeParams + TypeParam.GetAttribute(sNAME);
+          TypeNode := TypeParam.FindNode(ntType);
+          if Assigned(TypeNode) then
+          begin
+            if TypeParams <> '' then
+              TypeParams := TypeParams + ',';
+            TypeParams := TypeParams + TypeNode.GetAttribute(sNAME);
+          end;
         end;
 
         FullName := FullName + '<' + TypeParams + '>';
@@ -1902,13 +1906,47 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.TypeParamDecl;
+var
+  OriginTypeParamNode, NewTypeParamNode, Constraints, TypeNode: TSyntaxNode;
+  TypeNodeCount: integer;
+  TypeNodesToDelete: TList<TSyntaxNode>;
 begin
-  FStack.Push(ntTypeParam);
+  OriginTypeParamNode := FStack.Push(ntTypeParam);
   try
     inherited;
   finally
     FStack.Pop;
-  end;  
+  end;
+
+  Constraints := OriginTypeParamNode.FindNode(ntConstraints);
+  TypeNodeCount := 0;
+  TypeNodesToDelete := TList<TSyntaxNode>.Create;
+  try
+    for TypeNode in OriginTypeParamNode.ChildNodes do
+    begin
+      if TypeNode.Typ = ntType then
+      begin
+        inc(TypeNodeCount);
+        if TypeNodeCount > 1 then
+        begin
+          NewTypeParamNode := FStack.Push(ntTypeParam);
+          try
+            NewTypeParamNode.AddChild(TypeNode.Clone);
+            if Assigned(Constraints) then
+              NewTypeParamNode.AddChild(Constraints.Clone);
+            TypeNodesToDelete.Add(TypeNode);
+          finally
+            FStack.Pop;
+          end;
+        end;
+      end;
+    end;
+
+    for TypeNode in TypeNodesToDelete do
+      OriginTypeParamNode.DeleteChild(TypeNode);
+  finally
+    TypeNodesToDelete.Free;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.TypeParams;

@@ -1684,7 +1684,6 @@ procedure TmwSimplePasPar.Constraint;
 begin
   while TokenId in [ptConstructor, ptRecord, ptClass, ptIdentifier] do
   begin
-//    writeln(IntTostr(TokenID));
     case TokenId of
       ptConstructor: ConstructorConstraint;
       ptRecord: RecordConstraint;
