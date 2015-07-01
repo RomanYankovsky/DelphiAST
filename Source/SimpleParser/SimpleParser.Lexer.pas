@@ -1587,7 +1587,9 @@ begin
 //        if Assigned(FOnIncludeDirect) then
 //          FOnIncludeDirect(Self);
         if Assigned(FIncludeHandler) then
-          IncludeFile;
+          IncludeFile
+        else
+          Next;
       end;
     PtResourceDirect:
       begin
