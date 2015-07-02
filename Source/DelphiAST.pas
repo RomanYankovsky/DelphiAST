@@ -72,6 +72,7 @@ type
     procedure CaseSelector; override;
     procedure CaseStatement; override;
     procedure ClassClass; override;
+    procedure ClassConstraint; override;    
     procedure ClassField; override;
     procedure ClassForward; override;
     procedure ClassFunctionHeading; override;
@@ -86,9 +87,11 @@ type
     procedure ConstantDeclaration; override;
     procedure ConstantExpression; override;
     procedure ConstantName; override;
+    procedure ConstraintList; override;
     procedure ConstSection; override;
     procedure ConstantValue; override;
     procedure ConstantValueTyped; override;
+    procedure ConstructorConstraint; override;
     procedure ConstructorName; override;
     procedure ContainsClause; override;
     procedure Designator; override;
@@ -152,6 +155,7 @@ type
     procedure PropertyName; override;
     procedure PropertyParameterList; override;
     procedure RaiseStatement; override;
+    procedure RecordConstraint; override;
     procedure RecordFieldConstant; override;
     procedure RelativeOperator; override;
     procedure RepeatStatement; override;
@@ -175,6 +179,7 @@ type
     procedure TryStatement; override;
     procedure TypeArgs; override;
     procedure TypeDeclaration; override;
+    procedure TypeParamDecl; override;
     procedure TypeParams; override;
     procedure TypeSection; override;
     procedure TypeSimple; override;
@@ -727,6 +732,46 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.ConstraintList;
+begin
+  FStack.Push(ntConstraints);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ClassConstraint;
+begin
+  FStack.Push(ntClassConstraint);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;  
+end;
+
+procedure TPasSyntaxTreeBuilder.ConstructorConstraint;
+begin
+  FStack.Push(ntConstructorConstraint);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;  
+end;
+
+procedure TPasSyntaxTreeBuilder.RecordConstraint;
+begin
+  FStack.Push(ntRecordConstraint);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;  
+end;
+
 procedure TPasSyntaxTreeBuilder.ConstSection;
 var
   ConstSect: TSyntaxNode;
@@ -1073,7 +1118,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.FunctionProcedureName;
 var
-  ChildNode, nameNode, TypeParam: TSyntaxNode;
+  ChildNode, nameNode, TypeParam, TypeNode: TSyntaxNode;
   FullName, TypeParams: string;
 begin
   FStack.Push(ntName);
@@ -1088,9 +1133,13 @@ begin
 
         for TypeParam in ChildNode.ChildNodes do
         begin
-          if TypeParams <> '' then
-            TypeParams := TypeParams + ',';
-          TypeParams := TypeParams + TypeParam.GetAttribute(sNAME);
+          TypeNode := TypeParam.FindNode(ntType);
+          if Assigned(TypeNode) then
+          begin
+            if TypeParams <> '' then
+              TypeParams := TypeParams + ',';
+            TypeParams := TypeParams + TypeNode.GetAttribute(sNAME);
+          end;
         end;
 
         FullName := FullName + '<' + TypeParams + '>';
@@ -1856,6 +1905,50 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.TypeParamDecl;
+var
+  OriginTypeParamNode, NewTypeParamNode, Constraints, TypeNode: TSyntaxNode;
+  TypeNodeCount: integer;
+  TypeNodesToDelete: TList<TSyntaxNode>;
+begin
+  OriginTypeParamNode := FStack.Push(ntTypeParam);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+
+  Constraints := OriginTypeParamNode.FindNode(ntConstraints);
+  TypeNodeCount := 0;
+  TypeNodesToDelete := TList<TSyntaxNode>.Create;
+  try
+    for TypeNode in OriginTypeParamNode.ChildNodes do
+    begin
+      if TypeNode.Typ = ntType then
+      begin
+        inc(TypeNodeCount);
+        if TypeNodeCount > 1 then
+        begin
+          NewTypeParamNode := FStack.Push(ntTypeParam);
+          try
+            NewTypeParamNode.AddChild(TypeNode.Clone);
+            if Assigned(Constraints) then
+              NewTypeParamNode.AddChild(Constraints.Clone);
+            TypeNodesToDelete.Add(TypeNode);
+          finally
+            FStack.Pop;
+          end;
+        end;
+      end;
+    end;
+
+    for TypeNode in TypeNodesToDelete do
+      OriginTypeParamNode.DeleteChild(TypeNode);
+  finally
+    TypeNodesToDelete.Free;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.TypeParams;
 begin
   FStack.Push(ntTypeParams);
@@ -1878,7 +1971,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.TypeSimple;
 begin
-  FStack.Push(ntType).SetAttribute(sNAME, Lexer.Token);
+  FStack.Push(ntType).SetAttribute(sNAME, Lexer.Token); 
   try
     inherited;
   finally
