@@ -2395,28 +2395,27 @@ begin
       begin
         ExceptionClassTypeIdentifier;
       end;
+    ptColon:
+      begin
+        ExceptionVariable;
+      end
   else
     begin
-      ExceptionVariable;
-      case Lexer.TokenID of
-        ptColon:
-          begin
-            NextToken;
-            ExceptionClassTypeIdentifier;
-          end;
-      end;
+      ExceptionClassTypeIdentifier;
     end;
   end;
 end;
 
 procedure TmwSimplePasPar.ExceptionClassTypeIdentifier;
 begin
-  QualifiedIdentifier;
+  TypeKind;
 end;
 
 procedure TmwSimplePasPar.ExceptionVariable;
 begin
   Expected(ptIdentifier);
+  Expected(ptColon);
+  ExceptionClassTypeIdentifier;
 end;
 
 procedure TmwSimplePasPar.InlineStatement;

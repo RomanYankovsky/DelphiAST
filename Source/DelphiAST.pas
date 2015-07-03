@@ -104,6 +104,7 @@ type
     procedure EnumeratedType; override;
     procedure ExceptBlock; override;
     procedure ExceptionHandler; override;
+    procedure ExceptionVariable; override;
     procedure ExportedHeading; override;
     procedure ExportsClause; override;
     procedure ExportsElement; override;
@@ -917,6 +918,18 @@ end;
 procedure TPasSyntaxTreeBuilder.ExceptionHandler;
 begin
   FStack.Push(ntExceptionHandler);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ExceptionVariable;
+begin
+  FStack.Push(ntVariable);
+  FStack.Push(ntName).SetAttribute(sNAME, Lexer.Token);
+  FStack.Pop;
   try
     inherited;
   finally
