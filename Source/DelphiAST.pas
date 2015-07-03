@@ -103,6 +103,7 @@ type
     procedure EmptyStatement; override;
     procedure EnumeratedType; override;
     procedure ExceptBlock; override;
+    procedure ExceptionBlockElseBranch; override;
     procedure ExceptionHandler; override;
     procedure ExceptionVariable; override;
     procedure ExportedHeading; override;
@@ -908,6 +909,16 @@ end;
 procedure TPasSyntaxTreeBuilder.ExceptBlock;
 begin
   FStack.Push(ntExcept);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ExceptionBlockElseBranch;
+begin
+  FStack.Push(ntElse);
   try
     inherited;
   finally
