@@ -939,7 +939,7 @@ end;
 procedure TPasSyntaxTreeBuilder.ExceptionVariable;
 begin
   FStack.Push(ntVariable);
-  FStack.Push(ntName).SetAttribute(sNAME, Lexer.Token);
+  FStack.Push(ntName).SetAttribute(sVALUE, Lexer.Token);
   FStack.Pop;
   try
     inherited;
