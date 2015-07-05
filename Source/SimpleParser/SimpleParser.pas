@@ -2350,7 +2350,8 @@ begin
     ptOn:
       begin
         ExceptionHandlerList;
-        ExceptionBlockElseBranch
+        if TokenID = ptElse then
+          ExceptionBlockElseBranch;
       end;
   else
     begin
@@ -2378,13 +2379,8 @@ end;
 
 procedure TmwSimplePasPar.ExceptionBlockElseBranch;
 begin
-  case TokenID of
-    ptElse:
-      begin
-        NextToken;
-        StatementList;
-      end;
-  end;
+  NextToken;
+  StatementList;
 end;
 
 procedure TmwSimplePasPar.ExceptionIdentifier;
@@ -2395,28 +2391,27 @@ begin
       begin
         ExceptionClassTypeIdentifier;
       end;
+    ptColon:
+      begin
+        ExceptionVariable;
+      end
   else
     begin
-      ExceptionVariable;
-      case Lexer.TokenID of
-        ptColon:
-          begin
-            NextToken;
-            ExceptionClassTypeIdentifier;
-          end;
-      end;
+      ExceptionClassTypeIdentifier;
     end;
   end;
 end;
 
 procedure TmwSimplePasPar.ExceptionClassTypeIdentifier;
 begin
-  QualifiedIdentifier;
+  TypeKind;
 end;
 
 procedure TmwSimplePasPar.ExceptionVariable;
 begin
   Expected(ptIdentifier);
+  Expected(ptColon);
+  ExceptionClassTypeIdentifier;
 end;
 
 procedure TmwSimplePasPar.InlineStatement;

@@ -103,7 +103,9 @@ type
     procedure EmptyStatement; override;
     procedure EnumeratedType; override;
     procedure ExceptBlock; override;
+    procedure ExceptionBlockElseBranch; override;
     procedure ExceptionHandler; override;
+    procedure ExceptionVariable; override;
     procedure ExportedHeading; override;
     procedure ExportsClause; override;
     procedure ExportsElement; override;
@@ -914,9 +916,30 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.ExceptionBlockElseBranch;
+begin
+  FStack.Push(ntElse);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.ExceptionHandler;
 begin
   FStack.Push(ntExceptionHandler);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ExceptionVariable;
+begin
+  FStack.Push(ntVariable);
+  FStack.AddChild(ntName).SetAttribute(sVALUE, Lexer.Token);
   try
     inherited;
   finally
