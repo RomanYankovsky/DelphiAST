@@ -2952,7 +2952,7 @@ procedure TmwBasePasLex.AmpersandOpProc;
 begin
   FTokenID := ptAmpersand;
   Inc(Run);
-  while CharInSet(FOrigin[Run], ['a'..'z', 'A'..'Z','0'..'9']) do
+  while CharInSet(FOrigin[Run], ['a'..'z', 'A'..'Z','0'..'9', '_']) do
     Inc(Run);
   FTokenID := ptIdentifier;
 end;

@@ -88,7 +88,7 @@ class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
     end;
 
     for Attr in Node.Attributes do
-      Builder.Append(' ' + Attr.Key + '="' + XMLEncode(Attr.Value) + '"');
+      Builder.Append(' ' + LowerCase(Attr.Key) + '="' + XMLEncode(Attr.Value) + '"');
     if HasChildren then
       Builder.Append('>')
     else
