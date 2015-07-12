@@ -42,7 +42,7 @@ type
     property Count: Integer read GetCount;
   end;
 
-  TPasSyntaxTreeBuilder = class(TmwSimplePasPar)
+   TPasSyntaxTreeBuilder = class(TmwSimplePasPar)
   private type
     TExpressionMethod = procedure of object;
   private
@@ -172,6 +172,7 @@ type
     procedure SimpleStatement; override;
     procedure SimpleType; override;
     procedure StatementList; override;
+    procedure StorageDefault; override;
     procedure StringConst; override;
     procedure StringConstSimple; override;
     procedure StringType; override;
@@ -1822,6 +1823,11 @@ begin
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.StorageDefault;
+begin
+  FStack.Peek.SetAttribute('default', 'true');
 end;
 
 procedure TPasSyntaxTreeBuilder.StringConst;

@@ -1539,6 +1539,8 @@ begin
   while ExID in [ptRead, ptReadOnly, ptWrite, ptWriteOnly, ptAdd, ptRemove] do
   begin
     AccessSpecifier;
+    if TokenID = ptSemicolon then
+      NextToken;
   end;
   if ExID = ptDispId then
   begin
@@ -1547,12 +1549,14 @@ begin
   while ExID in [ptDefault, ptNoDefault, ptStored] do
   begin
     StorageSpecifier;
+    NextToken;
   end;
   if ExID = ptImplements then
   begin
     ImplementsSpecifier;
   end;
-  Semicolon;
+  if TokenID = ptSemicolon then
+    NextToken;
 end;
 
 procedure TmwSimplePasPar.PropertyInterface;
