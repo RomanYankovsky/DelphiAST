@@ -182,6 +182,7 @@ type
     procedure TryStatement; override;
     procedure TypeArgs; override;
     procedure TypeDeclaration; override;
+    procedure TypeId; override;
     procedure TypeParamDecl; override;
     procedure TypeParams; override;
     procedure TypeSection; override;
@@ -1929,6 +1930,34 @@ begin
   FStack.Push(ntTypeDecl).SetAttribute(sNAME, Lexer.Token);
   try
     inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.TypeId;
+var
+  TypeNode, SubType: TSyntaxNode;
+  TypeName: string;
+begin
+  TypeNode := FStack.Push(ntType);
+  try
+    inherited;
+    
+    TypeName := '';
+    for SubType in TypeNode.ChildNodes do
+    begin
+      if SubType.Typ = ntType then
+      begin
+        if TypeName <> '' then
+          TypeName := TypeName + '.';
+          
+        TypeName := TypeName + SubType.GetAttribute(sNAME);
+      end;       
+    end;
+    
+    TypeNode.ChildNodes.Clear;
+    TypeNode.SetAttribute(sNAME, TypeName);
   finally
     FStack.Pop;
   end;
