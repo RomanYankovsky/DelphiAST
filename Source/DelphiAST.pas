@@ -1937,27 +1937,45 @@ end;
 
 procedure TPasSyntaxTreeBuilder.TypeId;
 var
-  TypeNode, SubType: TSyntaxNode;
-  TypeName: string;
+  TypeNode, InnerTypeNode, SubNode: TSyntaxNode;
+  TypeName, InnerTypeName: string;
+  i: integer;
 begin
   TypeNode := FStack.Push(ntType);
   try
-    inherited;
+    inherited;         
+    
+    InnerTypeName := '';
+    InnerTypeNode := TypeNode.FindNode(ntType);    
+    if Assigned(InnerTypeNode) then
+    begin
+      InnerTypeName := InnerTypeNode.GetAttribute(sNAME);
+      for SubNode in InnerTypeNode.ChildNodes do 
+        TypeNode.AddChild(SubNode.Clone);
+        
+      TypeNode.DeleteChild(InnerTypeNode);
+    end;       
     
     TypeName := '';
-    for SubType in TypeNode.ChildNodes do
+    for i := TypeNode.ChildNodes.Count - 1 downto 0 do
     begin
-      if SubType.Typ = ntType then
+      SubNode := TypeNode.ChildNodes[i];
+      if SubNode.Typ = ntType then
       begin
         if TypeName <> '' then
-          TypeName := TypeName + '.';
+          TypeName := '.' + TypeName;
           
-        TypeName := TypeName + SubType.GetAttribute(sNAME);
+        TypeName := SubNode.GetAttribute(sNAME) + TypeName;
+        TypeNode.DeleteChild(SubNode);
       end;       
     end;
     
-    TypeNode.ChildNodes.Clear;
-    TypeNode.SetAttribute(sNAME, TypeName);
+    if TypeName <> '' then
+      TypeName := '.' + TypeName;   
+    TypeName := InnerTypeName + TypeName;  
+      
+    TypeNode.SetAttribute(sNAME, TypeName); 
+   
   finally
     FStack.Pop;
   end;

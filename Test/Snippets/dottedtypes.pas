@@ -6,7 +6,7 @@ uses
   MyUnit;
 
 type 
-  TSample<T: MyUnit.TItem, MyUnit.IStuff> = class(MyUnit.TBaseClass, MyUnit.IStuff)                             
+  TSample<T: MyUnit.TItem, MyUnit.MyType.IStuff> = class(MyUnit.TBaseClass, MyUnit.IStuff)                             
   public                     
     function DoStuff<T2: MyUnit.TMyObject>(Obj: MyUnit.TMyObject): MyUnit.TMyObject; 
   end;  
