@@ -76,6 +76,7 @@ type
     procedure ClassField; override;
     procedure ClassForward; override;
     procedure ClassFunctionHeading; override;
+    procedure ClassHelper; override;
     procedure ClassMethod; override;
     procedure ClassMethodHeading; override;
     procedure ClassProcedureHeading; override;
@@ -581,6 +582,16 @@ procedure TPasSyntaxTreeBuilder.ClassFunctionHeading;
 begin
   FStack.Peek.SetAttribute('kind', 'function');
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.ClassHelper;
+begin
+  FStack.Push(ntHelper);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.ClassMethod;
