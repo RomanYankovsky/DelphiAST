@@ -52,7 +52,7 @@ type
     property Count: Integer read GetCount;
   end;
 
-   TPasSyntaxTreeBuilder = class(TmwSimplePasPar)
+  TPasSyntaxTreeBuilder = class(TmwSimplePasPar)
   private type
     TExpressionMethod = procedure of object;
   private
