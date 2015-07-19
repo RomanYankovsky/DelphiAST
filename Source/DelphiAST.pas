@@ -42,7 +42,7 @@ type
     property Count: Integer read GetCount;
   end;
 
-  TPasSyntaxTreeBuilder = class(TmwSimplePasPar)
+   TPasSyntaxTreeBuilder = class(TmwSimplePasPar)
   private type
     TExpressionMethod = procedure of object;
   private
@@ -173,6 +173,7 @@ type
     procedure SimpleStatement; override;
     procedure SimpleType; override;
     procedure StatementList; override;
+    procedure StorageDefault; override;
     procedure StringConst; override;
     procedure StringConstSimple; override;
     procedure StringType; override;
@@ -182,6 +183,7 @@ type
     procedure TryStatement; override;
     procedure TypeArgs; override;
     procedure TypeDeclaration; override;
+    procedure TypeId; override;
     procedure TypeParamDecl; override;
     procedure TypeParams; override;
     procedure TypeSection; override;
@@ -1835,6 +1837,11 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.StorageDefault;
+begin
+  FStack.Peek.SetAttribute('default', 'true');
+end;
+
 procedure TPasSyntaxTreeBuilder.StringConst;
 var
   StrConst: TSyntaxNode;
@@ -1934,6 +1941,52 @@ begin
   FStack.Push(ntTypeDecl).SetAttribute(sNAME, Lexer.Token);
   try
     inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.TypeId;
+var
+  TypeNode, InnerTypeNode, SubNode: TSyntaxNode;
+  TypeName, InnerTypeName: string;
+  i: integer;
+begin
+  TypeNode := FStack.Push(ntType);
+  try
+    inherited;         
+    
+    InnerTypeName := '';
+    InnerTypeNode := TypeNode.FindNode(ntType);    
+    if Assigned(InnerTypeNode) then
+    begin
+      InnerTypeName := InnerTypeNode.GetAttribute(sNAME);
+      for SubNode in InnerTypeNode.ChildNodes do 
+        TypeNode.AddChild(SubNode.Clone);
+        
+      TypeNode.DeleteChild(InnerTypeNode);
+    end;       
+    
+    TypeName := '';
+    for i := TypeNode.ChildNodes.Count - 1 downto 0 do
+    begin
+      SubNode := TypeNode.ChildNodes[i];
+      if SubNode.Typ = ntType then
+      begin
+        if TypeName <> '' then
+          TypeName := '.' + TypeName;
+          
+        TypeName := SubNode.GetAttribute(sNAME) + TypeName;
+        TypeNode.DeleteChild(SubNode);
+      end;       
+    end;
+    
+    if TypeName <> '' then
+      TypeName := '.' + TypeName;   
+    TypeName := InnerTypeName + TypeName;  
+      
+    TypeNode.SetAttribute(sNAME, TypeName); 
+   
   finally
     FStack.Pop;
   end;
