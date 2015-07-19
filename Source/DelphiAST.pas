@@ -19,6 +19,16 @@ type
     property Col: Integer read FCol;
   end;
 
+  ESyntaxTreeException = class(EParserException)
+  strict private
+    FSyntaxTree: TSyntaxNode;
+  public
+    constructor Create(Line, Col: Integer; Msg: string; SyntaxTree: TSyntaxNode); reintroduce;
+    destructor Destroy; override;
+
+    property SyntaxTree: TSyntaxNode read FSyntaxTree;
+  end;
+
   TNodeStack = class
   strict private
     FParser: TmwSimplePasPar;
@@ -1689,8 +1699,11 @@ begin
       FStack.Pop;
     end;
   except
-    FreeAndNil(Result);
-    raise;
+    on E: EParserException do
+      raise ESyntaxTreeException.Create(E.Line, E.Col, E.Message, Result);
+    else
+      FreeAndNil(Result);
+      raise;
   end;
 
   Assert(FStack.Count = 0);
@@ -2362,6 +2375,21 @@ begin
   inherited Create(Msg);
   FLine := Line;
   FCol := Col;
+end;
+
+{ ESyntaxTreeException }
+
+constructor ESyntaxTreeException.Create(Line, Col: Integer; Msg: string;
+  SyntaxTree: TSyntaxNode);
+begin
+  inherited Create(Line, Col, Msg);
+  FSyntaxTree := SyntaxTree;
+end;
+
+destructor ESyntaxTreeException.Destroy;
+begin
+  FSyntaxTree.Free;
+  inherited;
 end;
 
 end.

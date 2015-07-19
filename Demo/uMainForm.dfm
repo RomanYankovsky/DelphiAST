@@ -1,7 +1,7 @@
-object Form1: TForm1
+object MainForm: TMainForm
   Left = 0
   Top = 0
-  Caption = 'Form1'
+  Caption = 'DelphiAST Demo'
   ClientHeight = 389
   ClientWidth = 666
   Color = clBtnFace
@@ -10,11 +10,11 @@ object Form1: TForm1
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  Menu = MainMenu1
+  Menu = MainMenu
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
-  object Memo1: TMemo
+  object OutputMemo: TMemo
     Left = 0
     Top = 0
     Width = 666
@@ -23,7 +23,7 @@ object Form1: TForm1
     ScrollBars = ssBoth
     TabOrder = 0
   end
-  object MainMenu1: TMainMenu
+  object MainMenu: TMainMenu
     Left = 224
     Top = 96
     object OpenDelphiUnit1: TMenuItem
@@ -31,7 +31,7 @@ object Form1: TForm1
       OnClick = OpenDelphiUnit1Click
     end
   end
-  object OpenDialog1: TOpenDialog
+  object OpenDialog: TOpenDialog
     Filter = 'Delphi Unit|*.pas|Delphi Package|*.dpk|Delphi Project|*.dpr'
     Options = [ofHideReadOnly, ofPathMustExist, ofFileMustExist, ofEnableSizing]
     Left = 272

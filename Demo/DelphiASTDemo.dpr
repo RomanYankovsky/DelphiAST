@@ -2,13 +2,13 @@ program DelphiASTDemo;
 
 uses
   Forms,
-  uMainForm in 'uMainForm.pas' {Form1};
+  uMainForm in 'uMainForm.pas' {MainForm};
 
 {$R *.res}
 
 begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.
