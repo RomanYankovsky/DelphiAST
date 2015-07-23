@@ -1852,7 +1852,12 @@ end;
 
 procedure TPasSyntaxTreeBuilder.StorageDefault;
 begin
-  FStack.Peek.SetAttribute('default', 'true');
+  FStack.Push(ntDefault);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.StringConst;

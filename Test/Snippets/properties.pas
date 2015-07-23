@@ -9,6 +9,7 @@ type
 	property ReadableName: string read FName;
 	property WriteableName: string write FName;
 	property Redeclared;
+	property Tag: Integer read FTag write FTag default 0;
 	property Indexed[Index: integer]: string read GetByIndex write SetByIndexed;
 	property ReadableIndexed[Index: integer]: string read GetByIndex;
 	property WriteableIndexed[Index: integer]: string write SetByIndexed;
