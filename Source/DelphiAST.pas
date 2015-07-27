@@ -19,6 +19,16 @@ type
     property Col: Integer read FCol;
   end;
 
+  ESyntaxTreeException = class(EParserException)
+  strict private
+    FSyntaxTree: TSyntaxNode;
+  public
+    constructor Create(Line, Col: Integer; Msg: string; SyntaxTree: TSyntaxNode); reintroduce;
+    destructor Destroy; override;
+
+    property SyntaxTree: TSyntaxNode read FSyntaxTree;
+  end;
+
   TNodeStack = class
   strict private
     FParser: TmwSimplePasPar;
@@ -42,7 +52,7 @@ type
     property Count: Integer read GetCount;
   end;
 
-   TPasSyntaxTreeBuilder = class(TmwSimplePasPar)
+  TPasSyntaxTreeBuilder = class(TmwSimplePasPar)
   private type
     TExpressionMethod = procedure of object;
   private
@@ -76,6 +86,7 @@ type
     procedure ClassField; override;
     procedure ClassForward; override;
     procedure ClassFunctionHeading; override;
+    procedure ClassHelper; override;
     procedure ClassMethod; override;
     procedure ClassMethodHeading; override;
     procedure ClassProcedureHeading; override;
@@ -583,6 +594,16 @@ procedure TPasSyntaxTreeBuilder.ClassFunctionHeading;
 begin
   FStack.Peek.SetAttribute('kind', 'function');
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.ClassHelper;
+begin
+  FStack.Push(ntHelper);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.ClassMethod;
@@ -1678,8 +1699,11 @@ begin
       FStack.Pop;
     end;
   except
-    FreeAndNil(Result);
-    raise;
+    on E: EParserException do
+      raise ESyntaxTreeException.Create(E.Line, E.Col, E.Message, Result);
+    else
+      FreeAndNil(Result);
+      raise;
   end;
 
   Assert(FStack.Count = 0);
@@ -1828,7 +1852,12 @@ end;
 
 procedure TPasSyntaxTreeBuilder.StorageDefault;
 begin
-  FStack.Peek.SetAttribute('default', 'true');
+  FStack.Push(ntDefault);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.StringConst;
@@ -2351,6 +2380,21 @@ begin
   inherited Create(Msg);
   FLine := Line;
   FCol := Col;
+end;
+
+{ ESyntaxTreeException }
+
+constructor ESyntaxTreeException.Create(Line, Col: Integer; Msg: string;
+  SyntaxTree: TSyntaxNode);
+begin
+  inherited Create(Line, Col, Msg);
+  FSyntaxTree := SyntaxTree;
+end;
+
+destructor ESyntaxTreeException.Destroy;
+begin
+  FSyntaxTree.Free;
+  inherited;
 end;
 
 end.

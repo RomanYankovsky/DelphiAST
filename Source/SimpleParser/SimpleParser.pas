@@ -256,6 +256,7 @@ type
     procedure ClassField; virtual;
     procedure ClassForward; virtual;
     procedure ClassFunctionHeading; virtual;
+    procedure ClassHelper; virtual;
     procedure ClassHeritage; virtual;
     procedure ClassMemberList; virtual;
     procedure ClassMethodDirective; virtual;
@@ -3233,11 +3234,7 @@ begin
     Exit;
 
   if ExID = ptHelper then
-  begin
-    ExpectedEx(ptHelper);
-    Expected(ptFor);
-    TypeId;
-  end;
+    ClassHelper;
 
   if TokenID = ptRoundOpen then
   begin
@@ -3670,13 +3667,7 @@ begin
           Expected(ptIdentifier);
 
         if Lexer.ExID = ptHelper then
-        begin
-          ExpectedEx(ptHelper);
-          if TokenID = ptRoundOpen then
-            ClassHeritage;
-          Expected(ptFor);
-          TypeId;
-        end;
+          ClassHelper;
       end;
     ptSealed:
       Expected(ptSealed);
@@ -3713,6 +3704,15 @@ begin
       ClassTypeEnd;
     end;
   end;
+end;
+
+procedure TmwSimplePasPar.ClassHelper;
+begin
+  ExpectedEx(ptHelper);
+  if TokenID = ptRoundOpen then
+    ClassHeritage;
+  Expected(ptFor);
+  TypeId;
 end;
 
 procedure TmwSimplePasPar.ClassHeritage;

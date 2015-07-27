@@ -9,11 +9,11 @@ uses
   Dialogs, Menus, StdCtrls, SimpleParser.Lexer.Types;
 
 type
-  TForm1 = class(TForm)
-    Memo1: TMemo;
-    MainMenu1: TMainMenu;
+  TMainForm = class(TForm)
+    OutputMemo: TMemo;
+    MainMenu: TMainMenu;
     OpenDelphiUnit1: TMenuItem;
-    OpenDialog1: TOpenDialog;
+    OpenDialog: TOpenDialog;
     procedure OpenDelphiUnit1Click(Sender: TObject);
   private
     function Parse(const FileName: string): string;
@@ -30,7 +30,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  MainForm: TMainForm;
 
 implementation
 
@@ -43,31 +43,29 @@ uses
   {$R *.lfm}
 {$ENDIF}
 
-function TForm1.Parse(const FileName: string): string;
+function TMainForm.Parse(const FileName: string): string;
 var
   SyntaxTree: TSyntaxNode;
 begin
   Result := '';
-  SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, False,
-    TIncludeHandler.Create(ExtractFilePath(FileName)));
   try
-    Result := TSyntaxTreeWriter.ToXML(SyntaxTree, True);
-  finally
-    SyntaxTree.Free;
+    SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, False, TIncludeHandler.Create(ExtractFilePath(FileName)));
+    try
+      Result := TSyntaxTreeWriter.ToXML(SyntaxTree, True);
+    finally
+      SyntaxTree.Free;
+    end;
+  except
+    on E: ESyntaxTreeException do
+      Result := Format('[%d, %d] %s', [E.Line, E.Col, E.Message]) + sLineBreak + sLineBreak +
+         TSyntaxTreeWriter.ToXML(E.SyntaxTree, True);
   end;
 end;
 
-procedure TForm1.OpenDelphiUnit1Click(Sender: TObject);
+procedure TMainForm.OpenDelphiUnit1Click(Sender: TObject);
 begin
-  if OpenDialog1.Execute then
-  begin
-    try
-      Memo1.Lines.Text := Parse(OpenDialog1.FileName);
-    except
-      on E: EParserException do
-        Memo1.Lines.Add(Format('[%d, %d] %s', [E.Line, E.Col, E.Message]));
-    end;
-  end;
+  if OpenDialog.Execute then
+    OutputMemo.Lines.Text := Parse(OpenDialog.FileName);
 end;
 
 { TIncludeHandler }
