@@ -8,7 +8,9 @@
       <Unit0>
         <Filename Value="DelphiASTDemo.lpr"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="31"/>
+        <IsVisibleTab Value="True"/>
+        <CursorPos X="53" Y="16"/>
+        <UsageCount Value="33"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit0>
@@ -17,7 +19,9 @@
         <IsPartOfProject Value="True"/>
         <HasResources Value="True"/>
         <EditorIndex Value="1"/>
-        <UsageCount Value="31"/>
+        <TopLine Value="22"/>
+        <CursorPos X="58" Y="48"/>
+        <UsageCount Value="33"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit1>
@@ -27,17 +31,16 @@
         <EditorIndex Value="2"/>
         <TopLine Value="49"/>
         <CursorPos X="29" Y="68"/>
-        <UsageCount Value="31"/>
+        <UsageCount Value="33"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit2>
       <Unit3>
         <Filename Value="..\Source\DelphiAST.pas"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="4"/>
         <CursorPos X="22" Y="8"/>
-        <UsageCount Value="31"/>
+        <UsageCount Value="33"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit3>
@@ -46,7 +49,7 @@
         <EditorIndex Value="3"/>
         <TopLine Value="684"/>
         <CursorPos X="42" Y="661"/>
-        <UsageCount Value="15"/>
+        <UsageCount Value="16"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit4>
@@ -71,7 +74,7 @@
         <EditorIndex Value="5"/>
         <TopLine Value="65"/>
         <CursorPos X="15" Y="74"/>
-        <UsageCount Value="14"/>
+        <UsageCount Value="15"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit7>
@@ -84,7 +87,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit8>
     </Units>
-    <JumpHistory Count="21" HistoryIndex="20">
+    <JumpHistory Count="22" HistoryIndex="21">
       <Position1>
         <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
         <Caret Line="702" Column="29" TopLine="675"/>
@@ -167,6 +170,9 @@
         <Filename Value="..\Source\DelphiAST.pas"/>
         <Caret Line="239" Column="8" TopLine="201"/>
       </Position21>
+      <Position22>
+        <Filename Value="DelphiASTDemo.lpr"/>
+      </Position22>
     </JumpHistory>
   </ProjectSession>
 </CONFIG>
