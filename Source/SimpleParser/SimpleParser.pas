@@ -1550,7 +1550,8 @@ begin
   while ExID in [ptDefault, ptNoDefault, ptStored] do
   begin
     StorageSpecifier;
-    NextToken;
+    if TokenID = ptSemicolon then
+      NextToken;
   end;
   if ExID = ptImplements then
   begin
