@@ -2259,7 +2259,7 @@ begin
   FTokenPos := Run;
   case KeyHash of
     9:
-      if KeyComp('I') then
+      if KeyComp('I') and (not CharInSet(FOrigin[Run], ['+', '-'])) then
         Result := ptIncludeDirect else
         Result := ptCompDirect;
     15:
