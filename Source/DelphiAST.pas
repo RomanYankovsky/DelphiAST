@@ -615,9 +615,10 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ClassMethodHeading;
 begin
-  FStack.Push(ntMethod);
+  FStack.PushCompoundSyntaxNode(ntMethod);
   try
     inherited;
+    SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
   end;
@@ -972,9 +973,10 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ExportedHeading;
 begin
-  FStack.Push(ntMethod);
+  FStack.PushCompoundSyntaxNode(ntMethod);
   try
     inherited;
+    SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
   end;
@@ -1037,12 +1039,13 @@ end;
 
 procedure TPasSyntaxTreeBuilder.FinalizationSection;
 begin
-  FStack.Push(ntFinalization);
+  FStack.PushCompoundSyntaxNode(ntFinalization);
   try
     inherited;
+    SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
-  end;
+  end;    
 end;
 
 procedure TPasSyntaxTreeBuilder.FinallyBlock;
@@ -1237,9 +1240,10 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ImplementationSection;
 begin
-  FStack.Push(ntImplementation);
+  FStack.PushCompoundSyntaxNode(ntImplementation);
   try
     inherited;
+    SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
   end;
@@ -1287,12 +1291,13 @@ end;
 
 procedure TPasSyntaxTreeBuilder.InitializationSection;
 begin
-  FStack.Push(ntInitialization);
+  FStack.PushCompoundSyntaxNode(ntInitialization);
   try
     inherited;
+    SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
-  end;
+  end;  
 end;
 
 procedure TPasSyntaxTreeBuilder.InterfaceForward;
@@ -1313,9 +1318,10 @@ end;
 
 procedure TPasSyntaxTreeBuilder.InterfaceSection;
 begin
-  FStack.Push(ntInterface);
+  FStack.PushCompoundSyntaxNode(ntInterface);
   try
     inherited;
+    SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
   end;
@@ -1367,9 +1373,10 @@ end;
 
 procedure TPasSyntaxTreeBuilder.MainUsesClause;
 begin
-  FStack.Push(ntUses);
+  FStack.PushCompoundSyntaxNode(ntUses);
   try
     inherited;
+    SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
   end;
@@ -1514,9 +1521,10 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ProcedureDeclarationSection;
 begin
-  FStack.Push(ntMethod);
+  FStack.PushCompoundSyntaxNode(ntMethod);
   try
     inherited;
+    SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
   end;
@@ -2154,9 +2162,10 @@ end;
 
 procedure TPasSyntaxTreeBuilder.UsesClause;
 begin
-  FStack.Push(ntUses);
+  FStack.PushCompoundSyntaxNode(ntUses);
   try
     inherited;
+    SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
   end;
