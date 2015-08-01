@@ -1969,12 +1969,13 @@ end;
 
 procedure TPasSyntaxTreeBuilder.TypeDeclaration;
 begin
-  FStack.Push(ntTypeDecl).SetAttribute(sNAME, Lexer.Token);
+  FStack.PushCompoundSyntaxNode(ntTypeDecl).SetAttribute(sNAME, Lexer.Token);
   try
     inherited;
+    SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
-  end;
+  end;  
 end;
 
 procedure TPasSyntaxTreeBuilder.TypeId;
