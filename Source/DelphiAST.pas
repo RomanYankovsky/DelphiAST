@@ -41,6 +41,7 @@ type
 
     function AddChild(Typ: TSyntaxNodeType; SetPositionAttributes: Boolean = True): TSyntaxNode; overload;
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
+    function AddValuedChild(Typ: TSyntaxNodeType; const Value: string): TSyntaxNode;
 
     procedure Clear;
     function Peek: TSyntaxNode;
@@ -49,6 +50,7 @@ type
     function Push(Typ: TSyntaxNodeType; SetPositionAttributes: Boolean = True): TSyntaxNode; overload;
     function Push(Node: TSyntaxNode; SetPositionAttributes: Boolean = True): TSyntaxNode; overload;
     function PushCompoundSyntaxNode(Typ: TSyntaxNodeType): TSyntaxNode;
+    function PushValuedNode(Typ: TSyntaxNodeType; const Value: string): TSyntaxNode;
 
     property Count: Integer read GetCount;
   end;
@@ -413,7 +415,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.AttributeArgumentName;
 begin
-  FStack.AddChild(ntName).SetAttribute(sVALUE, Lexer.Token);
+  FStack.AddValuedChild(ntName, Lexer.Token);
   inherited;
 end;
 
@@ -429,7 +431,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.AttributeName;
 begin
-  FStack.AddChild(ntName).SetAttribute(sVALUE, Lexer.Token);
+  FStack.AddValuedChild(ntName, Lexer.Token);
   inherited;
 end;
 
@@ -734,7 +736,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ConstantName;
 begin
-  FStack.AddChild(ntName).SetAttribute(sVALUE, Lexer.Token);
+  FStack.AddValuedChild(ntName, Lexer.Token);
   inherited;
 end;
 
@@ -963,7 +965,7 @@ end;
 procedure TPasSyntaxTreeBuilder.ExceptionVariable;
 begin
   FStack.Push(ntVariable);
-  FStack.AddChild(ntName).SetAttribute(sVALUE, Lexer.Token);
+  FStack.AddValuedChild(ntName, Lexer.Token);
   try
     inherited;
   finally
@@ -1033,7 +1035,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.FieldName;
 begin
-  FStack.AddChild(ntName).SetAttribute(sVALUE, Lexer.Token);
+  FStack.AddValuedChild(ntName, Lexer.Token);
   inherited;
 end;
 
@@ -1167,7 +1169,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.FunctionMethodName;
 begin
-  FStack.AddChild(ntName).SetAttribute(sVALUE, Lexer.Token);
+  FStack.AddValuedChild(ntName, Lexer.Token);
   inherited;
 end;
 
@@ -1203,7 +1205,7 @@ begin
 
       if FullName <> '' then
         FullName := FullName + '.';
-      FullName := FullName + ChildNode.GetAttribute(sVALUE);
+      FullName := FullName + TValuedSyntaxNode(ChildNode).Value;
     end;
   finally
     FStack.Pop;
@@ -1339,7 +1341,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.LabelId;
 begin
-  FStack.AddChild(ntLabel).SetAttribute(sVALUE, Lexer.Token);
+  FStack.AddValuedChild(ntLabel, Lexer.Token);
   inherited;
 end;
 
@@ -1361,9 +1363,9 @@ begin
       FStack.Peek.DeleteChild(NameNode);
     end;
 
-    if Assigned(PathNode) then
+    if PathNode is TValuedSyntaxNode then
     begin
-      FStack.Peek.SetAttribute(sPATH, PathNode.GetAttribute(sVALUE));
+      FStack.Peek.SetAttribute(sPATH, TValuedSyntaxNode(PathNode).Value);
       FStack.Peek.DeleteChild(PathNode);
     end;
   finally
@@ -1438,15 +1440,14 @@ procedure TPasSyntaxTreeBuilder.Number;
 var
   Node: TSyntaxNode;
 begin
-  Node := FStack.AddChild(ntLiteral);
+  Node := FStack.AddValuedChild(ntLiteral, Lexer.Token);
   Node.SetAttribute(sTYPE, 'numeric');
-  Node.SetAttribute(sVALUE, Lexer.Token);
   inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.ObjectNameOfMethod;
 begin
-  FStack.AddChild(ntName).SetAttribute(sVALUE, Lexer.Token);
+  FStack.AddValuedChild(ntName, Lexer.Token);
   inherited;
 end;
 
@@ -1479,7 +1480,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ParameterName;
 begin
-  FStack.AddChild(ntName).SetAttribute(sVALUE, Lexer.Token);
+  FStack.AddValuedChild(ntName, Lexer.Token);
   inherited;
 end;
 
@@ -1572,10 +1573,9 @@ procedure TPasSyntaxTreeBuilder.RecordFieldConstant;
 var
   Node: TSyntaxNode;
 begin
-  Node := FStack.Push(ntField);
+  Node := FStack.PushValuedNode(ntField, Lexer.Token);
   try
     Node.SetAttribute(sTYPE, 'name');
-    Node.SetAttribute(sVALUE, Lexer.Token);
     inherited;
   finally
     FStack.Pop;
@@ -1890,20 +1890,19 @@ begin
 
     Str := '';
     for Literal in StrConst.ChildNodes do
-      Str := Str + Literal.GetAttribute(sValue);
+      Str := Str + TValuedSyntaxNode(Literal).Value;
   finally
     StrConst.Free;
   end;
 
-  Node := FStack.AddChild(ntLiteral);
+  Node := FStack.AddValuedChild(ntLiteral, Str);
   Node.SetAttribute(sTYPE, 'string');
-  Node.SetAttribute(sVALUE, Str);
 end;
 
 procedure TPasSyntaxTreeBuilder.StringConstSimple;
 begin
   //TODO support ptAsciiChar
-  FStack.AddChild(ntLiteral).SetAttribute(sVALUE, AnsiDequotedStr(Lexer.Token, ''''));
+  FStack.AddValuedChild(ntLiteral, AnsiDequotedStr(Lexer.Token, ''''));
   inherited;
 end;
 
@@ -2184,7 +2183,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.VarName;
 begin
-  FStack.AddChild(ntName).SetAttribute(sVALUE, Lexer.Token);
+  FStack.AddValuedChild(ntName, Lexer.Token);
   inherited;
 end;
 
@@ -2338,6 +2337,16 @@ begin
   Result := FStack.Peek.AddChild(Node);
 end;
 
+function TNodeStack.AddValuedChild(Typ: TSyntaxNodeType;
+  const Value: string): TSyntaxNode;
+begin
+  Result := FStack.Peek.AddChild(TValuedSyntaxNode.Create(Typ));
+  Result.Col  := FParser.Lexer.PosXY.X;
+  Result.Line := FParser.Lexer.PosXY.Y;
+
+  TValuedSyntaxNode(Result).Value := Value;
+end;
+
 procedure TNodeStack.Clear;
 begin
   FStack.Clear;
@@ -2385,6 +2394,13 @@ end;
 function TNodeStack.PushCompoundSyntaxNode(Typ: TSyntaxNodeType): TSyntaxNode;
 begin
   Result := Push(Peek.AddChild(TCompoundSyntaxNode.Create(Typ)));
+end;
+
+function TNodeStack.PushValuedNode(Typ: TSyntaxNodeType;
+  const Value: string): TSyntaxNode;
+begin
+  Result := Push(Peek.AddChild(TValuedSyntaxNode.Create(Typ)));
+  TValuedSyntaxNode(Result).Value := Value;
 end;
 
 function TNodeStack.Push(Typ: TSyntaxNodeType; SetPositionAttributes: Boolean = True): TSyntaxNode;

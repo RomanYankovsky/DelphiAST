@@ -262,7 +262,6 @@ const
   sPATH              = 'path';
   sSUBRANGE          = 'subrange';
   sTYPE              = 'type';
-  sVALUE             = 'value';
 
 implementation
 
