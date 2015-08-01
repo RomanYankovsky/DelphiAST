@@ -48,6 +48,7 @@ type
 
     function Push(Typ: TSyntaxNodeType; SetPositionAttributes: Boolean = True): TSyntaxNode; overload;
     function Push(Node: TSyntaxNode; SetPositionAttributes: Boolean = True): TSyntaxNode; overload;
+    function PushCompoundSyntaxNode(Typ: TSyntaxNodeType): TSyntaxNode;
 
     property Count: Integer read GetCount;
   end;
@@ -61,6 +62,7 @@ type
     function NodeListToString(NamesNode: TSyntaxNode): string;
     procedure CallInheritedConstantExpression;
     procedure CallInheritedExpression;
+    procedure SetCurrentCompoundNodesEndPosition;
   protected
     FStack: TNodeStack;
 
@@ -358,11 +360,10 @@ end;
 
 procedure TPasSyntaxTreeBuilder.AsmStatement;
 begin
-  FStack.Push(FStack.Peek.AddChild(TCompoundSyntaxNode.Create(ntStatements))).SetAttribute('type', 'asm');
+  FStack.PushCompoundSyntaxNode(ntStatements).SetAttribute('type', 'asm');
   try
     inherited;
-    TCompoundSyntaxNode(FStack.Peek).EndCol  := Lexer.PosXY.X;
-    TCompoundSyntaxNode(FStack.Peek).EndLine := Lexer.PosXY.Y;
+    SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
   end;
@@ -698,11 +699,10 @@ end;
 
 procedure TPasSyntaxTreeBuilder.CompoundStatement;
 begin
-  FStack.Push(FStack.Peek.AddChild(TCompoundSyntaxNode.Create(ntStatements)));
+  FStack.PushCompoundSyntaxNode(ntStatements);
   try
     inherited;
-    TCompoundSyntaxNode(FStack.Peek).EndCol := Lexer.PosXY.X;
-    TCompoundSyntaxNode(FStack.Peek).EndLine := Lexer.PosXY.Y;
+    SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
   end;
@@ -1006,6 +1006,12 @@ var
 begin
   ExpressionMethod := CallInheritedExpression;
   BuildExpressionTree(ExpressionMethod);
+end;
+
+procedure TPasSyntaxTreeBuilder.SetCurrentCompoundNodesEndPosition;
+begin
+  TCompoundSyntaxNode(FStack.Peek).EndCol := Lexer.PosXY.X;
+  TCompoundSyntaxNode(FStack.Peek).EndLine := Lexer.PosXY.Y;  
 end;
 
 procedure TPasSyntaxTreeBuilder.CallInheritedExpression;
@@ -1840,11 +1846,10 @@ end;
 
 procedure TPasSyntaxTreeBuilder.StatementList;
 begin
-  FStack.Push(FStack.Peek.AddChild(TCompoundSyntaxNode.Create(ntStatements)));
+  FStack.PushCompoundSyntaxNode(ntStatements);
   try
     inherited;
-    TCompoundSyntaxNode(FStack.Peek).EndCol := Lexer.PosXY.X;
-    TCompoundSyntaxNode(FStack.Peek).EndLine := Lexer.PosXY.Y;
+    SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
   end;
@@ -2365,6 +2370,11 @@ begin
     Result.Col  := FParser.Lexer.PosXY.X;
     Result.Line := FParser.Lexer.PosXY.Y;
   end;
+end;
+
+function TNodeStack.PushCompoundSyntaxNode(Typ: TSyntaxNodeType): TSyntaxNode;
+begin
+  Result := Push(Peek.AddChild(TCompoundSyntaxNode.Create(Typ)));
 end;
 
 function TNodeStack.Push(Typ: TSyntaxNodeType; SetPositionAttributes: Boolean = True): TSyntaxNode;
