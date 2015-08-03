@@ -58,6 +58,15 @@ type
     property EndLine: Integer read FEndLine write FEndLine;
   end;
 
+  TValuedSyntaxNode = class(TSyntaxNode)
+  private
+    FValue: string;
+  public
+    function Clone: TSyntaxNode; override;
+
+    property Value: string read FValue write FValue;
+  end;
+
   TExpressionTools = class
   private
     class function CreateNodeWithParentsPosition(NodeType: TSyntaxNodeType; ParentNode: TSyntaxNode): TSyntaxNode;
@@ -457,6 +466,15 @@ begin
 
   TCompoundSyntaxNode(Result).EndLine := Self.EndLine;
   TCompoundSyntaxNode(Result).EndCol := Self.EndCol;
+end;
+
+{ TValuedSyntaxNode }
+
+function TValuedSyntaxNode.Clone: TSyntaxNode;
+begin
+  Result := inherited;
+
+  TValuedSyntaxNode(Result).Value := Self.Value;
 end;
 
 end.
