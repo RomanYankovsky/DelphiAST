@@ -393,7 +393,7 @@ type
 implementation
 
 uses
-  StrUtils;
+  StrUtils, DelphiAST.Classes;
 
 type
   TmwPasLexExpressionEvaluation = (leeNone, leeAnd, leeOr);
@@ -2164,7 +2164,7 @@ end;
 
 function TmwBasePasLex.GetToken: string;
 begin
-  SetString(Result, (FOrigin + FTokenPos), GetTokenLen);
+  Result := TStringCache.Instance.AddAndGet(FOrigin + FTokenPos, GetTokenLen);
 end;
 
 function TmwBasePasLex.GetTokenLen: Integer;

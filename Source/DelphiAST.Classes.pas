@@ -121,6 +121,7 @@ type
     destructor Destroy; override;
 
     function Add(const Value : string) : NativeUInt;
+    function AddAndGet(const P : PChar; const Length : Integer) : string;
     function Get(const ID : NativeUInt) : string;
     procedure Clear;
     procedure ByUsage(InOrder : TList<TStringRec>);
@@ -663,6 +664,14 @@ begin
   finally
     Item.Free;
   end;
+end;
+
+function TStringCache.AddAndGet(const P : PChar; const Length : Integer) : string;
+var
+  SearchStr : string;
+begin
+  SetString(SearchStr, P, Length);
+  Result := Get(Add(SearchStr));
 end;
 
 function TStringCache.Get(const ID: NativeUInt): string;
