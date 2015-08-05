@@ -59,6 +59,8 @@ type
   private type
     TExpressionMethod = procedure of object;
   private
+    FClearStringCacheOnFree : Boolean;
+
     procedure BuildExpressionTree(ExpressionMethod: TExpressionMethod);
     procedure ParserMessage(Sender: TObject; const Typ: TMessageEventType; const Msg: string; X, Y: Integer);
     function NodeListToString(NamesNode: TSyntaxNode): string;
@@ -234,7 +236,10 @@ type
 
     function Run(SourceStream: TStream): TSyntaxNode; reintroduce; overload; virtual;
     class function Run(const FileName: string;
-      InterfaceOnly: Boolean = False; IncludeHandler: IIncludeHandler = nil): TSyntaxNode; reintroduce; overload; static;
+      InterfaceOnly: Boolean = False; IncludeHandler: IIncludeHandler = nil;
+      ClearStringCacheOnFree : Boolean = False): TSyntaxNode; reintroduce; overload; static;
+
+    property ClearStringCacheOnFree : Boolean read FClearStringCacheOnFree write FClearStringCacheOnFree;
   end;
 
 implementation
@@ -859,6 +864,7 @@ constructor TPasSyntaxTreeBuilder.Create;
 begin
   inherited;
   FStack := TNodeStack.Create(Self);
+  FClearStringCacheOnFree := true;
 end;
 
 procedure TPasSyntaxTreeBuilder.Designator;
@@ -874,6 +880,8 @@ end;
 destructor TPasSyntaxTreeBuilder.Destroy;
 begin
   FStack.Free;
+  if FClearStringCacheOnFree then
+    TStringCache.Instance.Clear;
   inherited;
 end;
 
@@ -1692,7 +1700,8 @@ begin
 end;
 
 class function TPasSyntaxTreeBuilder.Run(const FileName: string;
-  InterfaceOnly: Boolean; IncludeHandler: IIncludeHandler): TSyntaxNode;
+  InterfaceOnly: Boolean; IncludeHandler: IIncludeHandler;
+  ClearStringCacheOnFree : Boolean): TSyntaxNode;
 var
   Stream: TStringStream;
   Builder: TPasSyntaxTreeBuilder;
@@ -1702,6 +1711,7 @@ begin
     Stream.LoadFromFile(FileName);
     Builder := TPasSyntaxTreeBuilder.Create;
     Builder.InterfaceOnly := InterfaceOnly;
+    Builder.ClearStringCacheOnFree := ClearStringCacheOnFree;
     try
       Builder.InitDefinesDefinedByCompiler;
       Builder.IncludeHandler := IncludeHandler;
