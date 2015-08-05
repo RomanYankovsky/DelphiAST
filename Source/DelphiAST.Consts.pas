@@ -128,6 +128,21 @@ type
     ntWrite
   );
 
+  TAttributeName = (
+    anType,
+    anClass,
+    anForwarded,
+    anKind,
+    anName,
+    anVisibility,
+    anCallingConvention,
+    anPath,
+    anMethodBinding,
+    anReintroduce,
+    anOverload,
+    anAbstract
+  );
+
 const
   SyntaxNodeNames: array [TSyntaxNodeType] of string = (
     'unknown',
@@ -254,15 +269,32 @@ const
     'write'
   );
 
-
 const
-  sCALLINGCONVENTION = 'callingconvention';
   sENUM              = 'enum';
-  sNAME              = 'name';
-  sPATH              = 'path';
   sSUBRANGE          = 'subrange';
-  sTYPE              = 'type';
+
+  function AttributeNameToStr(const AttributeName : TAttributeName) : string;
 
 implementation
+
+function AttributeNameToStr(const AttributeName : TAttributeName) : string;
+const
+  AttributeNameStrings : array[TAttributeName] of string = (
+    'type',
+    'class',
+    'forwarded',
+    'kind',
+    'name',
+    'visibility',
+    'callingconvention',
+    'path',
+    'methodbinding',
+    'reintroduce',
+    'overload',
+    'abstract'
+  );
+begin
+  Exit(AttributeNameStrings[AttributeName]);
+end;
 
 end.
