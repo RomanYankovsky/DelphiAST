@@ -886,8 +886,21 @@ end;
 
 procedure TPasSyntaxTreeBuilder.DirectiveBinding;
 begin
-  assert(false);
-  //!!!FStack.Peek.SetAttribute(Lexer.Token, 'true');
+  // Method bindings:
+  if SameText(Lexer.Token, 'override') or SameText(Lexer.Token, 'virtual')
+    or SameText(Lexer.Token, 'dynamic')
+  then
+    FStack.Peek.SetAttribute(anMethodBinding, Lexer.Token)
+  // Other directives
+  else if SameText(Lexer.Token, 'reintroduce') then
+    FStack.Peek.SetAttribute(anReintroduce, 'true')
+  else if SameText(Lexer.Token, 'overload') then
+    FStack.Peek.SetAttribute(anOverload, 'true')
+  else if SameText(Lexer.Token, 'abstract') then
+    FStack.Peek.SetAttribute(anAbstract, 'true')
+  else
+    assert(false); // Unexpected directive
+
   inherited;
 end;
 

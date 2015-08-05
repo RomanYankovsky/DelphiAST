@@ -136,7 +136,11 @@ type
     anName,
     anVisibility,
     anCallingConvention,
-    anPath
+    anPath,
+    anMethodBinding,
+    anReintroduce,
+    anOverload,
+    anAbstract
   );
 
 const
@@ -283,7 +287,11 @@ const
     'name',
     'visibility',
     'callingconvention',
-    'path'
+    'path',
+    'methodbinding',
+    'reintroduce',
+    'overload',
+    'abstract'
   );
 begin
   Exit(AttributeNameStrings[AttributeName]);
