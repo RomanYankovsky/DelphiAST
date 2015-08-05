@@ -236,8 +236,7 @@ type
 
     function Run(SourceStream: TStream): TSyntaxNode; reintroduce; overload; virtual;
     class function Run(const FileName: string;
-      InterfaceOnly: Boolean = False; IncludeHandler: IIncludeHandler = nil;
-      ClearStringCacheOnFree : Boolean = False): TSyntaxNode; reintroduce; overload; static;
+      InterfaceOnly: Boolean = False; IncludeHandler: IIncludeHandler = nil): TSyntaxNode; reintroduce; overload; static;
 
     property ClearStringCacheOnFree : Boolean read FClearStringCacheOnFree write FClearStringCacheOnFree;
   end;
@@ -1700,8 +1699,7 @@ begin
 end;
 
 class function TPasSyntaxTreeBuilder.Run(const FileName: string;
-  InterfaceOnly: Boolean; IncludeHandler: IIncludeHandler;
-  ClearStringCacheOnFree : Boolean): TSyntaxNode;
+  InterfaceOnly: Boolean; IncludeHandler: IIncludeHandler): TSyntaxNode;
 var
   Stream: TStringStream;
   Builder: TPasSyntaxTreeBuilder;
@@ -1711,7 +1709,7 @@ begin
     Stream.LoadFromFile(FileName);
     Builder := TPasSyntaxTreeBuilder.Create;
     Builder.InterfaceOnly := InterfaceOnly;
-    Builder.ClearStringCacheOnFree := ClearStringCacheOnFree;
+    Builder.ClearStringCacheOnFree := False;
     try
       Builder.InitDefinesDefinedByCompiler;
       Builder.IncludeHandler := IncludeHandler;
