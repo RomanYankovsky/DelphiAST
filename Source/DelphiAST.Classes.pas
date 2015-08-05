@@ -24,7 +24,7 @@ type
     FTyp: TSyntaxNodeType;
     FParentNode: TSyntaxNode;
   public
-    constructor Create(Typ: TSyntaxNodeType);
+    constructor Create(Typ: TSyntaxNodeType); virtual;
     destructor Destroy; override;
 
     function Clone: TSyntaxNode; virtual;
@@ -63,11 +63,14 @@ type
 
   TValuedSyntaxNode = class(TSyntaxNode)
   private
-    FValue: string;
+    FValue: NativeUInt;
+    function GetValue : string;
+    procedure SetValue(AValue : string);
   public
+    constructor Create(Typ: TSyntaxNodeType); override;
     function Clone: TSyntaxNode; override;
 
-    property Value: string read FValue write FValue;
+    property Value: string read GetValue write SetValue;
   end;
 
   TExpressionTools = class
@@ -132,7 +135,6 @@ type
       private
         FDictionary: TStringCacheDictionary<TKey>;
         FInternalEnum : TDictionary<TKey, NativeUInt>.TPairEnumerator;
-        function GetCurrent: TPair<TKey, string>;
       protected
         function DoGetCurrent: TPair<TKey, string>; override;
         function DoMoveNext: Boolean; override;
@@ -553,11 +555,27 @@ end;
 
 { TValuedSyntaxNode }
 
+constructor TValuedSyntaxNode.Create(Typ: TSyntaxNodeType);
+begin
+  inherited;
+  FValue := 0; // String cache item 0 is an empty string
+end;
+
 function TValuedSyntaxNode.Clone: TSyntaxNode;
 begin
   Result := inherited;
 
   TValuedSyntaxNode(Result).Value := Self.Value;
+end;
+
+function TValuedSyntaxNode.GetValue : string;
+begin
+  Result := TStringCache.Instance.Get(FValue);
+end;
+
+procedure TValuedSyntaxNode.SetValue(AValue : string);
+begin
+  FValue := TStringCache.Instance.Add(AValue);
 end;
 
 { TStringCache.TStringRecValueEqualityComparer }
@@ -757,11 +775,6 @@ begin
   inherited Create();
   FDictionary := ADictionary;
   FInternalEnum := FDictionary.FKeyToId.GetEnumerator;
-end;
-
-function TStringCacheDictionary<TKey>.TKeyStringEnumerator.GetCurrent: TPair<TKey, string>;
-begin
-  Result := DoGetCurrent;
 end;
 
 function TStringCacheDictionary<TKey>.TKeyStringEnumerator.DoGetCurrent: TPair<TKey, string>;
