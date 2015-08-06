@@ -16,7 +16,7 @@ type
     function GetHasChildren: Boolean;
     function GetHasAttributes: Boolean;
   protected
-    FAttributes: TDictionary<string, string>;
+    FAttributes: TDictionary<TAttributeName, string>;
     FChildNodes: TObjectList<TSyntaxNode>;
     FTyp: TSyntaxNodeType;
     FParentNode: TSyntaxNode;
@@ -26,9 +26,9 @@ type
 
     function Clone: TSyntaxNode; virtual;
 
-    function GetAttribute(const Key: string): string;
-    function HasAttribute(const Key: string): boolean;
-    procedure SetAttribute(const Key: string; Value: string);
+    function GetAttribute(const Key: TAttributeName): string;
+    function HasAttribute(const Key: TAttributeName): boolean;
+    procedure SetAttribute(const Key: TAttributeName; Value: string);
 
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
     function AddChild(Typ: TSyntaxNodeType): TSyntaxNode; overload;
@@ -36,7 +36,7 @@ type
 
     function FindNode(Typ: TSyntaxNodeType): TSyntaxNode;
 
-    property Attributes: TDictionary<string, string> read FAttributes;
+    property Attributes: TDictionary<TAttributeName, string> read FAttributes;
     property ChildNodes: TObjectList<TSyntaxNode> read FChildNodes;
     property HasAttributes: Boolean read GetHasAttributes;
     property HasChildren: Boolean read GetHasChildren;
@@ -366,7 +366,7 @@ end;
 
 { TSyntaxNode }
 
-procedure TSyntaxNode.SetAttribute(const Key: string; Value: string);
+procedure TSyntaxNode.SetAttribute(const Key: TAttributeName; Value: string);
 begin
   FAttributes.AddOrSetValue(Key, Value);
 end;
@@ -389,7 +389,7 @@ end;
 function TSyntaxNode.Clone: TSyntaxNode;
 var
   ChildNode: TSyntaxNode;
-  Attr: TPair<string, string>;
+  Attr: TPair<TAttributeName, string>;
 begin
   Result := TSyntaxNodeClass(Self.ClassType).Create(FTyp);
 
@@ -407,7 +407,7 @@ constructor TSyntaxNode.Create(Typ: TSyntaxNodeType);
 begin
   inherited Create;
   FTyp := Typ;
-  FAttributes := TDictionary<string, string>.Create;
+  FAttributes := TDictionary<TAttributeName, string>.Create;
   FChildNodes := TObjectList<TSyntaxNode>.Create(True);
   FParentNode := nil;
 end;
@@ -437,7 +437,7 @@ begin
     end;
 end;
 
-function TSyntaxNode.GetAttribute(const Key: string): string;
+function TSyntaxNode.GetAttribute(const Key: TAttributeName): string;
 begin
   if not FAttributes.TryGetValue(Key, Result) then
     Result := '';
@@ -453,7 +453,7 @@ begin
   Result := FChildNodes.Count > 0;
 end;
 
-function TSyntaxNode.HasAttribute(const Key: string): boolean;
+function TSyntaxNode.HasAttribute(const Key: TAttributeName): boolean;
 begin
   result := FAttributes.ContainsKey(key);
 end;
