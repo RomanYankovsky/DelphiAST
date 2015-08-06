@@ -110,6 +110,8 @@ type
       end;
   strict private
     FStringToId : TDictionary<TStringRec, NativeUInt>;
+    FRefCount : NativeUInt;
+    FIsPersistent : Boolean;
 
     class var FInstance : TStringCache;
     class constructor ClassCreate;
@@ -126,6 +128,10 @@ type
     procedure Clear;
     procedure ByUsage(InOrder : TList<TStringRec>);
 
+    procedure IncRef;
+    procedure DecRef;
+
+    property Persistent : Boolean read FIsPersistent write FIsPersistent;
     class property Instance : TStringCache read FInstance;
   end;
 
@@ -629,6 +635,8 @@ end;
 constructor TStringCache.Create;
 begin
   inherited;
+  FRefCount := 0;
+  FIsPersistent := false; // Clear the cache when no longer needed
   FStringToId := TDictionary<TStringRec, NativeUInt>.Create(
     TStringCache.TStringRecValueEqualityComparer.Create);
   FIdToString := TList<TStringRec>.Create;
@@ -638,6 +646,7 @@ end;
 
 destructor TStringCache.Destroy;
 begin
+  assert(FRefCount = 0, 'String cache destroyed with live objects still relying on it');
   Clear;
   FStringToId.Free;
   FIdToString.Free;
@@ -686,6 +695,9 @@ procedure TStringCache.Clear;
 var
   I : Integer;
 begin
+  if FRefCount <> 0 then
+    raise Exception.Create(Format('Clearing the string cache while objects still rely on it (%d)', [FRefCount]));
+
   // One instance of TStringRec, but stored in two lists. Free from only one
   for I := 0 to Pred(FIdToString.Count) do
     FIdToString[I].Free;
@@ -698,6 +710,28 @@ procedure TStringCache.ByUsage(InOrder: TList<TStringRec>);
 begin
   InOrder.InsertRange(0, FIdToString);
   InOrder.Sort(TStringCache.TStringRecUsageComparer.Create);
+end;
+
+procedure TStringCache.IncRef;
+begin
+  // Keep a count of how many objects are using the string cache. This lets it
+  // clear itself when the last one is freed - ie, free all the strings when
+  // they are no longer needed. (The alternative, controlled by Persistent,
+  // is to keep them - ie make the cache persistent over multiple runs - useful
+  // for parsing the same or similar files over and over.)
+  Inc(FRefCount);
+end;
+
+procedure TStringCache.DecRef;
+begin
+  if FRefCount = 0 then
+    raise Exception.Create('String cache refcount cannot be decremented below zero');
+  Dec(FRefCount);
+
+  // Unless want to keep the strings around for next parse, clear now nothing is
+  // using any of them.
+  if (FRefCount = 0) and (not FIsPersistent) then
+    Clear;
 end;
 
 { TStringCache.TStringRec }
@@ -720,11 +754,13 @@ constructor TStringCacheDictionary<TKey>.Create;
 begin
   inherited;
   FKeyToId := TDictionary<TKey, NativeUInt>.Create;
+  TStringCache.Instance.IncRef; // Uses the cache
 end;
 
 destructor TStringCacheDictionary<TKey>.Destroy;
 begin
   FKeyToId.Free;
+  TStringCache.Instance.DecRef;
   inherited;
 end;
 
