@@ -393,7 +393,7 @@ type
 implementation
 
 uses
-  StrUtils;
+  StrUtils, DelphiAST.Classes;
 
 type
   TmwPasLexExpressionEvaluation = (leeNone, leeAnd, leeOr);
@@ -1315,10 +1315,14 @@ begin
   FTopDefineRec := nil;
   FUseSharedOrigin := false;
   ClearDefines;
+
+  TStringCache.Instance.IncRef; // Uses the cache for GetToken
 end;
 
 destructor TmwBasePasLex.Destroy;
 begin
+  TStringCache.Instance.DecRef;
+
   ClearDefines; //If we don't do this, we get a memory leak
   FDefines.Free;
   if not FUseSharedOrigin then
@@ -2164,7 +2168,7 @@ end;
 
 function TmwBasePasLex.GetToken: string;
 begin
-  SetString(Result, (FOrigin + FTokenPos), GetTokenLen);
+  Result := TStringCache.Instance.AddAndGet(FOrigin + FTokenPos, GetTokenLen);
 end;
 
 function TmwBasePasLex.GetTokenLen: Integer;
