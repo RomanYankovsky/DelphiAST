@@ -801,8 +801,16 @@ begin
 end;
 
 function TStringCacheDictionary<TKey>.ToArray: TArray<TPair<TKey, string>>;
+var
+  Value: TPair<TKey, string>;
+  I : Integer;
 begin
-  Result := ToArrayImpl(Count);
+  SetLength(Result, Count);
+  I := 0;
+  for Value in Self do begin
+    Result[I] := Value;
+    Inc(I);
+  end;
 end;
 
 function TStringCacheDictionary<TKey>.DoGetEnumerator: TEnumerator<TPair<TKey, string>>;
