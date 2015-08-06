@@ -659,20 +659,17 @@ var
 begin
   Result := 0;
   Item := TStringRec.Create(Value);
-  try
-    if FStringToId.TryGetValue(Item, Result) then begin
-      // Already exists. Increment the usage count of the existing one, and return
-      FIdToString[Result].IncUsageCount;
-      Exit; // item will be freed in finally
-    end;
 
-    // Item does not yet exist
-    Result := FIdToString.Add(Item);
-    FStringToId.Add(Item, Result);
-    Item := nil; // Do not free in finally, newly added
-  finally
-    Item.Free;
+  if FStringToId.TryGetValue(Item, Result) then begin
+    // Already exists. Increment the usage count of the existing one, and return
+    FIdToString[Result].IncUsageCount;
+    Item.Free; // Already exists, Item was search key only
+    Exit;
   end;
+
+  // Item does not yet exist
+  Result := FIdToString.Add(Item);
+  FStringToId.Add(Item, Result);
 end;
 
 function TStringCache.AddAndGet(const P : PChar; const Length : Integer) : string;
