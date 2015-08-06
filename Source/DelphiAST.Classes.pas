@@ -172,7 +172,7 @@ type
 implementation
 
 uses
-  SysUtils, System.Types;
+  SysUtils, Types;
 
 type
   TOperatorKind = (okUnary, okBinary);
