@@ -271,6 +271,7 @@ type
     TokenID: TptTokenKind;
   end;
 
+  EIncludeError = class(Exception);
   IIncludeHandler = interface
     ['{C5F20740-41D2-43E9-8321-7FE5E3AA83B6}']
     function GetIncludeFileContent(const FileName: string): string;
