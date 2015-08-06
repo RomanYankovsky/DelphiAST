@@ -2421,7 +2421,7 @@ begin
     end
     else
     begin    
-      StrPCopy(@FOrigin[Run], Content);//sdfsdf
+      StrPCopy(@FOrigin[Run], Content);
       FOrigin[Run + Length(Content)] := #0;
     end;
 
