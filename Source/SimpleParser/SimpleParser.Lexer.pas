@@ -2394,13 +2394,13 @@ end;
 
 procedure TmwBasePasLex.IncludeFile;
 var
-  IndludeFileName, IncludeDirective, Content, Origin, BehindIncludedContent: string;
+  IncludeFileName, IncludeDirective, Content, Origin, BehindIncludedContent: string;
   pBehindIncludedContent: PChar;
   TempBufferSize: integer;
 begin
   IncludeDirective := Token;
-  IndludeFileName := GetIncludeFileNameFromToken(IncludeDirective);
-  Content := FIncludeHandler.GetIncludeFileContent(IndludeFileName) + #13#10;
+  IncludeFileName := GetIncludeFileNameFromToken(IncludeDirective);
+  Content := FIncludeHandler.GetIncludeFileContent(IncludeFileName) + #13#10;
 
   Origin := FOrigin;
   TempBufferSize := (Length(Origin) + INCLUDE_BUFFER_SIZE) * SizeOf(Char);
@@ -2413,8 +2413,17 @@ begin
     UpdateIncludedLineCount(Content);
 
     Content := Content + BehindIncludedContent;
-    StrPCopy(@FOrigin[Run], Content);
-    FOrigin[Run + Length(Content)] := #0;
+    
+    if (Run + Length(Content)) * SizeOf(Char) > BufferSize then
+    begin
+      Run := Run + Length(IncludeDirective);
+      raise EIncludeError.Create('Content size of include file ' + IncludeFileName + ' exceeds buffer limit.');
+    end
+    else
+    begin    
+      StrPCopy(@FOrigin[Run], Content);
+      FOrigin[Run + Length(Content)] := #0;
+    end;
 
     Next;
   finally
