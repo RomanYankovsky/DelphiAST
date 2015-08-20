@@ -109,7 +109,7 @@ type
         function Compare(const Left, Right: TStringRec): Integer;
       end;
   strict private
-    FStringToId : TDictionary<TStringRec, NativeUInt>;
+    FStringToId : TDictionary<string, NativeUInt>;
     FRefCount : NativeUInt;
     FIsPersistent : Boolean;
 
@@ -637,8 +637,7 @@ begin
   inherited;
   FRefCount := 0;
   FIsPersistent := false; // Clear the cache when no longer needed
-  FStringToId := TDictionary<TStringRec, NativeUInt>.Create(
-    TStringCache.TStringRecValueEqualityComparer.Create);
+  FStringToId := TDictionary<string, NativeUInt>.Create;
   FIdToString := TList<TStringRec>.Create;
 
   Add(''); // Empty string is always item 0
@@ -654,22 +653,18 @@ begin
 end;
 
 function TStringCache.Add(const Value: string): NativeUInt;
-var
-  Item : TStringRec;
 begin
   Result := 0;
-  Item := TStringRec.Create(Value);
 
-  if FStringToId.TryGetValue(Item, Result) then begin
+  if FStringToId.TryGetValue(Value, Result) then
     // Already exists. Increment the usage count of the existing one, and return
-    FIdToString[Result].IncUsageCount;
-    Item.Free; // Already exists, Item was search key only
-    Exit;
+    FIdToString[Result].IncUsageCount
+  else
+  begin
+    // Item does not yet exist
+    Result := FIdToString.Add(TStringRec.Create(Value));
+    FStringToId.Add(Value, Result);
   end;
-
-  // Item does not yet exist
-  Result := FIdToString.Add(Item);
-  FStringToId.Add(Item, Result);
 end;
 
 function TStringCache.AddAndGet(const P : PChar; const Length : Integer) : string;
