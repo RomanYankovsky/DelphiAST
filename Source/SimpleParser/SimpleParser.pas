@@ -295,6 +295,7 @@ type
     procedure DestructorName; virtual;
     procedure Directive16Bit; virtual;
     procedure DirectiveBinding; virtual;
+    procedure DirectiveBindingMessage; virtual;
     procedure DirectiveCalling; virtual;
     procedure DirectiveDeprecated; virtual;
     procedure DirectiveLibrary; virtual;
@@ -1889,8 +1890,7 @@ begin
       end;
     ptMessage:
       begin
-        NextToken;
-        ConstantExpression;
+        DirectiveBindingMessage;
       end;
     ptOverride:
       begin
@@ -1909,6 +1909,12 @@ begin
       SynError(InvalidDirectiveBinding);
     end;
   end;
+end;
+
+procedure TmwSimplePasPar.DirectiveBindingMessage;
+begin
+  NextToken;
+  ConstantExpression;
 end;
 
 procedure TmwSimplePasPar.ReturnType;
