@@ -80,6 +80,7 @@ type
     ptComp,
     ptCompDirect,
     ptConst,
+    ptConstRef,
     ptConstructor,
     ptContains,
     ptContinue,

@@ -1072,7 +1072,8 @@ function TmwBasePasLex.Func100: TptTokenKind;
 begin
   Result := ptIdentifier;
   if KeyComp('Automated') then FExID := ptAutomated else
-    if KeyComp('Smallint') then FExID := ptSmallint;
+    if KeyComp('Smallint') then FExID := ptSmallint else
+      if KeyComp('Constref') then FExID := ptConstRef;
 end;
 
 function TmwBasePasLex.Func101: TptTokenKind;
