@@ -112,6 +112,7 @@ type
     procedure Designator; override;
     procedure DestructorName; override;
     procedure DirectiveBinding; override;
+    procedure DirectiveBindingMessage; override;
     procedure DirectiveCalling; override;
     procedure DotOp; override;
     procedure ElseStatement; override;
@@ -897,11 +898,19 @@ begin
   else if SameText(Lexer.Token, 'overload') then
     FStack.Peek.SetAttribute(anOverload, 'true')
   else if SameText(Lexer.Token, 'abstract') then
-    FStack.Peek.SetAttribute(anAbstract, 'true')
-  else
-    assert(false); // Unexpected directive
+    FStack.Peek.SetAttribute(anAbstract, 'true');
 
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.DirectiveBindingMessage;
+begin
+  FStack.Push(ntMessage);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.DirectiveCalling;
