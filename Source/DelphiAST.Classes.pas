@@ -147,6 +147,7 @@ type
         function DoMoveNext: Boolean; override;
       public
         constructor Create(const ADictionary: TStringCacheDictionary<TKey>);
+        destructor Destroy; override;
       end;
   private
     FKeyToId : TDictionary<TKey, NativeUInt>;
@@ -812,6 +813,12 @@ begin
   inherited Create();
   FDictionary := ADictionary;
   FInternalEnum := FDictionary.FKeyToId.GetEnumerator;
+end;
+
+destructor TStringCacheDictionary<TKey>.TKeyStringEnumerator.Destroy;
+begin
+  FInternalEnum.Free;
+  inherited;
 end;
 
 function TStringCacheDictionary<TKey>.TKeyStringEnumerator.DoGetCurrent: TPair<TKey, string>;
