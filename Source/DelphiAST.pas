@@ -191,7 +191,7 @@ type
     procedure StorageDefault; override;
     procedure StringConst; override;
     procedure StringConstSimple; override;
-    procedure StringType; override;
+    procedure StringStatement; override;
     procedure StructuredType; override;
     procedure SubrangeType; override;
     procedure ThenStatement; override;
@@ -1929,14 +1929,10 @@ begin
   inherited;
 end;
 
-procedure TPasSyntaxTreeBuilder.StringType;
+procedure TPasSyntaxTreeBuilder.StringStatement;
 begin
-  FStack.Push(ntType).SetAttribute(anName, Lexer.Token);
-  try
-    inherited;
-  finally
-    FStack.Pop;
-  end;
+  FStack.AddChild(ntType).SetAttribute(anName, Lexer.Token);
+  inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.StructuredType;
