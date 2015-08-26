@@ -5490,11 +5490,11 @@ procedure TmwSimplePasPar.ImplementsSpecifier;
 begin
   ExpectedEx(ptImplements);
 
-  TypeSimple;
+  TypeId;
   while (TokenID = ptComma) do
   begin
     NextToken;
-    TypeSimple;
+    TypeId;
   end;
 end;
 

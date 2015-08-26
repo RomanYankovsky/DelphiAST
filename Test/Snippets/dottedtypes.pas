@@ -9,6 +9,8 @@ type
   TSample<T: MyUnit.TItem, MyUnit.MyType.IStuff> = class(MyUnit.TBaseClass, MyUnit.IStuff)                             
   public                     
     function DoStuff<T2: MyUnit.TMyObject>(Obj: MyUnit.TMyObject): MyUnit.TMyObject; 
+
+    property Obj : TObj read FObj implements MyUnit.IStuff;
   end;  
 
 implementation
