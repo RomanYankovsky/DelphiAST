@@ -687,7 +687,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ConstRefParameter;
 begin
-  FStack.Push(ntParameters).SetAttribute(anKind, 'constref');
+  FStack.Push(ntParameters).SetAttribute('kind', 'constref');
   try
     inherited;
   finally
