@@ -9,16 +9,6 @@ uses
   SimpleParser.Lexer.Types, DelphiAST.Classes, DelphiAST.Consts;
 
 type
-  EParserException = class(Exception)
-  strict private
-    FLine, FCol: Integer;
-  public
-    constructor Create(Line, Col: Integer; Msg: string); reintroduce;
-
-    property Line: Integer read FLine;
-    property Col: Integer read FCol;
-  end;
-
   ESyntaxTreeException = class(EParserException)
   strict private
     FSyntaxTree: TSyntaxNode;
@@ -192,7 +182,7 @@ type
     procedure StorageDefault; override;
     procedure StringConst; override;
     procedure StringConstSimple; override;
-    procedure StringType; override;
+    procedure StringStatement; override;
     procedure StructuredType; override;
     procedure SubrangeType; override;
     procedure ThenStatement; override;
@@ -1832,6 +1822,9 @@ begin
             NodeList.Add(RawStatement.ChildNodes[I]);
           end;
 
+          if NodeList.Count = 0 then
+            raise EParserException.Create(Position.Y, Position.X, 'Illegal expression');
+
           LHS := FStack.AddChild(ntLHS, False);
           LHS.Col  := NodeList[0].Col;
           LHS.Line := NodeList[0].Line;
@@ -1841,6 +1834,9 @@ begin
 
           for I := AssignIdx + 1 to RawStatement.ChildNodes.Count - 1 do
             NodeList.Add(RawStatement.ChildNodes[I]);
+
+          if NodeList.Count = 0 then
+            raise EParserException.Create(Position.Y, Position.X, 'Illegal expression');
 
           RHS := FStack.AddChild(ntRHS, False);
           RHS.Col  := NodeList[0].Col;
@@ -1940,14 +1936,10 @@ begin
   inherited;
 end;
 
-procedure TPasSyntaxTreeBuilder.StringType;
+procedure TPasSyntaxTreeBuilder.StringStatement;
 begin
-  FStack.Push(ntType).SetAttribute(anName, Lexer.Token);
-  try
-    inherited;
-  finally
-    FStack.Pop;
-  end;
+  FStack.AddChild(ntType).SetAttribute(anName, Lexer.Token);
+  inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.StructuredType;
@@ -2441,15 +2433,6 @@ function TNodeStack.Push(Typ: TSyntaxNodeType; SetPositionAttributes: Boolean = 
 begin
   Result := FStack.Peek.AddChild(TSyntaxNode.Create(Typ));
   Push(Result, SetPositionAttributes);
-end;
-
-{ EParserException }
-
-constructor EParserException.Create(Line, Col: Integer; Msg: string);
-begin
-  inherited Create(Msg);
-  FLine := Line;
-  FCol := Col;
 end;
 
 { ESyntaxTreeException }

@@ -1929,16 +1929,8 @@ procedure TmwSimplePasPar.ReturnType;
 begin
   while TokenID = ptSquareOpen do
     CustomAttribute;
-  case TokenID of
-    ptString:
-      begin
-        StringType;
-      end;
-  else
-    begin
-      TypeID;
-    end;
-  end;
+
+  TypeID;
 end;
 
 procedure TmwSimplePasPar.RoundClose;
@@ -2925,7 +2917,7 @@ begin
       end;
     ptString:
       begin
-        StringType;
+        StringStatement;
       end;
     ptFunction, ptProcedure:
       AnonymousMethod;
@@ -4494,7 +4486,7 @@ begin
       end;
     ptString:
       begin
-        StringType;
+        TypeId;
       end;
   else
     begin
@@ -5512,11 +5504,11 @@ procedure TmwSimplePasPar.ImplementsSpecifier;
 begin
   ExpectedEx(ptImplements);
 
-  TypeSimple;
+  TypeId;
   while (TokenID = ptComma) do
   begin
     NextToken;
-    TypeSimple;
+    TypeId;
   end;
 end;
 
