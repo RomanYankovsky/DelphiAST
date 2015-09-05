@@ -282,7 +282,6 @@ type
     procedure ConstantValue; virtual;
     procedure ConstantValueTyped; virtual;
     procedure ConstParameter; virtual;
-    procedure ConstRefParameter; virtual; 
     procedure ConstructorConstraint; virtual; 
     procedure ConstructorHeading; virtual;
     procedure ConstructorName; virtual;
@@ -423,7 +422,6 @@ type
     procedure PropertyName; virtual;
     procedure PropertyParameter; virtual;
     procedure PropertyParameterConst; virtual;
-    procedure PropertyParameterConstRef; virtual;
     procedure PropertyParameterOut; virtual;
     procedure PropertyParameterVar; virtual;
     procedure PropertyParameterList; virtual;
@@ -1508,7 +1506,6 @@ procedure TmwSimplePasPar.PropertyParameter;
 begin
   case TokenID of
     ptConst: PropertyParameterConst;
-    ptConstRef: PropertyParameterConst;
     ptVar: PropertyParameterVar;
     ptIdentifier:
       begin
@@ -1533,11 +1530,6 @@ end;
 procedure TmwSimplePasPar.PropertyParameterConst;
 begin
   Expected(ptConst);
-end;
-
-procedure TmwSimplePasPar.PropertyParameterConstRef;
-begin
-  Expected(ptConstRef);
 end;
 
 procedure TmwSimplePasPar.PropertySpecifiers;
@@ -1969,7 +1961,6 @@ begin
     ptIdentifier:
       case ExID of
         ptOut: OutParameter;
-        ptConstRef: ConstRefParameter;
       else
         ParameterFormal;
       end;
@@ -1998,19 +1989,6 @@ begin
           NextToken;
           TypedConstant;
         end;
-      end
-  end;
-end;
-
-procedure TmwSimplePasPar.ConstRefParameter;
-begin
-  ExpectedEx(ptConstRef);
-  ParameterNameList;
-  case TokenID of
-    ptColon:
-      begin
-        NextToken;
-        FormalParameterType;
       end
   end;
 end;
@@ -5692,7 +5670,7 @@ end;
 procedure TmwSimplePasPar.AttributeName;
 begin
   case TokenID of
-    ptIn, ptOut, ptConst, ptConstRef, ptVar, ptUnsafe:
+    ptIn, ptOut, ptConst, ptVar, ptUnsafe:
       NextToken;
   else
     Expected(ptIdentifier);

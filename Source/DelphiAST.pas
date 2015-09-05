@@ -89,7 +89,6 @@ type
     procedure ClassType; override;
     procedure CompoundStatement; override;
     procedure ConstParameter; override;
-    procedure ConstRefParameter; override;
     procedure ConstantDeclaration; override;
     procedure ConstantExpression; override;
     procedure ConstantName; override;
@@ -678,16 +677,6 @@ end;
 procedure TPasSyntaxTreeBuilder.ConstParameter;
 begin
   FStack.Push(ntParameters).SetAttribute(anKind, 'const');
-  try
-    inherited;
-  finally
-    FStack.Pop;
-  end;
-end;
-
-procedure TPasSyntaxTreeBuilder.ConstRefParameter;
-begin
-  FStack.Push(ntParameters).SetAttribute('kind', 'constref');
   try
     inherited;
   finally
