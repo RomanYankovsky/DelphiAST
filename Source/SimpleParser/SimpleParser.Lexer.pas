@@ -393,7 +393,7 @@ type
 implementation
 
 uses
-  StrUtils, DelphiAST.Classes;
+  StrUtils, SimpleParser.StringCache;
 
 type
   TmwPasLexExpressionEvaluation = (leeNone, leeAnd, leeOr);
