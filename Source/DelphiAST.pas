@@ -209,6 +209,8 @@ type
     procedure VisibilityProtected; override;
     procedure VisibilityPublic; override;
     procedure VisibilityPublished; override;
+    procedure VisibilityStrictPrivate; override;
+    procedure VisibilityStrictProtected; override;    
     procedure WhileStatement; override;
     procedure WithExpressionList; override;
     procedure WithStatement; override;
@@ -2286,9 +2288,31 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.VisibilityStrictPrivate;
+begin
+  FStack.Push(ntStrictPrivate);
+  try
+    FStack.Peek.SetAttribute(anVisibility, 'true');
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.VisibilityPrivate;
 begin
   FStack.Push(ntPrivate);
+  try
+    FStack.Peek.SetAttribute(anVisibility, 'true');
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.VisibilityStrictProtected;
+begin
+  FStack.Push(ntStrictProtected);
   try
     FStack.Peek.SetAttribute(anVisibility, 'true');
     inherited;
