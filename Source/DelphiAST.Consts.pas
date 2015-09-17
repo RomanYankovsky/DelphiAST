@@ -126,7 +126,11 @@ type
     ntUses,
     ntWhile,
     ntWith,
-    ntWrite
+    ntWrite,
+
+    ntAnsiComment,
+    ntBorComment,
+    ntSlashesComment
   );
 
   TAttributeName = (
@@ -268,7 +272,11 @@ const
     'uses',
     'while',
     'with',
-    'write'
+    'write',
+
+    'ansicomment',
+    'borlandcomment',
+    'slashescomment'
   );
 
 const

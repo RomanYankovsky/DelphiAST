@@ -55,8 +55,10 @@ type
     procedure CallInheritedConstantExpression;
     procedure CallInheritedExpression;
     procedure SetCurrentCompoundNodesEndPosition;
+    procedure DoOnComment(Sender: TObject; const Text: string);
   protected
     FStack: TNodeStack;
+    FComments: TObjectList<TCommentNode>;
 
     procedure AccessSpecifier; override;
     procedure AdditiveOperator; override;
@@ -226,6 +228,8 @@ type
     function Run(SourceStream: TStream): TSyntaxNode; reintroduce; overload; virtual;
     class function Run(const FileName: string;
       InterfaceOnly: Boolean = False; IncludeHandler: IIncludeHandler = nil): TSyntaxNode; reintroduce; overload; static;
+
+    property Comments: TObjectList<TCommentNode> read FComments;
   end;
 
 implementation
@@ -850,6 +854,9 @@ constructor TPasSyntaxTreeBuilder.Create;
 begin
   inherited;
   FStack := TNodeStack.Create(Self);
+  FComments := TObjectList<TCommentNode>.Create(True);
+
+  OnComment := DoOnComment;
 end;
 
 procedure TPasSyntaxTreeBuilder.Designator;
@@ -865,6 +872,7 @@ end;
 destructor TPasSyntaxTreeBuilder.Destroy;
 begin
   FStack.Free;
+  FComments.Free;
   inherited;
 end;
 
@@ -1462,6 +1470,25 @@ procedure TPasSyntaxTreeBuilder.ObjectNameOfMethod;
 begin
   FStack.AddValuedChild(ntName, Lexer.Token);
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.DoOnComment(Sender: TObject; const Text: string);
+var
+  Node: TCommentNode;
+begin
+  case TokenID of
+    ptAnsiComment: Node := TCommentNode.Create(ntAnsiComment);
+    ptBorComment: Node := TCommentNode.Create(ntAnsiComment);
+    ptSlashesComment: Node := TCommentNode.Create(ntSlashesComment);
+  else
+    raise EParserException.Create(Lexer.PosXY.Y, Lexer.PosXY.X, 'Invalid comment type');
+  end;
+
+  Node.Col := Lexer.PosXY.X;
+  Node.Line := Lexer.PosXY.Y;
+  Node.Text := Text;
+
+  FComments.Add(Node);
 end;
 
 procedure TPasSyntaxTreeBuilder.ParserMessage(Sender: TObject;

@@ -208,6 +208,8 @@ type
     function GetUseDefines: Boolean;
     procedure SetUseDefines(const Value: Boolean);
     procedure SetIncludeHandler(IncludeHandler: IIncludeHandler);
+    function GetOnComment: TCommentEvent;
+    procedure SetOnComment(const Value: TCommentEvent);
   protected
     procedure Expected(Sym: TptTokenKind); virtual;
     procedure ExpectedEx(Sym: TptTokenKind); virtual;
@@ -569,6 +571,7 @@ type
 
     property InterfaceOnly: Boolean read FInterfaceOnly write FInterfaceOnly;
     property Lexer: TmwPasLex read FLexer;
+    property OnComment: TCommentEvent read GetOnComment write SetOnComment;
     property OnMessage: TMessageEvent read FOnMessage write FOnMessage;
     property LastNoJunkPos: Integer read FLastNoJunkPos;
     property LastNoJunkLen: Integer read FLastNoJunkLen;
@@ -1017,6 +1020,11 @@ end;
 function TmwSimplePasPar.GetInRound: Boolean;
 begin
   Result := FInRound > 0;
+end;
+
+function TmwSimplePasPar.GetOnComment: TCommentEvent;
+begin
+  Result := FLexer.OnComment;
 end;
 
 procedure TmwSimplePasPar.SynError(Error: TmwParseError);
@@ -2737,6 +2745,11 @@ end;
 procedure TmwSimplePasPar.SetIncludeHandler(IncludeHandler: IIncludeHandler);
 begin
   FLexer.IncludeHandler := IncludeHandler;
+end;
+
+procedure TmwSimplePasPar.SetOnComment(const Value: TCommentEvent);
+begin
+  FLexer.OnComment := Value;
 end;
 
 procedure TmwSimplePasPar.QualifiedIdentifier;

@@ -77,6 +77,15 @@ type
     property Value: string read FValue write FValue;
   end;
 
+  TCommentNode = class(TSyntaxNode)
+  private
+    FText: string;
+  public
+    function Clone: TSyntaxNode; override;
+
+    property Text: string read FText write FText;
+  end;
+
   TExpressionTools = class
   private
     class function CreateNodeWithParentsPosition(NodeType: TSyntaxNodeType; ParentNode: TSyntaxNode): TSyntaxNode;
@@ -487,6 +496,15 @@ begin
   Result := inherited;
 
   TValuedSyntaxNode(Result).Value := Self.Value;
+end;
+
+{ TCommentNode }
+
+function TCommentNode.Clone: TSyntaxNode;
+begin
+  Result := inherited;
+
+  TCommentNode(Result).Text := Self.Text;
 end;
 
 { EParserException }

@@ -63,6 +63,7 @@ var
 type
   TmwBasePasLex = class;
   TDirectiveEvent = procedure(Sender: TmwBasePasLex) of object;
+  TCommentEvent = procedure(Sender: TObject; const Text: string) of object;
 
   PDefineRec = ^TDefineRec;
   TDefineRec = record
@@ -110,6 +111,7 @@ type
     FUseDefines: Boolean;
     FIncludeHandler: IIncludeHandler;
     FUseSharedOrigin: Boolean;
+    FOnComment: TCommentEvent;
 
     function KeyHash: Integer;
     function KeyComp(const aKey: string): Boolean;
@@ -335,6 +337,7 @@ type
     property IsAddOperator: Boolean read GetIsAddOperator;
     property IsMulOperator: Boolean read GetIsMulOperator;
     property IsCompilerDirective: Boolean read GetIsCompilerDirective;
+    property OnComment: TCommentEvent read FOnComment write FOnComment;
     property OnMessage: TMessageEvent read FOnMessage write FOnMessage;
     property OnCompDirect: TDirectiveEvent read FOnCompDirect write SetOnCompDirect;
     property OnDefineDirect: TDirectiveEvent read FOnDefineDirect write SetOnDefineDirect;
@@ -1417,6 +1420,9 @@ begin
 end;
 
 procedure TmwBasePasLex.BorProc;
+var
+  BeginRun: Integer;
+  CommentText: string;
 begin
   FTokenID := ptBorComment;
   case FOrigin[Run] of
@@ -1428,6 +1434,8 @@ begin
         Exit;
       end;
   end;
+
+  BeginRun := Run;
 
   while FOrigin[Run] <> #0 do
     case FOrigin[Run] of
@@ -1453,6 +1461,12 @@ begin
     else
       Inc(Run);
     end;
+
+  if Assigned(FOnComment) then
+  begin
+    SetString(CommentText, PChar(@FOrigin[BeginRun]), Run - BeginRun);
+    FOnComment(Self, CommentText);
+  end;
 end;
 
 procedure TmwBasePasLex.BraceOpenProc;
@@ -1897,6 +1911,9 @@ begin
 end;
 
 procedure TmwBasePasLex.AnsiProc;
+var
+  BeginRun: Integer;
+  CommentText: string;
 begin
   FTokenID := ptAnsiComment;
   case FOrigin[Run] of
@@ -1908,6 +1925,8 @@ begin
         Exit;
       end;
   end;
+
+  BeginRun := Run;
 
   while FOrigin[Run] <> #0 do
     case FOrigin[Run] of
@@ -1935,6 +1954,12 @@ begin
     else
       Inc(Run);
     end;
+
+  if Assigned(FOnComment) then
+  begin
+    SetString(CommentText, PChar(@FOrigin[BeginRun]), Run - BeginRun);
+    FOnComment(Self, CommentText);
+  end;
 end;
 
 procedure TmwBasePasLex.RoundOpenProc;
@@ -2048,11 +2073,17 @@ begin
 end;
 
 procedure TmwBasePasLex.SlashProc;
+var
+  BeginRun: Integer;
+  CommentText: string;
 begin
   case FOrigin[Run + 1] of
     '/':
       begin
         Inc(Run, 2);
+
+        BeginRun := Run;
+
         FTokenID := ptSlashesComment;
         while FOrigin[Run] <> #0 do
         begin
@@ -2060,6 +2091,12 @@ begin
             #10, #13: Break;
           end;
           Inc(Run);
+        end;
+
+        if Assigned(FOnComment) then
+        begin
+          SetString(CommentText, PChar(@FOrigin[BeginRun]), Run - BeginRun);
+          FOnComment(Self, CommentText);
         end;
       end;
   else
