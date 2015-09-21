@@ -1010,7 +1010,7 @@ end;
 function TmwBasePasLex.Func89: TptTokenKind;
 begin
   Result := ptIdentifier;
-  if KeyComp('Strict') then Result := ptStrict;
+  if KeyComp('Strict') then FExID := ptStrict;
 end;
 
 function TmwBasePasLex.Func91: TptTokenKind;

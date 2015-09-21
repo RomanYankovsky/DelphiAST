@@ -3738,9 +3738,9 @@ procedure TmwSimplePasPar.ClassVisibility;
 var
   IsStrict: boolean;
 begin
-  IsStrict := TokenID = ptStrict;
+  IsStrict := ExID = ptStrict;
   if IsStrict then
-    Expected(ptStrict);
+    ExpectedEx(ptStrict);
       
   while ExID in [ptAutomated, ptPrivate, ptProtected, ptPublic, ptPublished] do
   begin
@@ -3821,9 +3821,8 @@ end;
 
 procedure TmwSimplePasPar.ClassMemberList;
 begin
-  while TokenID in [ptClass, ptConstructor, ptDestructor, ptFunction,
-    ptIdentifier, ptProcedure, ptProperty,
-    ptType, ptSquareOpen, ptVar, ptConst, ptStrict, ptCase] do
+  while (TokenID in [ptClass, ptConstructor, ptDestructor, ptFunction,
+    ptIdentifier, ptProcedure, ptProperty, ptType, ptSquareOpen, ptVar, ptConst, ptCase]) or (ExID = ptStrict) do
   begin
     ClassVisibility;
 
