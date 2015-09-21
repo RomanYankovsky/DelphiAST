@@ -2360,18 +2360,16 @@ end;
 
 procedure TmwSimplePasPar.ExceptBlock;
 begin
-  case ExID of
-    ptOn:
-      begin
-        ExceptionHandlerList;
-        if TokenID = ptElse then
-          ExceptionBlockElseBranch;
-      end;
-  else
-    begin
+  if ExID = ptOn then
+  begin
+    ExceptionHandlerList;
+    if TokenID = ptElse then
+      ExceptionBlockElseBranch;
+  end else
+    if TokenID = ptElse then
+      ExceptionBlockElseBranch
+    else
       StatementList;
-    end;
-  end;
 end;
 
 procedure TmwSimplePasPar.ExceptionHandlerList;
