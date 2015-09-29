@@ -2729,7 +2729,6 @@ end;
 procedure TmwSimplePasPar.StringStatement;
 begin
   Expected(ptString);
-  Statement;
 end;
 
 procedure TmwSimplePasPar.SetElement;
@@ -5236,6 +5235,7 @@ begin
           ptString:
             begin
               StringStatement;
+              Statement;
             end;
         else
           StringConst;
