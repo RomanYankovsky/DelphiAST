@@ -2554,6 +2554,9 @@ begin
   {$IFDEF VER290} // XE8
   AddDefine('VER290');
   {$ENDIF}
+  {$IFDEF VER300} // Seattle
+  AddDefine('VER300');
+  {$ENDIF}
   {$IFDEF WIN32}
   AddDefine('WIN32');
   {$ENDIF}
