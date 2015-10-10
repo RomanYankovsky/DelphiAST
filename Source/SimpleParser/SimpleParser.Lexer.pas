@@ -1864,7 +1864,7 @@ procedure TmwBasePasLex.PointerSymbolProc;
 const
   PointerChars = ['a'..'z', 'A'..'Z', '\', '!', '"', '#', '$', '%', '&', '''', '(', ')',
                   '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[',
-                  ']', '^', '_', '`', '{', '|', '}', '~'];
+                  '^', '_', '`', '{', '|', '}', '~']; // TODO: support ']'
 begin
   Inc(Run);
   FTokenID := ptPointerSymbol;
