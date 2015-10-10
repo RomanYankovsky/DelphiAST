@@ -3829,7 +3829,7 @@ begin
       CustomAttribute;
 
     if (TokenID = ptIdentifier) and
-      not (ExID in [ptPrivate, ptProtected, ptPublished, ptPublic]) then
+      not (ExID in [ptPrivate, ptProtected, ptPublished, ptPublic, ptStrict]) then
     begin
       InitAhead;
       AheadParse.NextToken;
