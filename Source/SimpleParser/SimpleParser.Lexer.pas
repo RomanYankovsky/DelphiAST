@@ -1861,13 +1861,17 @@ begin
 end;
 
 procedure TmwBasePasLex.PointerSymbolProc;
+const
+  PointerChars = ['a'..'z', 'A'..'Z', '\', '!', '"', '#', '$', '%', '&', '''', '(', ')',
+                  '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[',
+                  ']', '^', '_', '`', '{', '|', '}', '~'];
 begin
   Inc(Run);
   FTokenID := ptPointerSymbol;
 
   //This is a wierd Pascal construct that rarely appears, but needs to be
   //supported. ^M is a valid char reference (#13, in this case)
-  if CharInSet(FOrigin[Run], ['a'..'z','A'..'Z']) and not IsIdentifiers(FOrigin[Run+1]) then
+  if CharInSet(FOrigin[Run], PointerChars) and not IsIdentifiers(FOrigin[Run+1]) then
   begin
     Inc(Run);
     FTokenID := ptAsciiChar;
