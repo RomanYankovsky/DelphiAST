@@ -169,6 +169,8 @@ type
     procedure RecordFieldConstant; override;
     procedure RelativeOperator; override;
     procedure RepeatStatement; override;
+    procedure ResourceDeclaration; override;
+    procedure ResourceValue; override;
     procedure RequiresClause; override;
     procedure RequiresIdentifier; override;
     procedure RequiresIdentifierId; override;
@@ -741,7 +743,7 @@ procedure TPasSyntaxTreeBuilder.ConstantValue;
 begin
   FStack.Push(ntValue);
   try
-    inherited ConstantValue;
+    inherited;
   finally
     FStack.Pop;
   end;
@@ -751,7 +753,7 @@ procedure TPasSyntaxTreeBuilder.ConstantValueTyped;
 begin
   FStack.Push(ntValue);
   try
-    inherited ConstantValueTyped;
+    inherited;
   finally
     FStack.Pop;
   end;
@@ -822,7 +824,7 @@ begin
         if Constant.Typ <> ntName then
           Continue;
 
-        FStack.Push(ntConstant, False);
+        FStack.Push(ConstList.Typ, False);
         try
           FStack.Peek.Col  := Constant.Col;
           FStack.Peek.Line := Constant.Line;
@@ -1695,6 +1697,26 @@ procedure TPasSyntaxTreeBuilder.RequiresIdentifierId;
 begin
   FStack.AddChild(ntUnknown, False).SetAttribute(anName, Lexer.Token);
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.ResourceDeclaration;
+begin
+  FStack.Push(ntResourceString);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ResourceValue;
+begin
+  FStack.Push(ntValue);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.ReturnType;

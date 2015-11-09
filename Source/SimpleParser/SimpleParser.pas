@@ -445,6 +445,7 @@ type
     procedure RequiresIdentifierId; virtual;
     procedure ResolutionInterfaceName; virtual;
     procedure ResourceDeclaration; virtual;
+    procedure ResourceValue; virtual;
     procedure ReturnType; virtual;
     procedure RoundClose; virtual;
     procedure RoundOpen; virtual;
@@ -4596,15 +4597,10 @@ end;
 
 procedure TmwSimplePasPar.ResourceDeclaration;
 begin
-  Identifier;
+  ConstantName;
   Expected(ptEqual);
 
-  CharString;
-  while TokenID = ptPlus do
-  begin
-    NextToken;
-    CharString;
-  end;
+  ResourceValue;
 
   while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
     case ExID of
@@ -4612,6 +4608,16 @@ begin
       ptLibrary: DirectiveLibrary;
       ptPlatform: DirectivePlatform;
     end;
+end;
+
+procedure TmwSimplePasPar.ResourceValue;
+begin
+  CharString;
+  while TokenID = ptPlus do
+  begin
+    NextToken;
+    CharString;
+  end;
 end;
 
 procedure TmwSimplePasPar.ConstantDeclaration;
