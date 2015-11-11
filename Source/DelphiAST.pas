@@ -119,6 +119,7 @@ type
     procedure ExportsElement; override;
     procedure Expression; override;
     procedure ExpressionList; override;
+    procedure ExternalDirective; override;
     procedure FieldName; override;
     procedure FinalizationSection; override;
     procedure FinallyBlock; override;
@@ -1051,6 +1052,16 @@ end;
 procedure TPasSyntaxTreeBuilder.ExpressionList;
 begin
   FStack.Push(ntExpressions);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ExternalDirective;
+begin
+  FStack.Push(ntExternal);
   try
     inherited;
   finally
