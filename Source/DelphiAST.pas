@@ -13,7 +13,7 @@ type
   strict private
     FSyntaxTree: TSyntaxNode;
   public
-    constructor Create(Line, Col: Integer; Msg: string; SyntaxTree: TSyntaxNode); reintroduce;
+    constructor Create(Line, Col: Integer; const Msg: string; SyntaxTree: TSyntaxNode); reintroduce;
     destructor Destroy; override;
 
     property SyntaxTree: TSyntaxNode read FSyntaxTree;
@@ -101,7 +101,6 @@ type
     procedure ConstructorConstraint; override;
     procedure ConstructorName; override;
     procedure ContainsClause; override;
-    procedure Designator; override;
     procedure DestructorName; override;
     procedure DirectiveBinding; override;
     procedure DirectiveBindingMessage; override;
@@ -862,16 +861,6 @@ begin
   FComments := TObjectList<TCommentNode>.Create(True);
 
   OnComment := DoOnComment;
-end;
-
-procedure TPasSyntaxTreeBuilder.Designator;
-begin
-//  FStack.Push('designator');
-  try
-    inherited Designator;
-  finally
-//    FStack.Pop;
-  end;
 end;
 
 destructor TPasSyntaxTreeBuilder.Destroy;
@@ -2510,7 +2499,7 @@ end;
 
 { ESyntaxTreeException }
 
-constructor ESyntaxTreeException.Create(Line, Col: Integer; Msg: string;
+constructor ESyntaxTreeException.Create(Line, Col: Integer; const Msg: string;
   SyntaxTree: TSyntaxNode);
 begin
   inherited Create(Line, Col, Msg);

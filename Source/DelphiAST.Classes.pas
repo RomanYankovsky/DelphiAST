@@ -12,7 +12,7 @@ type
   strict private
     FLine, FCol: Integer;
   public
-    constructor Create(Line, Col: Integer; Msg: string); reintroduce;
+    constructor Create(Line, Col: Integer; const Msg: string); reintroduce;
 
     property Line: Integer read FLine;
     property Col: Integer read FCol;
@@ -37,8 +37,8 @@ type
     function Clone: TSyntaxNode; virtual;
 
     function GetAttribute(const Key: TAttributeName): string;
-    function HasAttribute(const Key: TAttributeName): boolean;
-    procedure SetAttribute(const Key: TAttributeName; Value: string);
+    function HasAttribute(const Key: TAttributeName): Boolean;
+    procedure SetAttribute(const Key: TAttributeName; const Value: string);
 
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
     function AddChild(Typ: TSyntaxNodeType): TSyntaxNode; overload;
@@ -274,6 +274,8 @@ var
 begin
   Result := TList<TSyntaxNode>.Create;
   try
+    Result.Capacity := ExprNodes.Count * 2;
+
     PrevNode := nil;
     for Node in ExprNodes do
     begin
@@ -346,7 +348,7 @@ end;
 
 { TSyntaxNode }
 
-procedure TSyntaxNode.SetAttribute(const Key: TAttributeName; Value: string);
+procedure TSyntaxNode.SetAttribute(const Key: TAttributeName; const Value: string);
 begin
   FAttributes.AddOrSetValue(Key, Value);
 end;
@@ -433,7 +435,7 @@ begin
   Result := FChildNodes.Count > 0;
 end;
 
-function TSyntaxNode.HasAttribute(const Key: TAttributeName): boolean;
+function TSyntaxNode.HasAttribute(const Key: TAttributeName): Boolean;
 begin
   result := FAttributes.ContainsKey(key);
 end;
@@ -468,7 +470,7 @@ end;
 
 { EParserException }
 
-constructor EParserException.Create(Line, Col: Integer; Msg: string);
+constructor EParserException.Create(Line, Col: Integer; const Msg: string);
 begin
   inherited Create(Msg);
   FLine := Line;
