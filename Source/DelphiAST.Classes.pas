@@ -92,7 +92,7 @@ type
   public
     class function ExprToReverseNotation(Expr: TList<TSyntaxNode>): TList<TSyntaxNode>; static;
     class procedure NodeListToTree(Expr: TList<TSyntaxNode>; Root: TSyntaxNode); static;
-    class function PrepareExpr(ExprNodes: TList<TSyntaxNode>): TObjectList<TSyntaxNode>; static;
+    class function PrepareExpr(ExprNodes: TList<TSyntaxNode>): TList<TSyntaxNode>; static;
     class procedure RawNodeListToTree(RawParentNode: TSyntaxNode; RawNodeList: TList<TSyntaxNode>; NewRoot: TSyntaxNode); static;
   end;
 
@@ -247,7 +247,11 @@ begin
         begin
           while not IsRoundOpen(Stack.Peek.Typ) do
             Result.Add(Stack.Pop);
-          Stack.Pop;
+
+          // RoundOpen and RoundClose nodes are not needed anymore
+          Stack.Pop.Free;
+          Node.Free;
+
           if (Stack.Count > 0) and TOperators.IsOpName(Stack.Peek.Typ) then
             Result.Add(Stack.Pop);
         end else
@@ -265,55 +269,40 @@ begin
 end;
 
 class procedure TExpressionTools.NodeListToTree(Expr: TList<TSyntaxNode>; Root: TSyntaxNode);
-
-  procedure CopyTree(TreeData: TTreeData; Root: TSyntaxNode);
-  var
-    Node: TSyntaxNode;
-  begin
-    Node := Root.AddChild(TreeData.Node.Clone);
-    if Assigned(TreeData.Child1) then
-      CopyTree(TreeData.Child1, Node);
-    if Assigned(TreeData.Child2) then
-      CopyTree(TreeData.Child2, Node);
-  end;
-
 var
-  TreeData: TTreeData;
-  Stack: TStack<TTreeData>;
-  Node: TSyntaxNode;
+  Stack: TStack<TSyntaxNode>;
+  Node, SecondNode: TSyntaxNode;
 begin
-  Stack := TStack<TTreeData>.Create;
+  Stack := TStack<TSyntaxNode>.Create;
   try
     for Node in Expr do
     begin
-      TreeData := TTreeData.Create(Node);
       if TOperators.IsOpName(Node.Typ) then
         case TOperators.Items[Node.Typ].Kind of
-          okUnary: TreeData.Child1 := Stack.Pop;
+          okUnary: Node.AddChild(Stack.Pop);
           okBinary:
             begin
-              TreeData.Child2 := Stack.Pop;
-              TreeData.Child1 := Stack.Pop;
+              SecondNode := Stack.Pop;
+              Node.AddChild(Stack.Pop);
+              Node.AddChild(SecondNode);
             end;
         end;
-      Stack.Push(TreeData);
+      Stack.Push(Node);
     end;
 
-    TreeData := Stack.Pop;
+    Root.AddChild(Stack.Pop);
 
-    CopyTree(TreeData, Root);
-
-    TreeData.Free;
+    Assert(Stack.Count = 0);
   finally
     Stack.Free;
   end;
 end;
 
-class function TExpressionTools.PrepareExpr(ExprNodes: TList<TSyntaxNode>): TObjectList<TSyntaxNode>;
+class function TExpressionTools.PrepareExpr(ExprNodes: TList<TSyntaxNode>): TList<TSyntaxNode>;
 var
   Node, PrevNode: TSyntaxNode;
 begin
-  Result := TObjectList<TSyntaxNode>.Create(True);
+  Result := TList<TSyntaxNode>.Create;
   try
     PrevNode := nil;
     for Node in ExprNodes do
