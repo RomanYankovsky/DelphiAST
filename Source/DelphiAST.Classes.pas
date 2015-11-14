@@ -120,19 +120,6 @@ type
     class property Items[Typ: TSyntaxNodeType]: TOperatorInfo read GetItem; default;
   end;
 
-  TTreeData = class
-  strict private
-    FNode: TSyntaxNode;
-    FChild1, FChild2: TTreeData;
-  public
-    constructor Create(Node: TSyntaxNode);
-    destructor Destroy; override;
-
-    property Node: TSyntaxNode read FNode;
-    property Child1: TTreeData read FChild1 write FChild1;
-    property Child2: TTreeData read FChild2 write FChild2;
-  end;
-
 const
   OperatorsInfo: array [0..27] of TOperatorInfo =
     ((Typ: ntAddr;         Priority: 1; Kind: okUnary;  AssocType: atRight),
@@ -199,23 +186,6 @@ end;
 function IsRoundOpen(Typ: TSyntaxNodeType): Boolean; inline;
 begin
   Result := Typ = ntRoundOpen;
-end;
-
-{ TTreeData }
-
-constructor TTreeData.Create(Node: TSyntaxNode);
-begin
-  inherited Create;
-  FNode := Node;
-  FChild1 := nil;
-  FChild2 := nil;
-end;
-
-destructor TTreeData.Destroy;
-begin
-  FChild1.Free;
-  FChild2.Free;
-  inherited;
 end;
 
 class function TExpressionTools.ExprToReverseNotation(Expr: TList<TSyntaxNode>): TList<TSyntaxNode>;
