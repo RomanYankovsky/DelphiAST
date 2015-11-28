@@ -260,7 +260,7 @@ type
     function GetIsOrdIdent: Boolean;
     function GetIsRealType: Boolean;
     function GetIsStringType: Boolean;
-    function GetIsVarantType: Boolean;
+    function GetIsVariantType: Boolean;
     function GetIsAddOperator: Boolean;
     function GetIsMulOperator: Boolean;
     function GetIsRelativeOperator: Boolean;
@@ -332,7 +332,7 @@ type
     property IsOrdinalType: Boolean read GetIsOrdinalType;
     property IsRealType: Boolean read GetIsRealType;
     property IsStringType: Boolean read GetIsStringType;
-    property IsVariantType: Boolean read GetIsVarantType;
+    property IsVariantType: Boolean read GetIsVariantType;
     property IsRelativeOperator: Boolean read GetIsRelativeOperator;
     property IsAddOperator: Boolean read GetIsAddOperator;
     property IsMulOperator: Boolean read GetIsMulOperator;
@@ -2726,7 +2726,7 @@ begin
       if FTokenID = ptStringConst then Result := True;
 end;
 
-function TmwBasePasLex.GetIsVarantType: Boolean;
+function TmwBasePasLex.GetIsVariantType: Boolean;
 begin
   Result := False;
   if FTokenID = ptIdentifier then

@@ -13,7 +13,7 @@ type
   strict private
     FSyntaxTree: TSyntaxNode;
   public
-    constructor Create(Line, Col: Integer; Msg: string; SyntaxTree: TSyntaxNode); reintroduce;
+    constructor Create(Line, Col: Integer; const Msg: string; SyntaxTree: TSyntaxNode); reintroduce;
     destructor Destroy; override;
 
     property SyntaxTree: TSyntaxNode read FSyntaxTree;
@@ -101,7 +101,6 @@ type
     procedure ConstructorConstraint; override;
     procedure ConstructorName; override;
     procedure ContainsClause; override;
-    procedure Designator; override;
     procedure DestructorName; override;
     procedure DirectiveBinding; override;
     procedure DirectiveBindingMessage; override;
@@ -137,6 +136,7 @@ type
     procedure Identifier; override;
     procedure ImplementationSection; override;
     procedure ImplementsSpecifier; override;
+    procedure IndexSpecifier; override;
     procedure IndexOp; override;
     procedure InheritedStatement; override;
     procedure InheritedVariableReference; override;
@@ -864,16 +864,6 @@ begin
   OnComment := DoOnComment;
 end;
 
-procedure TPasSyntaxTreeBuilder.Designator;
-begin
-//  FStack.Push('designator');
-  try
-    inherited Designator;
-  finally
-//    FStack.Pop;
-  end;
-end;
-
 destructor TPasSyntaxTreeBuilder.Destroy;
 begin
   FStack.Free;
@@ -1300,6 +1290,16 @@ end;
 procedure TPasSyntaxTreeBuilder.IndexOp;
 begin
   FStack.Push(ntIndexed);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.IndexSpecifier;
+begin
+  FStack.Push(ntIndex);
   try
     inherited;
   finally
@@ -2510,7 +2510,7 @@ end;
 
 { ESyntaxTreeException }
 
-constructor ESyntaxTreeException.Create(Line, Col: Integer; Msg: string;
+constructor ESyntaxTreeException.Create(Line, Col: Integer; const Msg: string;
   SyntaxTree: TSyntaxNode);
 begin
   inherited Create(Line, Col, Msg);

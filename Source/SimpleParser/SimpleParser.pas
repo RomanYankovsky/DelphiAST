@@ -603,8 +603,8 @@ end;
 
 constructor ESyntaxError.CreatePos(const Msg: string; aPosXY: TTokenPoint);
 begin
-  Message := Msg;
   FPosXY := aPosXY;
+  inherited Create(Msg);
 end;
 
 { TmwSimplePasPar }
