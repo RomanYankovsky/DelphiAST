@@ -136,6 +136,7 @@ type
     procedure Identifier; override;
     procedure ImplementationSection; override;
     procedure ImplementsSpecifier; override;
+    procedure IndexSpecifier; override;
     procedure IndexOp; override;
     procedure InheritedStatement; override;
     procedure InheritedVariableReference; override;
@@ -1289,6 +1290,16 @@ end;
 procedure TPasSyntaxTreeBuilder.IndexOp;
 begin
   FStack.Push(ntIndexed);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.IndexSpecifier;
+begin
+  FStack.Push(ntIndex);
   try
     inherited;
   finally
