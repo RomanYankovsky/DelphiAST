@@ -1891,6 +1891,10 @@ end;
 procedure TmwSimplePasPar.DirectiveBinding;
 begin
   case ExID of
+    ptAbstract:
+      begin
+        NextToken;
+      end;  
     ptVirtual:
       begin
         NextToken;
@@ -4753,7 +4757,7 @@ begin
   case ExID of
     ptAbstract:
       begin
-        NextToken;
+        DirectiveBinding;
       end;
     ptCdecl, ptPascal, ptRegister, ptSafeCall, ptStdCall:
       begin
