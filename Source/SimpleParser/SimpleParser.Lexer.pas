@@ -1339,7 +1339,8 @@ end;
 
 procedure TmwBasePasLex.DisposeBuffer(Buf: PBufferRec);
 begin
-  FreeMem(Buf.Buf);
+  if Assigned(Buf.Buf) then
+    FreeMem(Buf.Buf);
   Dispose(Buf);
 end;
 
@@ -1371,7 +1372,16 @@ begin
 end;
 
 procedure TmwBasePasLex.SetSharedBuffer(SharedBuffer: PBufferRec);
+var
+  NextBuffer: PBufferRec;
 begin
+  while Assigned(FBuffer.Next) do
+  begin
+    NextBuffer := FBuffer;
+    FBuffer := FBuffer.Next;
+    DisposeBuffer(NextBuffer);
+  end;
+
   if not FUseSharedBuffer and Assigned(FBuffer.Buf) then
     FreeMem(FBuffer.Buf);
 
@@ -1848,13 +1858,13 @@ end;
 
 procedure TmwBasePasLex.NullProc;
 var
-  OldBuffer: PBufferRec;
+  NextBuffer: PBufferRec;
 begin
   if Assigned(FBuffer.Next) then
   begin
-    OldBuffer := FBuffer;
+    NextBuffer := FBuffer;
     FBuffer := FBuffer.Next;
-    DisposeBuffer(OldBuffer);
+    DisposeBuffer(NextBuffer);
 
     Next;
   end else
