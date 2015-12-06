@@ -730,7 +730,7 @@ begin
   end
   else
     StringStream := TStringStream(SourceStream);
-  FLexer.Origin := PChar(StringStream.GetDataString);
+  FLexer.Origin := StringStream.GetDataString;
   ParseFile;
   if OwnStream then
     StringStream.Free;

@@ -72,16 +72,20 @@ type
     Next: PDefineRec;
   end;
 
+  PBufferRec = ^TBufferRec;
+  TBufferRec = record
+    Buf: PChar;
+    Run: Integer;
+    Next: PBufferRec;
+  end;
+
   TmwBasePasLex = class(TObject)
   private
     FCommentState: TCommentState;
-    FOrigin: PChar;
     FProcTable: array[#0..#127] of procedure of object;
-    Run: Integer;
+    FBuffer: PBufferRec;
     RunAhead: Integer;
     TempRun: Integer;
-    EndOfIncludedArea: Integer;
-    IncludedLineCount: Integer;
     BufferSize: integer;
     FIdentFuncTable: array[0..191] of function: TptTokenKind of object;
     FTokenPos: Integer;
@@ -110,8 +114,8 @@ type
     FTopDefineRec: PDefineRec;
     FUseDefines: Boolean;
     FIncludeHandler: IIncludeHandler;
-    FUseSharedOrigin: Boolean;
     FOnComment: TCommentEvent;
+    FUseSharedBuffer: Boolean;
 
     function KeyHash: Integer;
     function KeyComp(const aKey: string): Boolean;
@@ -210,7 +214,6 @@ type
     procedure InitIdent;
     function GetPosXY: TTokenPoint;
     function IdentKind: TptTokenKind;
-    procedure SetRunPos(Value: Integer);
     procedure MakeMethodTables;
     procedure AddressOpProc;
     procedure AmpersandOpProc;
@@ -277,11 +280,14 @@ type
     function EvaluateConditionalExpression(const AParams: String): Boolean;
     procedure IncludeFile;
     function GetIncludeFileNameFromToken(const IncludeToken: string): string;
-    procedure UpdateIncludedLineCount(const IncludedContent: string);
-    procedure SetSharedOrigin(SharedValue: PChar);
+    function GetOrigin: string;
+    function GetRunPos: Integer;
+    procedure SetRunPos(const Value: Integer);
+    procedure SetSharedBuffer(SharedBuffer: PBufferRec);
+    procedure DisposeBuffer(Buf: PBufferRec);
   protected
     procedure SetLine(const Value: string); virtual;
-    procedure SetOrigin(NewValue: PChar); virtual;
+    procedure SetOrigin(const NewValue: string); virtual;
     procedure SetOnCompDirect(const Value: TDirectiveEvent); virtual;
     procedure SetOnDefineDirect(const Value: TDirectiveEvent); virtual;
     procedure SetOnElseDirect(const Value: TDirectiveEvent); virtual;
@@ -299,7 +305,6 @@ type
     destructor Destroy; override;
     function CharAhead: Char;
     procedure Next;
-    procedure NextID(ID: TptTokenKind);
     procedure NextNoJunk;
     procedure NextNoSpace;
     procedure Init;
@@ -318,9 +323,9 @@ type
     property IsJunk: Boolean read GetIsJunk;
     property IsSpace: Boolean read GetIsSpace;
     property Line: string write SetLine;
-    property Origin: PChar read FOrigin write SetOrigin;
+    property Origin: string read GetOrigin write SetOrigin;
     property PosXY: TTokenPoint read GetPosXY;
-    property RunPos: Integer read Run write SetRunPos;
+    property RunPos: Integer read GetRunPos write SetRunPos;
     property Token: string read GetToken;
     property TokenLen: Integer read GetTokenLen;
     property TokenPos: Integer read FTokenPos;
@@ -365,11 +370,9 @@ type
     function GetAheadGenID: TptTokenKind;
     function GetAheadToken: string;
     function GetAheadTokenID: TptTokenKind;
-    function GetStatus: TmwPasLexStatus;
-    procedure SetStatus(const Value: TmwPasLexStatus);
   protected
     procedure SetLine(const Value: string); override;
-    procedure SetOrigin(NewValue: PChar); override;
+    procedure SetOrigin(const NewValue: string); override;
     procedure SetOnCompDirect(const Value: TDirectiveEvent); override;
     procedure SetOnDefineDirect(const Value: TDirectiveEvent); override;
     procedure SetOnElseDirect(const Value: TDirectiveEvent); override;
@@ -390,7 +393,6 @@ type
     property AheadTokenID: TptTokenKind read GetAheadTokenID;
     property AheadExID: TptTokenKind read GetAheadExID;
     property AheadGenID: TptTokenKind read GetAheadGenID;
-    property Status: TmwPasLexStatus read GetStatus write SetStatus;
   end;
 
 implementation
@@ -400,9 +402,6 @@ uses
 
 type
   TmwPasLexExpressionEvaluation = (leeNone, leeAnd, leeOr);
-
-const
-  INCLUDE_BUFFER_SIZE = 1024*1024;
 
 procedure MakeIdentTable;
 var
@@ -426,10 +425,10 @@ end;
 
 function TmwBasePasLex.CharAhead: Char;
 begin
-  RunAhead := Run;
-  while (FOrigin[RunAhead] > #0) and (FOrigin[RunAhead] < #33) do
+  RunAhead := FBuffer.Run;
+  while (FBuffer.Buf[RunAhead] > #0) and (FBuffer.Buf[RunAhead] < #33) do
     Inc(RunAhead);
-  Result := FOrigin[RunAhead];
+  Result := FBuffer.Buf[RunAhead];
 end;
 
 procedure TmwBasePasLex.ClearDefines;
@@ -476,16 +475,21 @@ end;
 
 function TmwBasePasLex.GetPosXY: TTokenPoint;
 begin
-  if Run > EndOfIncludedArea then
+  if not Assigned(FBuffer.Next) then
   begin
     Result.X := FTokenPos - FLinePos + 1;
-    Result.Y := FLineNumber + 1 - IncludedLineCount;
+    Result.Y := FLineNumber + 1;
   end
   else
   begin
     Result.X := -1;
     Result.Y := -1;
   end;
+end;
+
+function TmwBasePasLex.GetRunPos: Integer;
+begin
+  Result := FBuffer.Run;
 end;
 
 procedure TmwBasePasLex.InitIdent;
@@ -593,10 +597,10 @@ end;
 function TmwBasePasLex.KeyHash: Integer;
 begin
   Result := 0;
-  while IsIdentifiers(FOrigin[Run]) do
+  while IsIdentifiers(FBuffer.Buf[FBuffer.Run]) do
   begin
-    Inc(Result, HashValue(FOrigin[Run]));
-    Inc(Run);
+    Inc(Result, HashValue(FBuffer.Buf[FBuffer.Run]));
+    Inc(FBuffer.Run);
   end;
 end;
 
@@ -607,7 +611,7 @@ var
 begin
   if Length(aKey) = TokenLen then
   begin
-    Temp := FOrigin + FTokenPos;
+    Temp := FBuffer.Buf + FTokenPos;
     Result := True;
     for i := 1 to TokenLen do
     begin
@@ -879,7 +883,7 @@ end;
 function TmwBasePasLex.Func63: TptTokenKind;
 begin
   Result := ptIdentifier;
-  case FOrigin[FTokenPos] of
+  case FBuffer.Buf[FTokenPos] of
     'P', 'p': if KeyComp('Public') then FExID := ptPublic;
     'A', 'a': if KeyComp('Array') then Result := ptArray;
     'T', 't': if KeyComp('Try') then Result := ptTry;
@@ -895,7 +899,7 @@ end;
 function TmwBasePasLex.Func64: TptTokenKind;
 begin
   Result := ptIdentifier;
-  case FOrigin[FTokenPos] of
+  case FBuffer.Buf[FTokenPos] of
     'B', 'b': if KeyComp('Boolean') then FExID := ptBoolean;
     'D', 'd': if KeyComp('DWORD') then FExID := ptDWORD;
     'U', 'u': if KeyComp('Uses') then Result := ptUses else
@@ -1307,8 +1311,6 @@ end;
 constructor TmwBasePasLex.Create;
 begin
   inherited Create;
-  BufferSize := INCLUDE_BUFFER_SIZE * SizeOf(Char);
-  GetMem(FOrigin, BufferSize);
   InitIdent;
   MakeMethodTables;
   FExID := ptUnKnown;
@@ -1316,17 +1318,29 @@ begin
   FUseDefines := True;
   FDefines := TStringList.Create;
   FTopDefineRec := nil;
-  FUseSharedOrigin := false;
+  FUseSharedBuffer := False;
   ClearDefines;
+
+  New(FBuffer);
+  FillChar(FBuffer^, SizeOf(TBufferRec), 0);
 end;
 
 destructor TmwBasePasLex.Destroy;
 begin
+  if not FUseSharedBuffer then
+    FreeMem(FBuffer.Buf);
+
+  Dispose(FBuffer);
+
   ClearDefines; //If we don't do this, we get a memory leak
   FDefines.Free;
-  if not FUseSharedOrigin then
-    FreeMem(FOrigin, BufferSize);
   inherited Destroy;
+end;
+
+procedure TmwBasePasLex.DisposeBuffer(Buf: PBufferRec);
+begin
+  FreeMem(Buf.Buf);
+  Dispose(Buf);
 end;
 
 procedure TmwBasePasLex.DoProcTable(AChar: Char);
@@ -1339,35 +1353,33 @@ begin
   end;
 end;
 
-procedure TmwBasePasLex.SetOrigin(NewValue: PChar);
+procedure TmwBasePasLex.SetOrigin(const NewValue: string);
 begin
-  if not FUseSharedOrigin then
-    FreeMem(FOrigin, BufferSize);
-  FUseSharedOrigin := false;
+  BufferSize := (Length(NewValue) + 1) * SizeOf(Char);
 
-  BufferSize := (Length(String(NewValue)) + INCLUDE_BUFFER_SIZE) * SizeOf(Char);
-  GetMem(FOrigin, BufferSize);
-  StrPCopy(FOrigin, NewValue);
+  GetMem(FBuffer.Buf, BufferSize);
+  StrPCopy(FBuffer.Buf, NewValue);
 
   Init;
   Next;
 end;
 
-procedure TmwBasePasLex.SetSharedOrigin(SharedValue: PChar);
+procedure TmwBasePasLex.SetRunPos(const Value: Integer);
 begin
-  if not FUseSharedOrigin then
-    FreeMem(FOrigin, BufferSize);
-
-  FUseSharedOrigin := true;
-  FOrigin := SharedValue;
-
-  Init;
+  FBuffer.Run := Value;
   Next;
 end;
 
-procedure TmwBasePasLex.SetRunPos(Value: Integer);
+procedure TmwBasePasLex.SetSharedBuffer(SharedBuffer: PBufferRec);
 begin
-  Run := Value;
+  if not FUseSharedBuffer and Assigned(FBuffer.Buf) then
+    FreeMem(FBuffer.Buf);
+
+  FUseSharedBuffer := True;
+  FBuffer.Buf := SharedBuffer.Buf;
+  FBuffer.Run := SharedBuffer.Run;
+
+  Init;
   Next;
 end;
 
@@ -1378,16 +1390,16 @@ end;
 
 procedure TmwBasePasLex.AddressOpProc;
 begin
-  case FOrigin[Run + 1] of
+  case FBuffer.Buf[FBuffer.Run + 1] of
     '@':
       begin
         FTokenID := ptDoubleAddressOp;
-        Inc(Run, 2);
+        Inc(FBuffer.Run, 2);
       end;
   else
     begin
       FTokenID := ptAddressOp;
-      Inc(Run);
+      Inc(FBuffer.Run);
     end;
   end;
 end;
@@ -1395,25 +1407,21 @@ end;
 procedure TmwBasePasLex.AsciiCharProc;
 begin
   FTokenID := ptAsciiChar;
-  Inc(Run);
-  if FOrigin[Run] = '$' then
+  Inc(FBuffer.Run);
+  if FBuffer.Buf[FBuffer.Run] = '$' then
   begin
-    Inc(Run);
-    while CharInSet(FOrigin[Run], ['0'..'9', 'A'..'F', 'a'..'f']) do Inc(Run);
+    Inc(FBuffer.Run);
+    while CharInSet(FBuffer.Buf[FBuffer.Run], ['0'..'9', 'A'..'F', 'a'..'f']) do Inc(FBuffer.Run);
   end else
   begin
-  {$IFDEF SUPPORTS_INTRINSIC_HELPERS}
-    while Char(FOrigin[Run]).IsDigit do
-  {$ELSE}
-    while IsDigit(fOrigin[Run]) do
-  {$ENDIF}
-      Inc(Run);
+    while IsDigit(FBuffer.Buf[FBuffer.Run]) do
+      Inc(FBuffer.Run);
   end;
 end;
 
 procedure TmwBasePasLex.BraceCloseProc;
 begin
-  Inc(Run);
+  Inc(FBuffer.Run);
   FTokenID := ptError;
   if Assigned(FOnMessage) then
     FOnMessage(Self, meError, 'Illegal character', PosXY.X, PosXY.Y);
@@ -1425,7 +1433,7 @@ var
   CommentText: string;
 begin
   FTokenID := ptBorComment;
-  case FOrigin[Run] of
+  case FBuffer.Buf[FBuffer.Run] of
     #0:
       begin
         NullProc;
@@ -1435,43 +1443,45 @@ begin
       end;
   end;
 
-  BeginRun := Run;
+  BeginRun := FBuffer.Run;
 
-  while FOrigin[Run] <> #0 do
-    case FOrigin[Run] of
+  while FBuffer.Buf[FBuffer.Run] <> #0 do
+    case FBuffer.Buf[FBuffer.Run] of
       '}':
         begin
           FCommentState := csNo;
-          Inc(Run);
+          Inc(FBuffer.Run);
           Break;
         end;
       #10:
         begin
-          Inc(Run);
-          Inc(FLineNumber);
-          FLinePos := Run;
+          Inc(FBuffer.Run);
+          if not Assigned(FBuffer.Next) then
+            Inc(FLineNumber);
+          FLinePos := FBuffer.Run;
         end;
       #13:
         begin
-          Inc(Run);
-          if FOrigin[Run] = #10 then Inc(Run);
-          Inc(FLineNumber);
-          FLinePos := Run;
+          Inc(FBuffer.Run);
+          if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
+          if not Assigned(FBuffer.Next) then
+            Inc(FLineNumber);
+          FLinePos := FBuffer.Run;
         end;
     else
-      Inc(Run);
+      Inc(FBuffer.Run);
     end;
 
   if Assigned(FOnComment) then
   begin
-    SetString(CommentText, PChar(@FOrigin[BeginRun]), Run - BeginRun);
+    SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun);
     FOnComment(Self, CommentText);
   end;
 end;
 
 procedure TmwBasePasLex.BraceOpenProc;
 begin
-  case FOrigin[Run + 1] of
+  case FBuffer.Buf[FBuffer.Run + 1] of
     '$': FTokenID := GetDirectiveKind;
   else
     begin
@@ -1479,30 +1489,32 @@ begin
       FCommentState := csBor;
     end;
   end;
-  Inc(Run);
-  while FOrigin[Run] <> #0 do
-    case FOrigin[Run] of
+  Inc(FBuffer.Run);
+  while FBuffer.Buf[FBuffer.Run] <> #0 do
+    case FBuffer.Buf[FBuffer.Run] of
       '}':
         begin
           FCommentState := csNo;
-          Inc(Run);
+          Inc(FBuffer.Run);
           Break;
         end;
       #10:
         begin
-          Inc(Run);
-          Inc(FLineNumber);
-          FLinePos := Run;
+          Inc(FBuffer.Run);
+          if not Assigned(FBuffer.Next) then
+            Inc(FLineNumber);
+          FLinePos := FBuffer.Run;
         end;
       #13:
         begin
-          Inc(Run);
-          if FOrigin[Run] = #10 then Inc(Run);
-          Inc(FLineNumber);
-          FLinePos := Run;
+          Inc(FBuffer.Run);
+          if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
+          if not Assigned(FBuffer.Next) then
+            Inc(FLineNumber);
+          FLinePos := FBuffer.Run;
         end;
     else
-      Inc(Run);
+      Inc(FBuffer.Run);
     end;
   case FTokenID of
     PtCompDirect:
@@ -1672,15 +1684,15 @@ end;
 
 procedure TmwBasePasLex.ColonProc;
 begin
-  case FOrigin[Run + 1] of
+  case FBuffer.Buf[FBuffer.Run + 1] of
     '=':
       begin
-        Inc(Run, 2);
+        Inc(FBuffer.Run, 2);
         FTokenID := ptAssign;
       end;
   else
     begin
-      Inc(Run);
+      Inc(FBuffer.Run);
       FTokenID := ptColon;
     end;
   end;
@@ -1688,7 +1700,7 @@ end;
 
 procedure TmwBasePasLex.CommaProc;
 begin
-  Inc(Run);
+  Inc(FBuffer.Run);
   FTokenID := ptComma;
 end;
 
@@ -1701,13 +1713,14 @@ begin
     FTokenID := ptCRLF;
   end;
 
-  case FOrigin[Run + 1] of
-    #10: Inc(Run, 2);
+  case FBuffer.Buf[FBuffer.Run + 1] of
+    #10: Inc(FBuffer.Run, 2);
   else
-    Inc(Run);
+    Inc(FBuffer.Run);
   end;
-  Inc(FLineNumber);
-  FLinePos := Run;
+  if not Assigned(FBuffer.Next) then
+    Inc(FLineNumber);
+  FLinePos := FBuffer.Run;
 end;
 
 procedure TmwBasePasLex.EnterDefineBlock(ADefined: Boolean);
@@ -1725,7 +1738,7 @@ end;
 
 procedure TmwBasePasLex.EqualProc;
 begin
-  Inc(Run);
+  Inc(FBuffer.Run);
   FTokenID := ptEqual;
 end;
 
@@ -1743,15 +1756,15 @@ begin
 end;
 procedure TmwBasePasLex.GreaterProc;
 begin
-  case FOrigin[Run + 1] of
+  case FBuffer.Buf[FBuffer.Run + 1] of
     '=':
       begin
-        Inc(Run, 2);
+        Inc(FBuffer.Run, 2);
         FTokenID := ptGreaterEqual;
       end;
   else
     begin
-      Inc(Run);
+      Inc(FBuffer.Run);
       FTokenID := ptGreater;
     end;
   end;
@@ -1760,7 +1773,7 @@ end;
 function TmwBasePasLex.HashValue(AChar: Char): Integer;
 begin
   if AChar <= #127 then
-    Result := mHashTable[FOrigin[Run]]
+    Result := mHashTable[FBuffer.Buf[FBuffer.Run]]
   else
     Result := Ord(AChar);
 end;
@@ -1772,10 +1785,10 @@ end;
 
 procedure TmwBasePasLex.IntegerProc;
 begin
-  Inc(Run);
+  Inc(FBuffer.Run);
   FTokenID := ptIntegerConst;
-  while CharInSet(FOrigin[Run], ['0'..'9', 'A'..'F', 'a'..'f']) do
-    Inc(Run);
+  while CharInSet(FBuffer.Buf[FBuffer.Run], ['0'..'9', 'A'..'F', 'a'..'f']) do
+    Inc(FBuffer.Run);
 end;
 
 function TmwBasePasLex.IsDefined(const ADefine: string): Boolean;
@@ -1800,27 +1813,28 @@ begin
   else
     FTokenID := ptCRLF;
   end;
-  Inc(Run);
-  Inc(FLineNumber);
-  FLinePos := Run;
+  Inc(FBuffer.Run);
+  if not Assigned(FBuffer.Next) then
+    Inc(FLineNumber);
+  FLinePos := FBuffer.Run;
 end;
 
 procedure TmwBasePasLex.LowerProc;
 begin
-  case FOrigin[Run + 1] of
+  case FBuffer.Buf[FBuffer.Run + 1] of
     '=':
       begin
-        Inc(Run, 2);
+        Inc(FBuffer.Run, 2);
         FTokenID := ptLowerEqual;
       end;
     '>':
       begin
-        Inc(Run, 2);
+        Inc(FBuffer.Run, 2);
         FTokenID := ptNotEqual;
       end
   else
     begin
-      Inc(Run);
+      Inc(FBuffer.Run);
       FTokenID := ptLower;
     end;
   end;
@@ -1828,35 +1842,45 @@ end;
 
 procedure TmwBasePasLex.MinusProc;
 begin
-  Inc(Run);
+  Inc(FBuffer.Run);
   FTokenID := ptMinus;
 end;
 
 procedure TmwBasePasLex.NullProc;
+var
+  OldBuffer: PBufferRec;
 begin
-  FTokenID := ptNull;
+  if Assigned(FBuffer.Next) then
+  begin
+    OldBuffer := FBuffer;
+    FBuffer := FBuffer.Next;
+    DisposeBuffer(OldBuffer);
+
+    Next;
+  end else
+    FTokenID := ptNull;
 end;
 
 procedure TmwBasePasLex.NumberProc;
 begin
-  Inc(Run);
+  Inc(FBuffer.Run);
   FTokenID := ptIntegerConst;
-  while CharInSet(FOrigin[Run], ['0'..'9', '.', 'e', 'E']) do
+  while CharInSet(FBuffer.Buf[FBuffer.Run], ['0'..'9', '.', 'e', 'E']) do
   begin
-    case FOrigin[Run] of
+    case FBuffer.Buf[FBuffer.Run] of
       '.':
-        if FOrigin[Run + 1] = '.' then
+        if FBuffer.Buf[FBuffer.Run + 1] = '.' then
           Break
         else
           FTokenID := ptFloat
     end;
-    Inc(Run);
+    Inc(FBuffer.Run);
   end;
 end;
 
 procedure TmwBasePasLex.PlusProc;
 begin
-  Inc(Run);
+  Inc(FBuffer.Run);
   FTokenID := ptPlus;
 end;
 
@@ -1866,34 +1890,34 @@ const
                   '?', '@', '_', '`', '|', '}', '~'];
                   // TODO: support ']', '), ''*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '{', '^', '(', '['
 begin
-  Inc(Run);
+  Inc(FBuffer.Run);
   FTokenID := ptPointerSymbol;
 
   //This is a wierd Pascal construct that rarely appears, but needs to be
   //supported. ^M is a valid char reference (#13, in this case)
-  if CharInSet(FOrigin[Run], PointerChars) and not IsIdentifiers(FOrigin[Run+1]) then
+  if CharInSet(FBuffer.Buf[FBuffer.Run], PointerChars) and not IsIdentifiers(FBuffer.Buf[FBuffer.Run+1]) then
   begin
-    Inc(Run);
+    Inc(FBuffer.Run);
     FTokenID := ptAsciiChar;
   end;
 end;
 
 procedure TmwBasePasLex.PointProc;
 begin
-  case FOrigin[Run + 1] of
+  case FBuffer.Buf[FBuffer.Run + 1] of
     '.':
       begin
-        Inc(Run, 2);
+        Inc(FBuffer.Run, 2);
         FTokenID := ptDotDot;
       end;
     ')':
       begin
-        Inc(Run, 2);
+        Inc(FBuffer.Run, 2);
         FTokenID := ptSquareClose;
       end;
   else
     begin
-      Inc(Run);
+      Inc(FBuffer.Run);
       FTokenID := ptPoint;
     end;
   end;
@@ -1910,7 +1934,7 @@ end;
 
 procedure TmwBasePasLex.RoundCloseProc;
 begin
-  Inc(Run);
+  Inc(FBuffer.Run);
   FTokenID := ptRoundClose;
 end;
 
@@ -1920,7 +1944,7 @@ var
   CommentText: string;
 begin
   FTokenID := ptAnsiComment;
-  case FOrigin[Run] of
+  case FBuffer.Buf[FBuffer.Run] of
     #0:
       begin
         NullProc;
@@ -1930,85 +1954,89 @@ begin
       end;
   end;
 
-  BeginRun := Run;
+  BeginRun := FBuffer.Run;
 
-  while FOrigin[Run] <> #0 do
-    case FOrigin[Run] of
+  while FBuffer.Buf[FBuffer.Run] <> #0 do
+    case FBuffer.Buf[FBuffer.Run] of
       '*':
-        if FOrigin[Run + 1] = ')' then
+        if FBuffer.Buf[FBuffer.Run + 1] = ')' then
         begin
           FCommentState := csNo;
-          Inc(Run, 2);
+          Inc(FBuffer.Run, 2);
           Break;
         end
-        else Inc(Run);
+        else Inc(FBuffer.Run);
       #10:
         begin
-          Inc(Run);
-          Inc(FLineNumber);
-          FLinePos := Run;
+          Inc(FBuffer.Run);
+          if not Assigned(FBuffer.Next) then
+            Inc(FLineNumber);
+          FLinePos := FBuffer.Run;
         end;
       #13:
         begin
-          Inc(Run);
-          if FOrigin[Run] = #10 then Inc(Run);
-          Inc(FLineNumber);
-          FLinePos := Run;
+          Inc(FBuffer.Run);
+          if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
+          if not Assigned(FBuffer.Next) then
+            Inc(FLineNumber);
+          FLinePos := FBuffer.Run;
         end;
     else
-      Inc(Run);
+      Inc(FBuffer.Run);
     end;
 
   if Assigned(FOnComment) then
   begin
-    SetString(CommentText, PChar(@FOrigin[BeginRun]), Run - BeginRun);
+    SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun);
     FOnComment(Self, CommentText);
   end;
 end;
 
 procedure TmwBasePasLex.RoundOpenProc;
 begin
-  Inc(Run);
-  case FOrigin[Run] of
+  Inc(FBuffer.Run);
+  case FBuffer.Buf[FBuffer.Run] of
     '*':
       begin
         FTokenID := ptAnsiComment;
-        if FOrigin[Run + 1] = '$' then
+        if FBuffer.Buf[FBuffer.Run + 1] = '$' then
           FTokenID := GetDirectiveKind
         else
           FCommentState := csAnsi;
-        Inc(Run);
-        while FOrigin[Run] <> #0 do
-          case FOrigin[Run] of
+        Inc(FBuffer.Run);
+        while FBuffer.Buf[FBuffer.Run] <> #0 do
+          case FBuffer.Buf[FBuffer.Run] of
             '*':
-              if FOrigin[Run + 1] = ')' then
+              if FBuffer.Buf[FBuffer.Run + 1] = ')' then
               begin
                 FCommentState := csNo;
-                Inc(Run, 2);
+                Inc(FBuffer.Run, 2);
                 Break;
               end
               else
-                Inc(Run);
+                Inc(FBuffer.Run);
             #10:
               begin
-                Inc(Run);
-                Inc(FLineNumber);
-                FLinePos := Run;
+                Inc(FBuffer.Run);
+                if not Assigned(FBuffer.Next) then
+                  Inc(FLineNumber);
+                FLinePos := FBuffer.Run;
               end;
             #13:
               begin
-                Inc(Run);
-                if FOrigin[Run] = #10 then Inc(Run);
-                Inc(FLineNumber);
-                FLinePos := Run;
+                Inc(FBuffer.Run);
+                if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
+                if not Assigned(FBuffer.Next) then
+                  Inc(FLineNumber);
+                FLinePos := FBuffer.Run;
               end;
           else
-            Inc(Run);
+            Inc(FBuffer.Run);
           end;
       end;
     '.':
       begin
-        Inc(Run);
+        Inc(FBuffer.Run);
         FTokenID := ptSquareOpen;
       end;
   else
@@ -2072,7 +2100,7 @@ end;
 
 procedure TmwBasePasLex.SemiColonProc;
 begin
-  Inc(Run);
+  Inc(FBuffer.Run);
   FTokenID := ptSemiColon;
 end;
 
@@ -2081,31 +2109,31 @@ var
   BeginRun: Integer;
   CommentText: string;
 begin
-  case FOrigin[Run + 1] of
+  case FBuffer.Buf[FBuffer.Run + 1] of
     '/':
       begin
-        Inc(Run, 2);
+        Inc(FBuffer.Run, 2);
 
-        BeginRun := Run;
+        BeginRun := FBuffer.Run;
 
         FTokenID := ptSlashesComment;
-        while FOrigin[Run] <> #0 do
+        while FBuffer.Buf[FBuffer.Run] <> #0 do
         begin
-          case FOrigin[Run] of
+          case FBuffer.Buf[FBuffer.Run] of
             #10, #13: Break;
           end;
-          Inc(Run);
+          Inc(FBuffer.Run);
         end;
 
         if Assigned(FOnComment) then
         begin
-          SetString(CommentText, PChar(@FOrigin[BeginRun]), Run - BeginRun);
+          SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun);
           FOnComment(Self, CommentText);
         end;
       end;
   else
     begin
-      Inc(Run);
+      Inc(FBuffer.Run);
       FTokenID := ptSlash;
     end;
   end;
@@ -2113,27 +2141,27 @@ end;
 
 procedure TmwBasePasLex.SpaceProc;
 begin
-  Inc(Run);
+  Inc(FBuffer.Run);
   FTokenID := ptSpace;
-  while CharInSet(FOrigin[Run], [#1..#9, #11, #12, #14..#32]) do
-    Inc(Run);
+  while CharInSet(FBuffer.Buf[FBuffer.Run], [#1..#9, #11, #12, #14..#32]) do
+    Inc(FBuffer.Run);
 end;
 
 procedure TmwBasePasLex.SquareCloseProc;
 begin
-  Inc(Run);
+  Inc(FBuffer.Run);
   FTokenID := ptSquareClose;
 end;
 
 procedure TmwBasePasLex.SquareOpenProc;
 begin
-  Inc(Run);
+  Inc(FBuffer.Run);
   FTokenID := ptSquareOpen;
 end;
 
 procedure TmwBasePasLex.StarProc;
 begin
-  Inc(Run);
+  Inc(FBuffer.Run);
   FTokenID := ptStar;
 end;
 
@@ -2141,8 +2169,8 @@ procedure TmwBasePasLex.StringProc;
 begin
   FTokenID := ptStringConst;
   repeat
-    Inc(Run);
-    case FOrigin[Run] of
+    Inc(FBuffer.Run);
+    case FBuffer.Buf[FBuffer.Run] of
       #0, #10, #13:
         begin
           if Assigned(FOnMessage) then
@@ -2151,16 +2179,16 @@ begin
         end;
       #39:
         begin
-          while (FOrigin[Run] = #39) and (FOrigin[Run + 1] = #39) do
+          while (FBuffer.Buf[FBuffer.Run] = #39) and (FBuffer.Buf[FBuffer.Run + 1] = #39) do
           begin
-            Inc(Run, 2);
+            Inc(FBuffer.Run, 2);
           end;
         end;
     end;
-  until FOrigin[Run] = #39;
-  if FOrigin[Run] = #39 then
+  until FBuffer.Buf[FBuffer.Run] = #39;
+  if FBuffer.Buf[FBuffer.Run] = #39 then
   begin
-    Inc(Run);
+    Inc(FBuffer.Run);
     if TokenLen = 3 then
     begin
       FTokenID := ptAsciiChar;
@@ -2170,13 +2198,13 @@ end;
 
 procedure TmwBasePasLex.SymbolProc;
 begin
-  Inc(Run);
+  Inc(FBuffer.Run);
   FTokenID := ptSymbol;
 end;
 
 procedure TmwBasePasLex.UnknownProc;
 begin
-  Inc(Run);
+  Inc(FBuffer.Run);
   FTokenID := ptUnknown;
   if Assigned(FOnMessage) then
    FOnMessage(Self, meError, 'Unknown Character', PosXY.X, PosXY.Y);
@@ -2185,9 +2213,9 @@ end;
 procedure TmwBasePasLex.Next;
 begin
   FExID := ptUnKnown;
-  FTokenPos := Run;
+  FTokenPos := FBuffer.Run;
   case FCommentState of
-    csNo: DoProcTable(FOrigin[Run]);
+    csNo: DoProcTable(FBuffer.Buf[FBuffer.Run]);
     csBor: BorProc;
     csAnsi: AnsiProc;
   end;
@@ -2205,23 +2233,12 @@ end;
 
 function TmwBasePasLex.GetToken: string;
 begin
-  SetString(Result, (FOrigin + FTokenPos), GetTokenLen);
+  SetString(Result, (FBuffer.Buf + FTokenPos), GetTokenLen);
 end;
 
 function TmwBasePasLex.GetTokenLen: Integer;
 begin
-  Result := Run - FTokenPos;
-end;
-
-procedure TmwBasePasLex.NextID(ID: TptTokenKind);
-begin
-  repeat
-    case FTokenID of
-      ptNull: Break;
-    else
-      Next;
-    end;
-  until FTokenID = ID;
+  Result := FBuffer.Run - FTokenPos;
 end;
 
 procedure TmwBasePasLex.NextNoJunk;
@@ -2246,10 +2263,10 @@ begin
   if FTokenPos = 0 then Exit;
   RunBack := FTokenPos;
   Dec(RunBack);
-  while CharInSet(FOrigin[RunBack], [#1..#9, #11, #12, #14..#32]) do
+  while CharInSet(FBuffer.Buf[RunBack], [#1..#9, #11, #12, #14..#32]) do
     Dec(RunBack);
   if RunBack = 0 then Exit;
-  case FOrigin[RunBack] of
+  case FBuffer.Buf[RunBack] of
     #10, #13: Exit;
   else
     begin
@@ -2271,17 +2288,17 @@ begin
   if TokenID <> ptCompDirect then
     Result := ''
   else
-    case FOrigin[FTokenPos] of
+    case FBuffer.Buf[FTokenPos] of
       '(':
         begin
-          DirectLen := Run - FTokenPos - 4;
-          SetString(Result, (FOrigin + FTokenPos + 2), DirectLen);
+          DirectLen := FBuffer.Run - FTokenPos - 4;
+          SetString(Result, (FBuffer.Buf + FTokenPos + 2), DirectLen);
           Result := UpperCase(Result);
         end;
       '{':
         begin
-          DirectLen := Run - FTokenPos - 2;
-          SetString(Result, (FOrigin + FTokenPos + 1), DirectLen);
+          DirectLen := FBuffer.Run - FTokenPos - 2;
+          SetString(Result, (FBuffer.Buf + FTokenPos + 1), DirectLen);
           Result := UpperCase(Result);
         end;
     end;
@@ -2291,16 +2308,16 @@ function TmwBasePasLex.GetDirectiveKind: TptTokenKind;
 var
   TempPos: Integer;
 begin
-  case FOrigin[FTokenPos] of
-    '(': Run := FTokenPos + 3;
-    '{': Run := FTokenPos + 2;
+  case FBuffer.Buf[FTokenPos] of
+    '(': FBuffer.Run := FTokenPos + 3;
+    '{': FBuffer.Run := FTokenPos + 2;
   end;
-  FDirectiveParamOrigin := FOrigin + FTokenPos;
+  FDirectiveParamOrigin := FBuffer.Buf + FTokenPos;
   TempPos := FTokenPos;
-  FTokenPos := Run;
+  FTokenPos := FBuffer.Run;
   case KeyHash of
     9:
-      if KeyComp('I') and (not CharInSet(FOrigin[Run], ['+', '-'])) then
+      if KeyComp('I') and (not CharInSet(FBuffer.Buf[FBuffer.Run], ['+', '-'])) then
         Result := ptIncludeDirect else
         Result := ptCompDirect;
     15:
@@ -2310,7 +2327,7 @@ begin
     18:
       if KeyComp('R') then
       begin
-        if not CharInSet(FOrigin[Run], ['+', '-']) then
+        if not CharInSet(FBuffer.Buf[FBuffer.Run], ['+', '-']) then
           Result := ptResourceDirect else Result := ptCompDirect;
       end else Result := ptCompDirect;
     30:
@@ -2358,7 +2375,7 @@ begin
   else Result := ptCompDirect;
   end;
   FTokenPos := TempPos;
-  Dec(Run);
+  Dec(FBuffer.Run);
 end;
 
 function TmwBasePasLex.GetDirectiveParam: string;
@@ -2366,33 +2383,33 @@ var
   EndPos: Integer;
   ParamLen: Integer;
 begin
-  case FOrigin[FTokenPos] of
+  case FBuffer.Buf[FTokenPos] of
     '(':
       begin
         TempRun := FTokenPos + 3;
-        EndPos := Run - 2;
+        EndPos := FBuffer.Run - 2;
       end;
     '{':
       begin
         TempRun := FTokenPos + 2;
-        EndPos := Run - 1;
+        EndPos := FBuffer.Run - 1;
       end;
   else
     EndPos := 0;
   end;
-  while IsIdentifiers(FOrigin[TempRun]) do
+  while IsIdentifiers(FBuffer.Buf[TempRun]) do
     Inc(TempRun);
-  while CharInSet(FOrigin[TempRun], ['+', ',', '-']) do
+  while CharInSet(FBuffer.Buf[TempRun], ['+', ',', '-']) do
   begin
     Inc(TempRun);
-    while IsIdentifiers(FOrigin[TempRun]) do
+    while IsIdentifiers(FBuffer.Buf[TempRun]) do
       Inc(TempRun);
-    if CharInSet(FOrigin[TempRun - 1], ['+', ',', '-']) and (FOrigin[TempRun] = ' ')
+    if CharInSet(FBuffer.Buf[TempRun - 1], ['+', ',', '-']) and (FBuffer.Buf[TempRun] = ' ')
       then Inc(TempRun);
   end;
-  if FOrigin[TempRun] = ' ' then Inc(TempRun);
+  if FBuffer.Buf[TempRun] = ' ' then Inc(TempRun);
   ParamLen := EndPos - TempRun;
-  SetString(Result, (FOrigin + TempRun), ParamLen);
+  SetString(Result, (FBuffer.Buf + TempRun), ParamLen);
   Result := UpperCase(Result);
 end;
 
@@ -2414,62 +2431,25 @@ begin
   Result := Copy(TrimmedToken, FileNameStartPos, CurrentPos - FileNameStartPos);
 end;
 
-procedure TmwBasePasLex.UpdateIncludedLineCount(const IncludedContent: string);
-var
-  i: Integer;
-begin
-  i := 1;
-  while i <= Length(IncludedContent) do
-  begin
-    if IncludedContent[i] = ''#10'' then
-      Inc(IncludedLineCount)
-    else if IncludedContent[i] = ''#13'' then
-    begin
-      Inc(IncludedLineCount);
-      if (i + 1 <= Length(IncludedContent)) and (IncludedContent[i + 1] = ''#10'') then
-        inc(i);
-    end;
-    inc(i);
-  end;
-end;
-
 procedure TmwBasePasLex.IncludeFile;
 var
-  IncludeFileName, IncludeDirective, Content, Origin, BehindIncludedContent: string;
-  pBehindIncludedContent: PChar;
-  TempBufferSize: integer;
+  IncludeFileName, IncludeDirective, Content: string;
+  NewBuffer: PBufferRec;
 begin
   IncludeDirective := Token;
   IncludeFileName := GetIncludeFileNameFromToken(IncludeDirective);
   Content := FIncludeHandler.GetIncludeFileContent(IncludeFileName) + #13#10;
 
-  Origin := FOrigin;
-  TempBufferSize := (Length(Origin) + INCLUDE_BUFFER_SIZE) * SizeOf(Char);
-  GetMem(pBehindIncludedContent, TempBufferSize);
-  try
-    StrPCopy(pBehindIncludedContent, MidStr(Origin, Run+1, Length(Origin)));
-    BehindIncludedContent := pBehindIncludedContent;
-    Run := Run - Length(IncludeDirective);
-    EndOfIncludedArea := Run + Length(Content);
-    UpdateIncludedLineCount(Content);
+  New(NewBuffer);
+  NewBuffer.Next := FBuffer;
+  NewBuffer.Run := 0;
+  GetMem(NewBuffer.Buf, (Length(Content) + 1) * SizeOf(Char));
+  StrPCopy(NewBuffer.Buf, Content);
+  NewBuffer.Buf[Length(Content)] := #0;
 
-    Content := Content + BehindIncludedContent;
-    
-    if (Run + Length(Content)) * SizeOf(Char) > BufferSize then
-    begin
-      Run := Run + Length(IncludeDirective);
-      raise EIncludeError.Create('Content size of include file ' + IncludeFileName + ' exceeds buffer limit.');
-    end
-    else
-    begin    
-      StrPCopy(@FOrigin[Run], Content);
-      FOrigin[Run + Length(Content)] := #0;
-    end;
+  FBuffer := NewBuffer;
 
-    Next;
-  finally
-    FreeMem(pBehindIncludedContent, TempBufferSize);
-  end;
+  Next;
 end;
 
 procedure TmwBasePasLex.Init;
@@ -2477,18 +2457,15 @@ begin
   FCommentState := csNo;
   FLineNumber := 0;
   FLinePos := 0;
-  Run := 0;
-  EndOfIncludedArea := -1;
-  IncludedLineCount := 0;
 end;
 
 procedure TmwBasePasLex.InitFrom(ALexer: TmwBasePasLex);
 begin
-  SetSharedOrigin(ALexer.Origin);
+  SetSharedBuffer(ALexer.FBuffer);
   FCommentState := ALexer.FCommentState;
   FLineNumber := ALexer.FLineNumber;
   FLinePos := ALexer.FLinePos;
-  Run := ALexer.Run;
+  FBuffer.Run := ALexer.RunPos;
   CloneDefinesFrom(ALexer);
 end;
 
@@ -2660,7 +2637,7 @@ procedure TmwBasePasLex.InitLine;
 begin
   FLineNumber := 0;
   FLinePos := 0;
-  Run := 0;
+  FBuffer.Run := 0;
 end;
 
 procedure TmwBasePasLex.SetCommentState(const Value: Pointer);
@@ -2670,9 +2647,7 @@ end;
 
 procedure TmwBasePasLex.SetLine(const Value: string);
 begin
-  if not FUseSharedOrigin then
-    FreeMem(FOrigin, BufferSize);
-  FOrigin := PChar(Value);
+  FBuffer.Buf := PChar(Value);
   InitLine;
   Next;
 end;
@@ -2733,6 +2708,11 @@ begin
     Result := FExID in [ptOleVariant, ptVariant]
 end;
 
+function TmwBasePasLex.GetOrigin: string;
+begin
+  Result := FBuffer.Buf;
+end;
+
 function TmwBasePasLex.GetIsAddOperator: Boolean;
 begin
   Result := FTokenID in [ptMinus, ptOr, ptPlus, ptXor];
@@ -2777,12 +2757,6 @@ begin
   inherited Destroy;
 end;
 
-procedure TmwPasLex.SetOrigin(NewValue: PChar);
-begin
-  inherited SetOrigin(NewValue);
-  FAheadLex.SetSharedOrigin(Self.Origin);
-end;
-
 procedure TmwPasLex.SetLine(const Value: string);
 begin
   inherited SetLine(Value);
@@ -2817,7 +2791,7 @@ end;
 procedure TmwPasLex.InitAhead;
 begin
   FAheadLex.CommentState := CommentState;
-  FAheadLex.RunPos := RunPos;
+  FAheadLex.SetSharedBuffer(FBuffer);
   FAheadLex.FLineNumber := FLineNumber;
   FAheadLex.FLinePos := FLinePos;
 
@@ -2825,31 +2799,6 @@ begin
 
   while FAheadLex.IsJunk do
     FAheadLex.Next;
-end;
-
-function TmwPasLex.GetStatus: TmwPasLexStatus;
-begin
-  Result.CommentState := FCommentState;
-  Result.ExID := FExID;
-  Result.LineNumber := FLineNumber;
-  Result.LinePos := FLinePos;
-  Result.Origin := FOrigin;
-  Result.RunPos := Run;
-  Result.TokenPos := FTokenPos;
-  Result.TokenID := FTokenID;
-end;
-
-procedure TmwPasLex.SetStatus(const Value: TmwPasLexStatus);
-begin
-  FCommentState := Value.CommentState;
-  FExID := Value.ExID;
-  FLineNumber := Value.LineNumber;
-  FLinePos := Value.LinePos;
-  FOrigin := Value.Origin;
-  Run := Value.RunPos;
-  FTokenPos := Value.TokenPos;
-  FTokenID := Value.TokenID;
-  FAheadLex.Origin := Value.Origin;
 end;
 
 procedure TmwBasePasLex.SetOnCompDirect(const Value: TDirectiveEvent);
@@ -2967,6 +2916,12 @@ begin
   inherited;
 end;
 
+procedure TmwPasLex.SetOrigin(const NewValue: string);
+begin
+  inherited SetOrigin(NewValue);
+  FAheadLex.SetSharedBuffer(FBuffer);
+end;
+
 function TmwBasePasLex.Func86: TptTokenKind;
 begin
   Result := ptIdentifier;
@@ -2982,8 +2937,8 @@ begin
   end;
   FTokenID := ptStringDQConst;
   repeat
-    Inc(Run);
-    case FOrigin[Run] of
+    Inc(FBuffer.Run);
+    case FBuffer.Buf[FBuffer.Run] of
       #0, #10, #13:
         begin
           if Assigned(FOnMessage) then
@@ -2992,21 +2947,21 @@ begin
         end;
       '\':
         begin
-          Inc(Run);
-          if CharInSet(FOrigin[Run], [#32..#127]) then Inc(Run);
+          Inc(FBuffer.Run);
+          if CharInSet(FBuffer.Buf[FBuffer.Run], [#32..#127]) then Inc(FBuffer.Run);
         end;
     end;
-  until FOrigin[Run] = '"';
-  if FOrigin[Run] = '"' then
-    Inc(Run);
+  until FBuffer.Buf[FBuffer.Run] = '"';
+  if FBuffer.Buf[FBuffer.Run] = '"' then
+    Inc(FBuffer.Run);
 end;
 
 procedure TmwBasePasLex.AmpersandOpProc;
 begin
   FTokenID := ptAmpersand;
-  Inc(Run);
-  while CharInSet(FOrigin[Run], ['a'..'z', 'A'..'Z','0'..'9', '_']) do
-    Inc(Run);
+  Inc(FBuffer.Run);
+  while CharInSet(FBuffer.Buf[FBuffer.Run], ['a'..'z', 'A'..'Z','0'..'9', '_']) do
+    Inc(FBuffer.Run);
   FTokenID := ptIdentifier;
 end;
 
