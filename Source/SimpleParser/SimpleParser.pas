@@ -4392,6 +4392,9 @@ begin
       ExplicitType;
   end;
 
+  if (TokenID = ptPacked) and (Lexer.AheadTokenID in [ptClass, ptObject]) then
+    NextToken;
+
   case TokenID of
     ptPointerSymbol:
       begin
