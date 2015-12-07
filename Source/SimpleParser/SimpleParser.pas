@@ -2571,13 +2571,18 @@ end;
 
 procedure TmwSimplePasPar.StatementOrExpression;
 begin
-  InitAhead;
-  AheadParse.Designator;
-
-  if AheadParse.TokenId in [ptAssign, ptSemicolon] then
+  if TokenID = ptGoto then
     SimpleStatement
   else
-    Expression;
+  begin
+    InitAhead;
+    AheadParse.Designator;
+
+    if AheadParse.TokenId in [ptAssign, ptSemicolon] then
+      SimpleStatement
+    else
+      Expression;
+  end;
 end;
 
 procedure TmwSimplePasPar.Statements;
