@@ -2476,6 +2476,8 @@ begin
   FLineNumber := ALexer.FLineNumber;
   FLinePos := ALexer.FLinePos;
   FBuffer.Run := ALexer.RunPos;
+  FTokenID := ALexer.TokenID;
+  FExID := ALexer.ExID;
   CloneDefinesFrom(ALexer);
 end;
 

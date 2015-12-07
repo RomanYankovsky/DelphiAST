@@ -462,6 +462,7 @@ type
     procedure SkipCRLFco; virtual;
     procedure SkipCRLF; virtual;
     procedure Statement; virtual;
+    procedure StatementOrExpression; virtual;
     procedure Statements; virtual;
     procedure StatementList; virtual;
     procedure StorageExpression; virtual;
@@ -2568,6 +2569,17 @@ begin
   Statements;
 end;
 
+procedure TmwSimplePasPar.StatementOrExpression;
+begin
+  InitAhead;
+  AheadParse.Designator;
+
+  if AheadParse.TokenId in [ptAssign, ptSemicolon] then
+    SimpleStatement
+  else
+    Expression;
+end;
+
 procedure TmwSimplePasPar.Statements;
 begin {removed ptIntegerConst jdj-Put back in for labels}
   while TokenID in [ptAddressOp, ptAsm, ptBegin, ptCase, ptDoubleAddressOp,
@@ -2632,7 +2644,7 @@ begin
             end;
         else
           begin
-            SimpleStatement;
+            StatementOrExpression;
           end;
         end;
       end;
@@ -2685,7 +2697,7 @@ begin
       end;
   else
     begin
-      SimpleStatement;
+      StatementOrExpression;
     end;
   end;
 end;
@@ -2918,10 +2930,13 @@ begin
       AnonymousMethod;
   end;
 
-  if TokenID = ptPointerSymbol then
+  while TokenID = ptSquareOpen do
+    IndexOp;
+
+  while TokenID = ptPointerSymbol do
     PointerSymbol;
 
-  if TokenID in [ptRoundOpen, ptSquareOpen] then
+  if TokenID = ptRoundOpen then
     Factor;
 
   while TokenID = ptPoint do
