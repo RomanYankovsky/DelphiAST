@@ -23,6 +23,7 @@ type
   private
     FCol: Integer;
     FLine: Integer;
+    FFileName: string;
     function GetHasChildren: Boolean;
     function GetHasAttributes: Boolean;
   protected
@@ -48,6 +49,7 @@ type
 
     property Attributes: TDictionary<TAttributeName, string> read FAttributes;
     property ChildNodes: TObjectList<TSyntaxNode> read FChildNodes;
+    property FileName: string read FFileName write FFileName;
     property HasAttributes: Boolean read GetHasAttributes;
     property HasChildren: Boolean read GetHasChildren;
     property Typ: TSyntaxNodeType read FTyp;
@@ -320,7 +322,8 @@ class function TExpressionTools.CreateNodeWithParentsPosition(NodeType: TSyntaxN
 begin
   Result := TSyntaxNode.Create(NodeType);
   Result.Line := ParentNode.Line;
-  Result.Col := ParentNode.Col; 
+  Result.Col := ParentNode.Col;
+  Result.FileName := ParentNode.FileName;
 end;
 
 class procedure TExpressionTools.RawNodeListToTree(RawParentNode: TSyntaxNode; RawNodeList: TList<TSyntaxNode>;

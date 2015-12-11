@@ -76,6 +76,9 @@ type
   TBufferRec = record
     Buf: PChar;
     Run: Integer;
+    SharedBuffer: Boolean;
+    LineNumber: Integer;
+    FileName: string;
     Next: PBufferRec;
   end;
 
@@ -89,7 +92,6 @@ type
     BufferSize: integer;
     FIdentFuncTable: array[0..191] of function: TptTokenKind of object;
     FTokenPos: Integer;
-    FLineNumber: Integer;
     FTokenID: TptTokenKind;
     FLinePos: Integer;
     FExID: TptTokenKind;
@@ -115,7 +117,6 @@ type
     FUseDefines: Boolean;
     FIncludeHandler: IIncludeHandler;
     FOnComment: TCommentEvent;
-    FUseSharedBuffer: Boolean;
 
     function KeyHash: Integer;
     function KeyComp(const aKey: string): Boolean;
@@ -254,7 +255,6 @@ type
     function GetCommentState: Pointer;
     function GetCompilerDirective: string;
     procedure SetCommentState(const Value: Pointer);
-    procedure InitLine;
     function GetDirectiveKind: TptTokenKind;
     function GetDirectiveParam: string;
     function GetStringContent: string;
@@ -285,8 +285,8 @@ type
     procedure SetRunPos(const Value: Integer);
     procedure SetSharedBuffer(SharedBuffer: PBufferRec);
     procedure DisposeBuffer(Buf: PBufferRec);
+    function GetFileName: string;
   protected
-    procedure SetLine(const Value: string); virtual;
     procedure SetOrigin(const NewValue: string); virtual;
     procedure SetOnCompDirect(const Value: TDirectiveEvent); virtual;
     procedure SetOnDefineDirect(const Value: TDirectiveEvent); virtual;
@@ -322,7 +322,6 @@ type
     property DirectiveParam: string read GetDirectiveParam;
     property IsJunk: Boolean read GetIsJunk;
     property IsSpace: Boolean read GetIsSpace;
-    property Line: string write SetLine;
     property Origin: string read GetOrigin write SetOrigin;
     property PosXY: TTokenPoint read GetPosXY;
     property RunPos: Integer read GetRunPos write SetRunPos;
@@ -361,6 +360,7 @@ type
     property DirectiveParamOrigin: PChar read FDirectiveParamOrigin;
     property UseDefines: Boolean read FUseDefines write FUseDefines;
     property IncludeHandler: IIncludeHandler read FIncludeHandler write FIncludeHandler;
+    property FileName: string read GetFileName;
   end;
 
   TmwPasLex = class(TmwBasePasLex)
@@ -371,7 +371,6 @@ type
     function GetAheadToken: string;
     function GetAheadTokenID: TptTokenKind;
   protected
-    procedure SetLine(const Value: string); override;
     procedure SetOrigin(const NewValue: string); override;
     procedure SetOnCompDirect(const Value: TDirectiveEvent); override;
     procedure SetOnDefineDirect(const Value: TDirectiveEvent); override;
@@ -475,16 +474,8 @@ end;
 
 function TmwBasePasLex.GetPosXY: TTokenPoint;
 begin
-  if not Assigned(FBuffer.Next) then
-  begin
-    Result.X := FTokenPos - FLinePos + 1;
-    Result.Y := FLineNumber + 1;
-  end
-  else
-  begin
-    Result.X := -1;
-    Result.Y := -1;
-  end;
+  Result.X := FTokenPos - FLinePos + 1;
+  Result.Y := FBuffer.LineNumber + 1;
 end;
 
 function TmwBasePasLex.GetRunPos: Integer;
@@ -1318,7 +1309,6 @@ begin
   FUseDefines := True;
   FDefines := TStringList.Create;
   FTopDefineRec := nil;
-  FUseSharedBuffer := False;
   ClearDefines;
 
   New(FBuffer);
@@ -1327,7 +1317,7 @@ end;
 
 destructor TmwBasePasLex.Destroy;
 begin
-  if not FUseSharedBuffer then
+  if not FBuffer.SharedBuffer then
     FreeMem(FBuffer.Buf);
 
   Dispose(FBuffer);
@@ -1339,7 +1329,7 @@ end;
 
 procedure TmwBasePasLex.DisposeBuffer(Buf: PBufferRec);
 begin
-  if Assigned(Buf.Buf) then
+  if Assigned(Buf.Buf) and not Buf.SharedBuffer then
     FreeMem(Buf.Buf);
   Dispose(Buf);
 end;
@@ -1382,12 +1372,13 @@ begin
     DisposeBuffer(NextBuffer);
   end;
 
-  if not FUseSharedBuffer and Assigned(FBuffer.Buf) then
+  if not FBuffer.SharedBuffer and Assigned(FBuffer.Buf) then
     FreeMem(FBuffer.Buf);
 
-  FUseSharedBuffer := True;
   FBuffer.Buf := SharedBuffer.Buf;
   FBuffer.Run := SharedBuffer.Run;
+  FBuffer.LineNumber := SharedBuffer.LineNumber;
+  FBuffer.SharedBuffer := True;
 
   Init;
   Next;
@@ -1466,16 +1457,14 @@ begin
       #10:
         begin
           Inc(FBuffer.Run);
-          if not Assigned(FBuffer.Next) then
-            Inc(FLineNumber);
+          Inc(FBuffer.LineNumber);
           FLinePos := FBuffer.Run;
         end;
       #13:
         begin
           Inc(FBuffer.Run);
           if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
-          if not Assigned(FBuffer.Next) then
-            Inc(FLineNumber);
+          Inc(FBuffer.LineNumber);
           FLinePos := FBuffer.Run;
         end;
     else
@@ -1511,16 +1500,14 @@ begin
       #10:
         begin
           Inc(FBuffer.Run);
-          if not Assigned(FBuffer.Next) then
-            Inc(FLineNumber);
+          Inc(FBuffer.LineNumber);
           FLinePos := FBuffer.Run;
         end;
       #13:
         begin
           Inc(FBuffer.Run);
           if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
-          if not Assigned(FBuffer.Next) then
-            Inc(FLineNumber);
+          Inc(FBuffer.LineNumber);
           FLinePos := FBuffer.Run;
         end;
     else
@@ -1728,8 +1715,7 @@ begin
   else
     Inc(FBuffer.Run);
   end;
-  if not Assigned(FBuffer.Next) then
-    Inc(FLineNumber);
+  Inc(FBuffer.LineNumber);
   FLinePos := FBuffer.Run;
 end;
 
@@ -1824,8 +1810,7 @@ begin
     FTokenID := ptCRLF;
   end;
   Inc(FBuffer.Run);
-  if not Assigned(FBuffer.Next) then
-    Inc(FLineNumber);
+  Inc(FBuffer.LineNumber);
   FLinePos := FBuffer.Run;
 end;
 
@@ -1858,13 +1843,13 @@ end;
 
 procedure TmwBasePasLex.NullProc;
 var
-  NextBuffer: PBufferRec;
+  OldBuffer: PBufferRec;
 begin
   if Assigned(FBuffer.Next) then
   begin
-    NextBuffer := FBuffer;
+    OldBuffer := FBuffer;
     FBuffer := FBuffer.Next;
-    DisposeBuffer(NextBuffer);
+    DisposeBuffer(OldBuffer);
 
     Next;
   end else
@@ -1979,16 +1964,14 @@ begin
       #10:
         begin
           Inc(FBuffer.Run);
-          if not Assigned(FBuffer.Next) then
-            Inc(FLineNumber);
+          Inc(FBuffer.LineNumber);
           FLinePos := FBuffer.Run;
         end;
       #13:
         begin
           Inc(FBuffer.Run);
           if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
-          if not Assigned(FBuffer.Next) then
-            Inc(FLineNumber);
+          Inc(FBuffer.LineNumber);
           FLinePos := FBuffer.Run;
         end;
     else
@@ -2028,16 +2011,14 @@ begin
             #10:
               begin
                 Inc(FBuffer.Run);
-                if not Assigned(FBuffer.Next) then
-                  Inc(FLineNumber);
+                Inc(FBuffer.LineNumber);
                 FLinePos := FBuffer.Run;
               end;
             #13:
               begin
                 Inc(FBuffer.Run);
                 if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
-                if not Assigned(FBuffer.Next) then
-                  Inc(FLineNumber);
+                Inc(FBuffer.LineNumber);
                 FLinePos := FBuffer.Run;
               end;
           else
@@ -2423,6 +2404,11 @@ begin
   Result := UpperCase(Result);
 end;
 
+function TmwBasePasLex.GetFileName: string;
+begin
+  Result := FBuffer.FileName;
+end;
+
 function TmwBasePasLex.GetIncludeFileNameFromToken(const IncludeToken: string): string;
 var
   FileNameStartPos, CurrentPos: integer;
@@ -2451,8 +2437,11 @@ begin
   Content := FIncludeHandler.GetIncludeFileContent(IncludeFileName) + #13#10;
 
   New(NewBuffer);
+  NewBuffer.SharedBuffer := False;
   NewBuffer.Next := FBuffer;
+  NewBuffer.LineNumber := 0;
   NewBuffer.Run := 0;
+  NewBuffer.FileName := IncludeFileName;
   GetMem(NewBuffer.Buf, (Length(Content) + 1) * SizeOf(Char));
   StrPCopy(NewBuffer.Buf, Content);
   NewBuffer.Buf[Length(Content)] := #0;
@@ -2465,7 +2454,7 @@ end;
 procedure TmwBasePasLex.Init;
 begin
   FCommentState := csNo;
-  FLineNumber := 0;
+  FBuffer.LineNumber := 0;
   FLinePos := 0;
 end;
 
@@ -2473,11 +2462,10 @@ procedure TmwBasePasLex.InitFrom(ALexer: TmwBasePasLex);
 begin
   SetSharedBuffer(ALexer.FBuffer);
   FCommentState := ALexer.FCommentState;
-  FLineNumber := ALexer.FLineNumber;
-  FLinePos := ALexer.FLinePos;
   FBuffer.Run := ALexer.RunPos;
   FTokenID := ALexer.TokenID;
   FExID := ALexer.ExID;
+  FLinePos := ALexer.FLinePos;
   CloneDefinesFrom(ALexer);
 end;
 
@@ -2645,23 +2633,9 @@ begin
   {$ENDIF}
 end;
 
-procedure TmwBasePasLex.InitLine;
-begin
-  FLineNumber := 0;
-  FLinePos := 0;
-  FBuffer.Run := 0;
-end;
-
 procedure TmwBasePasLex.SetCommentState(const Value: Pointer);
 begin
   FCommentState := TCommentState(Value);
-end;
-
-procedure TmwBasePasLex.SetLine(const Value: string);
-begin
-  FBuffer.Buf := PChar(Value);
-  InitLine;
-  Next;
 end;
 
 function TmwBasePasLex.GetStringContent: string;
@@ -2769,12 +2743,6 @@ begin
   inherited Destroy;
 end;
 
-procedure TmwPasLex.SetLine(const Value: string);
-begin
-  inherited SetLine(Value);
-  FAheadLex.SetLine(Value);
-end;
-
 procedure TmwPasLex.AheadNext;
 begin
   FAheadLex.NextNoJunk;
@@ -2804,7 +2772,6 @@ procedure TmwPasLex.InitAhead;
 begin
   FAheadLex.CommentState := CommentState;
   FAheadLex.SetSharedBuffer(FBuffer);
-  FAheadLex.FLineNumber := FLineNumber;
   FAheadLex.FLinePos := FLinePos;
 
   FAheadLex.CloneDefinesFrom(Self);

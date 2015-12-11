@@ -454,9 +454,11 @@ var
   NodeList: TList<TSyntaxNode>;
   Node: TSyntaxNode;
   Col, Line: Integer;
+  FileName: string;
 begin
   Line := Lexer.PosXY.Y;
   Col := Lexer.PosXY.X;
+  FileName := Lexer.FileName;
 
   RawExprNode := TSyntaxNode.Create(ntExpression);
   try
@@ -472,7 +474,8 @@ begin
       ExprNode := FStack.Push(ntExpression, False);
       try
         ExprNode.Line := Line;
-        ExprNode.Col  := Col;
+        ExprNode.Col := Col;
+        ExprNode.FileName := FileName;
 
         NodeList := TList<TSyntaxNode>.Create;
         try
@@ -1031,7 +1034,8 @@ end;
 procedure TPasSyntaxTreeBuilder.SetCurrentCompoundNodesEndPosition;
 begin
   TCompoundSyntaxNode(FStack.Peek).EndCol := Lexer.PosXY.X;
-  TCompoundSyntaxNode(FStack.Peek).EndLine := Lexer.PosXY.Y;  
+  TCompoundSyntaxNode(FStack.Peek).EndLine := Lexer.PosXY.Y;
+  TCompoundSyntaxNode(FStack.Peek).FileName := Lexer.FileName;
 end;
 
 procedure TPasSyntaxTreeBuilder.CallInheritedExpression;
@@ -1501,6 +1505,7 @@ begin
 
   Node.Col := Lexer.PosXY.X;
   Node.Line := Lexer.PosXY.Y;
+  Node.FileName := Lexer.FileName;
   Node.Text := Text;
 
   FComments.Add(Node);
@@ -1838,8 +1843,10 @@ var
   NodeList: TList<TSyntaxNode>;
   I, AssignIdx: Integer;
   Position: TTokenPoint;
+  FileName: string;
 begin
   Position := Lexer.PosXY;
+  FileName := Lexer.FileName;
 
   RawStatement := TSyntaxNode.Create(ntStatement);
   try
@@ -1859,6 +1866,7 @@ begin
       try
         FStack.Peek.Col  := Position.X;
         FStack.Peek.Line := Position.Y;
+        FStack.Peek.FileName := FileName;
 
         NodeList := TList<TSyntaxNode>.Create;
         try
@@ -1879,6 +1887,7 @@ begin
           LHS := FStack.AddChild(ntLHS, False);
           LHS.Col  := NodeList[0].Col;
           LHS.Line := NodeList[0].Line;
+          LHS.FileName := NodeList[0].FileName;
           TExpressionTools.RawNodeListToTree(RawStatement, NodeList, LHS);
 
           NodeList.Clear;
@@ -1892,6 +1901,7 @@ begin
           RHS := FStack.AddChild(ntRHS, False);
           RHS.Col  := NodeList[0].Col;
           RHS.Line := NodeList[0].Line;
+          RHS.FileName := NodeList[0].FileName;
           TExpressionTools.RawNodeListToTree(RawStatement, NodeList, RHS);
         finally
           NodeList.Free;
@@ -2216,8 +2226,10 @@ procedure TPasSyntaxTreeBuilder.UsedUnitName;
 var
   NamesNode, UnitNode: TSyntaxNode;
   Position: TTokenPoint;
+  FileName: string;
 begin
   Position := Lexer.PosXY;
+  FileName := Lexer.FileName;
 
   NamesNode := TSyntaxNode.Create(ntUnit);
   try
@@ -2232,6 +2244,7 @@ begin
     UnitNode.SetAttribute(anName, NodeListToString(NamesNode));
     UnitNode.Col  := Position.X;
     UnitNode.Line := Position.Y;
+    UnitNode.FileName := FileName;
   finally
     NamesNode.Free;
   end;
@@ -2428,6 +2441,7 @@ begin
   begin
     Result.Col  := FParser.Lexer.PosXY.X;
     Result.Line := FParser.Lexer.PosXY.Y;
+    Result.FileName := FParser.Lexer.FileName;
   end;
 end;
 
@@ -2442,6 +2456,7 @@ begin
   Result := FStack.Peek.AddChild(TValuedSyntaxNode.Create(Typ));
   Result.Col  := FParser.Lexer.PosXY.X;
   Result.Line := FParser.Lexer.PosXY.Y;
+  Result.FileName := FParser.Lexer.FileName;
 
   TValuedSyntaxNode(Result).Value := Value;
 end;
@@ -2487,6 +2502,7 @@ begin
   begin
     Result.Col  := FParser.Lexer.PosXY.X;
     Result.Line := FParser.Lexer.PosXY.Y;
+    Result.FileName := FParser.Lexer.FileName;
   end;
 end;
 

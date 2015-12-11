@@ -87,6 +87,9 @@ class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
       Builder.Append(' col="' + IntToStr(Node.Col) + '"');
     end;
 
+    if Node.FileName <> '' then
+      Builder.Append('  file="' + XMLEncode(Node.FileName) + '"');
+
     if Node is TValuedSyntaxNode then
       Builder.Append(' value="' + XMLEncode(TValuedSyntaxNode(Node).Value) + '"');
 
