@@ -13,7 +13,7 @@ type
   strict private
     FSyntaxTree: TSyntaxNode;
   public
-    constructor Create(Line, Col: Integer; const Msg: string; SyntaxTree: TSyntaxNode); reintroduce;
+    constructor Create(Line, Col: Integer; const FileName, Msg: string; SyntaxTree: TSyntaxNode); reintroduce;
     destructor Destroy; override;
 
     property SyntaxTree: TSyntaxNode read FSyntaxTree;
@@ -1500,7 +1500,7 @@ begin
     ptBorComment: Node := TCommentNode.Create(ntAnsiComment);
     ptSlashesComment: Node := TCommentNode.Create(ntSlashesComment);
   else
-    raise EParserException.Create(Lexer.PosXY.Y, Lexer.PosXY.X, 'Invalid comment type');
+    raise EParserException.Create(Lexer.PosXY.Y, Lexer.PosXY.X, Lexer.FileName, 'Invalid comment type');
   end;
 
   Node.Col := Lexer.PosXY.X;
@@ -1515,7 +1515,7 @@ procedure TPasSyntaxTreeBuilder.ParserMessage(Sender: TObject;
   const Typ: TMessageEventType; const Msg: string; X, Y: Integer);
 begin
   if Typ = TMessageEventType.meError then
-    raise EParserException.Create(Y, X, Msg);
+    raise EParserException.Create(Y, X, Lexer.FileName, Msg);
 end;
 
 procedure TPasSyntaxTreeBuilder.OutParameter;
@@ -1794,7 +1794,7 @@ begin
     end;
   except
     on E: EParserException do
-      raise ESyntaxTreeException.Create(E.Line, E.Col, E.Message, Result);
+      raise ESyntaxTreeException.Create(E.Line, E.Col, Lexer.FileName, E.Message, Result);
     else
       FreeAndNil(Result);
       raise;
@@ -1882,7 +1882,7 @@ begin
           end;
 
           if NodeList.Count = 0 then
-            raise EParserException.Create(Position.Y, Position.X, 'Illegal expression');
+            raise EParserException.Create(Position.Y, Position.X, Lexer.FileName, 'Illegal expression');
 
           LHS := FStack.AddChild(ntLHS, False);
           LHS.Col  := NodeList[0].Col;
@@ -1896,7 +1896,7 @@ begin
             NodeList.Add(RawStatement.ChildNodes[I]);
 
           if NodeList.Count = 0 then
-            raise EParserException.Create(Position.Y, Position.X, 'Illegal expression');
+            raise EParserException.Create(Position.Y, Position.X, Lexer.FileName, 'Illegal expression');
 
           RHS := FStack.AddChild(ntRHS, False);
           RHS.Col  := NodeList[0].Col;
@@ -2526,10 +2526,10 @@ end;
 
 { ESyntaxTreeException }
 
-constructor ESyntaxTreeException.Create(Line, Col: Integer; const Msg: string;
+constructor ESyntaxTreeException.Create(Line, Col: Integer; const FileName, Msg: string;
   SyntaxTree: TSyntaxNode);
 begin
-  inherited Create(Line, Col, Msg);
+  inherited Create(Line, Col, FileName, Msg);
   FSyntaxTree := SyntaxTree;
 end;
 

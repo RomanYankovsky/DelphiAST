@@ -10,10 +10,12 @@ uses
 type
   EParserException = class(Exception)
   strict private
+    FFileName: string;
     FLine, FCol: Integer;
   public
-    constructor Create(Line, Col: Integer; const Msg: string); reintroduce;
+    constructor Create(Line, Col: Integer; const FileName, Msg: string); reintroduce;
 
+    property FileName: string read FFileName;
     property Line: Integer read FLine;
     property Col: Integer read FCol;
   end;
@@ -345,7 +347,7 @@ begin
     end;
   except
     on E: Exception do
-      raise EParserException.Create(NewRoot.Line, NewRoot.Col, E.Message);
+      raise EParserException.Create(NewRoot.Line, NewRoot.Col, NewRoot.FileName, E.Message);
   end;
 end;
 
@@ -473,9 +475,10 @@ end;
 
 { EParserException }
 
-constructor EParserException.Create(Line, Col: Integer; const Msg: string);
+constructor EParserException.Create(Line, Col: Integer; const FileName, Msg: string);
 begin
   inherited Create(Msg);
+  FFileName := FileName;
   FLine := Line;
   FCol := Col;
 end;
