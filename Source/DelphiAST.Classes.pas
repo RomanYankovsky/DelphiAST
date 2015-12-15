@@ -30,7 +30,7 @@ type
     function GetHasAttributes: Boolean;
   protected
     FAttributes: TDictionary<TAttributeName, string>;
-    FChildNodes: TObjectList<TSyntaxNode>;
+    FChildNodes: TArray<TSyntaxNode>;
     FTyp: TSyntaxNodeType;
     FParentNode: TSyntaxNode;
   public
@@ -46,11 +46,12 @@ type
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
     function AddChild(Typ: TSyntaxNodeType): TSyntaxNode; overload;
     procedure DeleteChild(Node: TSyntaxNode);
+    procedure ExtractChild(Node: TSyntaxNode);
 
     function FindNode(Typ: TSyntaxNodeType): TSyntaxNode;
 
     property Attributes: TDictionary<TAttributeName, string> read FAttributes;
-    property ChildNodes: TObjectList<TSyntaxNode> read FChildNodes;
+    property ChildNodes: TArray<TSyntaxNode> read FChildNodes;
     property FileName: string read FFileName write FFileName;
     property HasAttributes: Boolean read GetHasAttributes;
     property HasChildren: Boolean read GetHasChildren;
@@ -362,7 +363,9 @@ function TSyntaxNode.AddChild(Node: TSyntaxNode): TSyntaxNode;
 begin
   Assert(Assigned(Node));
 
-  FChildNodes.Add(Node);
+  SetLength(FChildNodes, Length(FChildNodes) + 1);
+  FChildNodes[Length(FChildNodes) - 1] := Node;
+
   Node.FParentNode := Self;
 
   Result := Node;
@@ -395,18 +398,44 @@ begin
   inherited Create;
   FTyp := Typ;
   FAttributes := TDictionary<TAttributeName, string>.Create;
-  FChildNodes := TObjectList<TSyntaxNode>.Create(True);
+  SetLength(FChildNodes, 0);
   FParentNode := nil;
+end;
+
+procedure TSyntaxNode.ExtractChild(Node: TSyntaxNode);
+var
+  NodeIndex, i: integer;
+begin
+  NodeIndex := -1;
+  for i := 0 to Length(FChildNodes) - 1 do
+    if FChildNodes[i] = Node then
+    begin
+      NodeIndex := i;
+      break;
+    end;
+
+  if NodeIndex >= 0 then
+  begin
+    Move(FChildNodes[NodeIndex + 1], FChildNodes[NodeIndex], SizeOf(FChildNodes[0]) * (Length(FChildNodes) - NodeIndex - 1));
+    SetLength(FChildNodes, Length(FChildNodes) - 1);
+  end; 
+  
 end;
 
 procedure TSyntaxNode.DeleteChild(Node: TSyntaxNode);
 begin
-  FChildNodes.Remove(Node);
+  ExtractChild(Node);
+  Node.Free;
 end;
 
 destructor TSyntaxNode.Destroy;
+var
+  i: integer;
 begin
-  FChildNodes.Free;
+  for i := 0 to Length(FChildNodes) - 1 do
+    FChildNodes[i].Free;
+  SetLength(FChildNodes, 0);
+
   FAttributes.Free;
   inherited;
 end;
@@ -437,7 +466,7 @@ end;
 
 function TSyntaxNode.GetHasChildren: Boolean;
 begin
-  Result := FChildNodes.Count > 0;
+  Result := Length(FChildNodes) > 0;
 end;
 
 function TSyntaxNode.HasAttribute(const Key: TAttributeName): Boolean;
