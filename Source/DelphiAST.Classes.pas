@@ -10,10 +10,12 @@ uses
 type
   EParserException = class(Exception)
   strict private
+    FFileName: string;
     FLine, FCol: Integer;
   public
-    constructor Create(Line, Col: Integer; const Msg: string); reintroduce;
+    constructor Create(Line, Col: Integer; const FileName, Msg: string); reintroduce;
 
+    property FileName: string read FFileName;
     property Line: Integer read FLine;
     property Col: Integer read FCol;
   end;
@@ -23,6 +25,7 @@ type
   private
     FCol: Integer;
     FLine: Integer;
+    FFileName: string;
     function GetHasChildren: Boolean;
     function GetHasAttributes: Boolean;
   protected
@@ -48,6 +51,7 @@ type
 
     property Attributes: TDictionary<TAttributeName, string> read FAttributes;
     property ChildNodes: TObjectList<TSyntaxNode> read FChildNodes;
+    property FileName: string read FFileName write FFileName;
     property HasAttributes: Boolean read GetHasAttributes;
     property HasChildren: Boolean read GetHasChildren;
     property Typ: TSyntaxNodeType read FTyp;
@@ -320,7 +324,8 @@ class function TExpressionTools.CreateNodeWithParentsPosition(NodeType: TSyntaxN
 begin
   Result := TSyntaxNode.Create(NodeType);
   Result.Line := ParentNode.Line;
-  Result.Col := ParentNode.Col; 
+  Result.Col := ParentNode.Col;
+  Result.FileName := ParentNode.FileName;
 end;
 
 class procedure TExpressionTools.RawNodeListToTree(RawParentNode: TSyntaxNode; RawNodeList: TList<TSyntaxNode>;
@@ -342,7 +347,7 @@ begin
     end;
   except
     on E: Exception do
-      raise EParserException.Create(NewRoot.Line, NewRoot.Col, E.Message);
+      raise EParserException.Create(NewRoot.Line, NewRoot.Col, NewRoot.FileName, E.Message);
   end;
 end;
 
@@ -470,9 +475,10 @@ end;
 
 { EParserException }
 
-constructor EParserException.Create(Line, Col: Integer; const Msg: string);
+constructor EParserException.Create(Line, Col: Integer; const FileName, Msg: string);
 begin
   inherited Create(Msg);
+  FFileName := FileName;
   FLine := Line;
   FCol := Col;
 end;

@@ -23,11 +23,6 @@ begin
    begin
       //some code
    end;
-
-   if Key = ^[ then 
-   begin
-      //some code
-   end;
 end;
 
 end.
