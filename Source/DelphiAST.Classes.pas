@@ -19,6 +19,8 @@ type
     property Line: Integer read FLine;
     property Col: Integer read FCol;
   end;
+  
+  TAttributeEntry = TPair<TAttributeName, string>;
 
   TSyntaxNodeClass = class of TSyntaxNode;
   TSyntaxNode = class
@@ -28,8 +30,9 @@ type
     FFileName: string;
     function GetHasChildren: Boolean;
     function GetHasAttributes: Boolean;
+    function TryGetAttributeEntry(const Key: TAttributeName; var AttributeEntry: TAttributeEntry): boolean;
   protected
-    FAttributes: TDictionary<TAttributeName, string>;
+    FAttributes: TArray<TAttributeEntry>;
     FChildNodes: TArray<TSyntaxNode>;
     FTyp: TSyntaxNodeType;
     FParentNode: TSyntaxNode;
@@ -50,7 +53,7 @@ type
 
     function FindNode(Typ: TSyntaxNodeType): TSyntaxNode;
 
-    property Attributes: TDictionary<TAttributeName, string> read FAttributes;
+    property Attributes: TArray<TAttributeEntry> read FAttributes;
     property ChildNodes: TArray<TSyntaxNode> read FChildNodes;
     property FileName: string read FFileName write FFileName;
     property HasAttributes: Boolean read GetHasAttributes;
@@ -355,8 +358,31 @@ end;
 { TSyntaxNode }
 
 procedure TSyntaxNode.SetAttribute(const Key: TAttributeName; const Value: string);
+var
+  AttributeEntry: TAttributeEntry;
 begin
-  FAttributes.AddOrSetValue(Key, Value);
+  if not TryGetAttributeEntry(Key, AttributeEntry) then
+  begin
+    AttributeEntry.Key := Key;
+    SetLength(FAttributes, Length(FAttributes) + 1);
+    FAttributes[Length(FAttributes) - 1] := AttributeEntry;    
+  end;    
+    
+  AttributeEntry.Value := Value;  
+end;
+
+function TSyntaxNode.TryGetAttributeEntry(const Key: TAttributeName; var AttributeEntry: TAttributeEntry): boolean;
+var
+  CurrentEntry: TAttributeEntry;
+begin
+  for CurrentEntry in FAttributes do
+    if CurrentEntry.Key = Key then
+    begin
+      AttributeEntry := CurrentEntry;
+      Exit(true);
+    end;
+    
+  Exit(false);
 end;
 
 function TSyntaxNode.AddChild(Node: TSyntaxNode): TSyntaxNode;
@@ -397,7 +423,7 @@ constructor TSyntaxNode.Create(Typ: TSyntaxNodeType);
 begin
   inherited Create;
   FTyp := Typ;
-  FAttributes := TDictionary<TAttributeName, string>.Create;
+  SetLength(FAttributes, 0);
   SetLength(FChildNodes, 0);
   FParentNode := nil;
 end;
@@ -418,8 +444,7 @@ begin
   begin
     Move(FChildNodes[NodeIndex + 1], FChildNodes[NodeIndex], SizeOf(FChildNodes[0]) * (Length(FChildNodes) - NodeIndex - 1));
     SetLength(FChildNodes, Length(FChildNodes) - 1);
-  end; 
-  
+  end;   
 end;
 
 procedure TSyntaxNode.DeleteChild(Node: TSyntaxNode);
@@ -436,7 +461,7 @@ begin
     FChildNodes[i].Free;
   SetLength(FChildNodes, 0);
 
-  FAttributes.Free;
+  SetLength(FAttributes, 0);  
   inherited;
 end;
 
@@ -454,14 +479,18 @@ begin
 end;
 
 function TSyntaxNode.GetAttribute(const Key: TAttributeName): string;
+var
+  AttributeEntry: TAttributeEntry;
 begin
-  if not FAttributes.TryGetValue(Key, Result) then
+  if TryGetAttributeEntry(Key, AttributeEntry) then
+    Result := AttributeEntry.Value
+  else
     Result := '';
 end;
 
 function TSyntaxNode.GetHasAttributes: Boolean;
 begin
-  Result := FAttributes.Count > 0;
+  Result := Length(FAttributes) > 0;
 end;
 
 function TSyntaxNode.GetHasChildren: Boolean;
@@ -470,8 +499,10 @@ begin
 end;
 
 function TSyntaxNode.HasAttribute(const Key: TAttributeName): Boolean;
+var
+  AttributeEntry: TAttributeEntry;
 begin
-  result := FAttributes.ContainsKey(key);
+  Result := TryGetAttributeEntry(Key, AttributeEntry);
 end;
 
 { TCompoundSyntaxNode }

@@ -1812,7 +1812,7 @@ begin
   begin
     if Result <> '' then
       Result := Result + '.';
-    Result := Result + NamePartNode.Attributes[anName];
+    Result := Result + NamePartNode.GetAttribute(anName);
   end;
 end;
 
