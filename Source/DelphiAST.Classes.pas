@@ -21,6 +21,7 @@ type
   end;
   
   TAttributeEntry = TPair<TAttributeName, string>;
+  PAttributeEntry = ^TAttributeEntry;
 
   TSyntaxNodeClass = class of TSyntaxNode;
   TSyntaxNode = class
@@ -30,7 +31,7 @@ type
     FFileName: string;
     function GetHasChildren: Boolean;
     function GetHasAttributes: Boolean;
-    function TryGetAttributeEntry(const Key: TAttributeName; var AttributeEntry: TAttributeEntry): boolean;
+    function TryGetAttributeEntry(const Key: TAttributeName; var AttributeEntry: PAttributeEntry): boolean;
   protected
     FAttributes: TArray<TAttributeEntry>;
     FChildNodes: TArray<TSyntaxNode>;
@@ -359,29 +360,31 @@ end;
 
 procedure TSyntaxNode.SetAttribute(const Key: TAttributeName; const Value: string);
 var
-  AttributeEntry: TAttributeEntry;
+  AttributeEntry: PAttributeEntry;
+  NewAttributeEntry: TAttributeEntry;
 begin
-  if not TryGetAttributeEntry(Key, AttributeEntry) then
+  if TryGetAttributeEntry(Key, AttributeEntry) then
+    AttributeEntry^.Value := Value
+  else
   begin
-    AttributeEntry.Key := Key;
+    NewAttributeEntry.Key := Key;
+    NewAttributeEntry.Value := Value;
     SetLength(FAttributes, Length(FAttributes) + 1);
-    FAttributes[Length(FAttributes) - 1] := AttributeEntry;    
-  end;    
-    
-  AttributeEntry.Value := Value;  
+    FAttributes[Length(FAttributes) - 1] := NewAttributeEntry;
+  end;
 end;
 
-function TSyntaxNode.TryGetAttributeEntry(const Key: TAttributeName; var AttributeEntry: TAttributeEntry): boolean;
+function TSyntaxNode.TryGetAttributeEntry(const Key: TAttributeName; var AttributeEntry: PAttributeEntry): boolean;
 var
-  CurrentEntry: TAttributeEntry;
+  i: integer;
 begin
-  for CurrentEntry in FAttributes do
-    if CurrentEntry.Key = Key then
+  for i := 0 to Length(FAttributes) - 1 do
+    if FAttributes[i].Key = Key then
     begin
-      AttributeEntry := CurrentEntry;
+      AttributeEntry := @FAttributes[i];
       Exit(true);
     end;
-    
+
   Exit(false);
 end;
 
@@ -480,7 +483,7 @@ end;
 
 function TSyntaxNode.GetAttribute(const Key: TAttributeName): string;
 var
-  AttributeEntry: TAttributeEntry;
+  AttributeEntry: PAttributeEntry;
 begin
   if TryGetAttributeEntry(Key, AttributeEntry) then
     Result := AttributeEntry.Value
@@ -500,7 +503,7 @@ end;
 
 function TSyntaxNode.HasAttribute(const Key: TAttributeName): Boolean;
 var
-  AttributeEntry: TAttributeEntry;
+  AttributeEntry: PAttributeEntry;
 begin
   Result := TryGetAttributeEntry(Key, AttributeEntry);
 end;
