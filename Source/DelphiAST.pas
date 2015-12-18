@@ -668,7 +668,7 @@ begin
     classDef := FStack.Pop;
     vis := nil;
     i := 0;
-    while i < classDef.ChildNodes.Count do
+    while i < Length(classDef.ChildNodes) do
     begin
       child := classDef.ChildNodes[i];
       extracted := false;
@@ -676,8 +676,8 @@ begin
         vis := child
       else if assigned(vis) then
       begin
-        classDef.ChildNodes.Extract(child);
-        vis.ChildNodes.Add(child);
+        classDef.ExtractChild(child);
+        vis.AddChild(child);
         extracted := true;
       end;
       if not extracted then
@@ -1812,7 +1812,7 @@ begin
   begin
     if Result <> '' then
       Result := Result + '.';
-    Result := Result + NamePartNode.Attributes[anName];
+    Result := Result + NamePartNode.GetAttribute(anName);
   end;
 end;
 
@@ -1871,7 +1871,7 @@ begin
         NodeList := TList<TSyntaxNode>.Create;
         try
           AssignIdx := -1;
-          for I := 0 to RawStatement.ChildNodes.Count - 1 do
+          for I := 0 to Length(RawStatement.ChildNodes) - 1 do
           begin
             if RawStatement.ChildNodes[I].Typ = ntAssign then
             begin
@@ -1892,7 +1892,7 @@ begin
 
           NodeList.Clear;
 
-          for I := AssignIdx + 1 to RawStatement.ChildNodes.Count - 1 do
+          for I := AssignIdx + 1 to Length(RawStatement.ChildNodes) - 1 do
             NodeList.Add(RawStatement.ChildNodes[I]);
 
           if NodeList.Count = 0 then
@@ -2086,7 +2086,7 @@ begin
     end;       
     
     TypeName := '';
-    for i := TypeNode.ChildNodes.Count - 1 downto 0 do
+    for i := Length(TypeNode.ChildNodes) - 1 downto 0 do
     begin
       SubNode := TypeNode.ChildNodes[i];
       if SubNode.Typ = ntType then
