@@ -78,6 +78,7 @@ type
     Run: Integer;
     SharedBuffer: Boolean;
     LineNumber: Integer;
+    LinePos: Integer;
     FileName: string;
     Next: PBufferRec;
   end;
@@ -93,7 +94,6 @@ type
     FIdentFuncTable: array[0..191] of function: TptTokenKind of object;
     FTokenPos: Integer;
     FTokenID: TptTokenKind;
-    FLinePos: Integer;
     FExID: TptTokenKind;
     FOnMessage: TMessageEvent;
     FOnCompDirect: TDirectiveEvent;
@@ -474,7 +474,7 @@ end;
 
 function TmwBasePasLex.GetPosXY: TTokenPoint;
 begin
-  Result.X := FTokenPos - FLinePos + 1;
+  Result.X := FTokenPos - FBuffer.LinePos + 1;
   Result.Y := FBuffer.LineNumber + 1;
 end;
 
@@ -1378,6 +1378,7 @@ begin
   FBuffer.Buf := SharedBuffer.Buf;
   FBuffer.Run := SharedBuffer.Run;
   FBuffer.LineNumber := SharedBuffer.LineNumber;
+  FBuffer.LinePos := SharedBuffer.LinePos;
   FBuffer.SharedBuffer := True;
 
   Init;
@@ -1458,14 +1459,14 @@ begin
         begin
           Inc(FBuffer.Run);
           Inc(FBuffer.LineNumber);
-          FLinePos := FBuffer.Run;
+          FBuffer.LinePos := FBuffer.Run;
         end;
       #13:
         begin
           Inc(FBuffer.Run);
           if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
           Inc(FBuffer.LineNumber);
-          FLinePos := FBuffer.Run;
+          FBuffer.LinePos := FBuffer.Run;
         end;
     else
       Inc(FBuffer.Run);
@@ -1501,14 +1502,14 @@ begin
         begin
           Inc(FBuffer.Run);
           Inc(FBuffer.LineNumber);
-          FLinePos := FBuffer.Run;
+          FBuffer.LinePos := FBuffer.Run;
         end;
       #13:
         begin
           Inc(FBuffer.Run);
           if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
           Inc(FBuffer.LineNumber);
-          FLinePos := FBuffer.Run;
+          FBuffer.LinePos := FBuffer.Run;
         end;
     else
       Inc(FBuffer.Run);
@@ -1716,7 +1717,7 @@ begin
     Inc(FBuffer.Run);
   end;
   Inc(FBuffer.LineNumber);
-  FLinePos := FBuffer.Run;
+  FBuffer.LinePos := FBuffer.Run;
 end;
 
 procedure TmwBasePasLex.EnterDefineBlock(ADefined: Boolean);
@@ -1811,7 +1812,7 @@ begin
   end;
   Inc(FBuffer.Run);
   Inc(FBuffer.LineNumber);
-  FLinePos := FBuffer.Run;
+  FBuffer.LinePos := FBuffer.Run;
 end;
 
 procedure TmwBasePasLex.LowerProc;
@@ -1965,14 +1966,14 @@ begin
         begin
           Inc(FBuffer.Run);
           Inc(FBuffer.LineNumber);
-          FLinePos := FBuffer.Run;
+          FBuffer.LinePos := FBuffer.Run;
         end;
       #13:
         begin
           Inc(FBuffer.Run);
           if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
           Inc(FBuffer.LineNumber);
-          FLinePos := FBuffer.Run;
+          FBuffer.LinePos := FBuffer.Run;
         end;
     else
       Inc(FBuffer.Run);
@@ -2012,14 +2013,14 @@ begin
               begin
                 Inc(FBuffer.Run);
                 Inc(FBuffer.LineNumber);
-                FLinePos := FBuffer.Run;
+                FBuffer.LinePos := FBuffer.Run;
               end;
             #13:
               begin
                 Inc(FBuffer.Run);
                 if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
                 Inc(FBuffer.LineNumber);
-                FLinePos := FBuffer.Run;
+                FBuffer.LinePos := FBuffer.Run;
               end;
           else
             Inc(FBuffer.Run);
@@ -2440,6 +2441,7 @@ begin
   NewBuffer.SharedBuffer := False;
   NewBuffer.Next := FBuffer;
   NewBuffer.LineNumber := 0;
+  NewBuffer.LinePos := 0;
   NewBuffer.Run := 0;
   NewBuffer.FileName := IncludeFileName;
   GetMem(NewBuffer.Buf, (Length(Content) + 1) * SizeOf(Char));
@@ -2455,7 +2457,7 @@ procedure TmwBasePasLex.Init;
 begin
   FCommentState := csNo;
   FBuffer.LineNumber := 0;
-  FLinePos := 0;
+  FBuffer.LinePos := 0;
 end;
 
 procedure TmwBasePasLex.InitFrom(ALexer: TmwBasePasLex);
@@ -2465,7 +2467,6 @@ begin
   FBuffer.Run := ALexer.RunPos;
   FTokenID := ALexer.TokenID;
   FExID := ALexer.ExID;
-  FLinePos := ALexer.FLinePos;
   CloneDefinesFrom(ALexer);
 end;
 
@@ -2772,7 +2773,6 @@ procedure TmwPasLex.InitAhead;
 begin
   FAheadLex.CommentState := CommentState;
   FAheadLex.SetSharedBuffer(FBuffer);
-  FAheadLex.FLinePos := FLinePos;
 
   FAheadLex.CloneDefinesFrom(Self);
 
