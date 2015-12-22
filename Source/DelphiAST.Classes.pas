@@ -420,6 +420,7 @@ begin
 
   Result.Col := Self.Col;
   Result.Line := Self.Line;
+  Result.FileName := Self.FileName;
 end;
 
 constructor TSyntaxNode.Create(Typ: TSyntaxNodeType);
