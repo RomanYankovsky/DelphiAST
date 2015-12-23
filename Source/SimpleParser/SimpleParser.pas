@@ -4281,11 +4281,8 @@ begin
         AheadParse.NextToken;
         AheadParse.SimpleExpression;
         if AheadParse.TokenID = ptDotDot then
-        begin
-          SimpleExpression;
-          Expected(ptDotDot);
-          SimpleExpression;
-        end else
+          SubrangeType
+        else
           TypeId;
       end;
   else
@@ -4510,11 +4507,8 @@ begin
         AheadParse.NextToken;
         AheadParse.SimpleExpression;
         if AheadParse.TokenID = ptDotDot then
-        begin
-          SimpleExpression;
-          Expected(ptDotDot);
-          SimpleExpression;
-        end else
+          SubrangeType
+        else
           TypeId;
       end;
     ptPointerSymbol:
