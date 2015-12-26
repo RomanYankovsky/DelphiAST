@@ -1381,7 +1381,6 @@ begin
   FBuffer.LinePos := SharedBuffer.LinePos;
   FBuffer.SharedBuffer := True;
 
-  Init;
   Next;
 end;
 
@@ -2772,9 +2771,9 @@ end;
 procedure TmwPasLex.InitAhead;
 begin
   FAheadLex.CommentState := CommentState;
-  FAheadLex.SetSharedBuffer(FBuffer);
-
   FAheadLex.CloneDefinesFrom(Self);
+
+  FAheadLex.SetSharedBuffer(FBuffer);
 
   while FAheadLex.IsJunk do
     FAheadLex.Next;
