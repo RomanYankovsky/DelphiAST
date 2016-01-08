@@ -5310,14 +5310,7 @@ begin
         end;
       ptIdentifier:
         begin
-          Lexer.InitAhead;
-          if Lexer.AheadTokenID in [ptColon, ptEqual] then
-          begin
-            ConstantDeclaration;
-            if TokenID = ptSemiColon then Semicolon;
-          end
-          else
-            NextToken;
+          Statements;
         end;
       ptLabel:
         begin
