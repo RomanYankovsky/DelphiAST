@@ -2320,7 +2320,8 @@ begin
           FStack.Peek.Line := Variable.Line;
 
           FStack.AddChild(Variable.Clone);
-          FStack.AddChild(TypeInfo.Clone);
+          if Assigned(TypeInfo) then
+            FStack.AddChild(TypeInfo.Clone);
 
           if Assigned(ValueInfo) then
             FStack.AddChild(ValueInfo.Clone);
