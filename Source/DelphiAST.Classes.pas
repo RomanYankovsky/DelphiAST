@@ -446,7 +446,8 @@ begin
 
   if NodeIndex >= 0 then
   begin
-    Move(FChildNodes[NodeIndex + 1], FChildNodes[NodeIndex], SizeOf(FChildNodes[0]) * (Length(FChildNodes) - NodeIndex - 1));
+    if NodeIndex < High(FChildNodes) then
+      Move(FChildNodes[NodeIndex + 1], FChildNodes[NodeIndex], SizeOf(FChildNodes[0]) * (Length(FChildNodes) - NodeIndex - 1));
     SetLength(FChildNodes, Length(FChildNodes) - 1);
   end;   
 end;
