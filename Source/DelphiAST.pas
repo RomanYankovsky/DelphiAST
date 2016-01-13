@@ -1387,15 +1387,13 @@ end;
 
 procedure TPasSyntaxTreeBuilder.MainUsedUnitStatement;
 var
-  NameNode, PathNode: TSyntaxNode;
+  NameNode, PathNode, PathLiteralNode: TSyntaxNode;
 begin
   FStack.Push(ntUnit);
   try
     inherited;
+
     NameNode := FStack.Peek.FindNode(ntUnit);
-    PathNode := FStack.Peek.FindNode(ntExpression);
-    if Assigned(PathNode) then
-      PathNode := PathNode.FindNode(ntLiteral);
 
     if Assigned(NameNode) then
     begin
@@ -1403,10 +1401,18 @@ begin
       FStack.Peek.DeleteChild(NameNode);
     end;
 
-    if PathNode is TValuedSyntaxNode then
+    PathNode := FStack.Peek.FindNode(ntExpression);
+    if Assigned(PathNode) then
     begin
-      FStack.Peek.SetAttribute(anPath, TValuedSyntaxNode(PathNode).Value);
-      FStack.Peek.DeleteChild(PathNode);
+      FStack.Peek.ExtractChild(PathNode);
+      try
+        PathLiteralNode := PathNode.FindNode(ntLiteral);
+
+        if PathLiteralNode is TValuedSyntaxNode then
+          FStack.Peek.SetAttribute(anPath, TValuedSyntaxNode(PathLiteralNode).Value);
+      finally
+        PathNode.Free;
+      end;
     end;
   finally
     FStack.Pop;
