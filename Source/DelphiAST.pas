@@ -29,7 +29,7 @@ type
     constructor Create(Parser: TmwSimplePasPar);
     destructor Destroy; override;
 
-    function AddChild(Typ: TSyntaxNodeType; SetPositionAttributes: Boolean = True): TSyntaxNode; overload;
+    function AddChild(Typ: TSyntaxNodeType): TSyntaxNode; overload;
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
     function AddValuedChild(Typ: TSyntaxNodeType; const Value: string): TSyntaxNode;
 
@@ -37,8 +37,8 @@ type
     function Peek: TSyntaxNode;
     function Pop: TSyntaxNode;
 
-    function Push(Typ: TSyntaxNodeType; SetPositionAttributes: Boolean = True): TSyntaxNode; overload;
-    function Push(Node: TSyntaxNode; SetPositionAttributes: Boolean = True): TSyntaxNode; overload;
+    function Push(Typ: TSyntaxNodeType): TSyntaxNode; overload;
+    function Push(Node: TSyntaxNode): TSyntaxNode; overload;
     function PushCompoundSyntaxNode(Typ: TSyntaxNodeType): TSyntaxNode;
     function PushValuedNode(Typ: TSyntaxNodeType; const Value: string): TSyntaxNode;
 
@@ -471,7 +471,7 @@ begin
 
     if RawExprNode.HasChildren then
     begin
-      ExprNode := FStack.Push(ntExpression, False);
+      ExprNode := FStack.Push(ntExpression);
       try
         ExprNode.Line := Line;
         ExprNode.Col := Col;
@@ -552,7 +552,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ClassField;
 var
-  Fields: TSyntaxNode;
+  Fields, Temp: TSyntaxNode;
   Field, TypeInfo, TypeArgs: TSyntaxNode;
 begin
   Fields := TSyntaxNode.Create(ntFields);
@@ -571,14 +571,14 @@ begin
       if Field.Typ <> ntName then
         Continue;
 
-      FStack.Push(ntField, False);
+      Temp := FStack.Push(ntField);
       try
-        FStack.Peek.Col  := Field.Col;
-        FStack.Peek.Line := Field.Line;
+        Temp.Col := Field.Col;
+        Temp.Line := Field.Line;
 
         FStack.AddChild(Field.Clone);
         TypeInfo := TypeInfo.Clone;
-        if assigned(TypeArgs) then
+        if Assigned(TypeArgs) then
           TypeInfo.AddChild(TypeArgs.Clone);
         FStack.AddChild(TypeInfo);
       finally
@@ -674,7 +674,7 @@ begin
       extracted := false;
       if child.HasAttribute(anVisibility) then
         vis := child
-      else if assigned(vis) then
+      else if Assigned(vis) then
       begin
         classDef.ExtractChild(child);
         vis.AddChild(child);
@@ -697,9 +697,12 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.ConstructorName;
+var
+  Temp: TSyntaxNode;
 begin
-  FStack.Peek.SetAttribute(anKind, 'constructor');
-  FStack.Peek.SetAttribute(anName, Lexer.Token);
+  Temp := FStack.Peek;
+  Temp.SetAttribute(anKind, 'constructor');
+  Temp.SetAttribute(anName, Lexer.Token);
   inherited;
 end;
 
@@ -805,7 +808,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ConstSection;
 var
-  ConstSect: TSyntaxNode;
+  ConstSect, Temp: TSyntaxNode;
   ConstList, Constant, TypeInfo, Value: TSyntaxNode;
 begin
   ConstSect := TSyntaxNode.Create(ntConstants);
@@ -828,14 +831,14 @@ begin
         if Constant.Typ <> ntName then
           Continue;
 
-        FStack.Push(ConstList.Typ, False);
+        Temp := FStack.Push(ConstList.Typ);
         try
-          FStack.Peek.Col  := Constant.Col;
-          FStack.Peek.Line := Constant.Line;
+          Temp.Col := Constant.Col;
+          Temp.Line := Constant.Line;
 
           FStack.AddChild(Constant.Clone);
-          if assigned(TypeInfo) then
-             FStack.AddChild(TypeInfo.Clone);
+          if Assigned(TypeInfo) then
+            FStack.AddChild(TypeInfo.Clone);
           FStack.AddChild(Value.Clone);
         finally
           FStack.Pop;
@@ -875,9 +878,12 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.DestructorName;
+var
+  Temp: TSyntaxNode;
 begin
-  FStack.Peek.SetAttribute(anKind, 'destructor');
-  FStack.Peek.SetAttribute(anName, Lexer.Token);
+  Temp := FStack.Peek;
+  Temp.SetAttribute(anKind, 'destructor');
+  Temp.SetAttribute(anName, Lexer.Token);
   inherited;
 end;
 
@@ -1032,10 +1038,13 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.SetCurrentCompoundNodesEndPosition;
+var
+  Temp: TCompoundSyntaxNode;
 begin
-  TCompoundSyntaxNode(FStack.Peek).EndCol := Lexer.PosXY.X;
-  TCompoundSyntaxNode(FStack.Peek).EndLine := Lexer.PosXY.Y;
-  TCompoundSyntaxNode(FStack.Peek).FileName := Lexer.FileName;
+  Temp := TCompoundSyntaxNode(FStack.Peek);
+  Temp.EndCol := Lexer.PosXY.X;
+  Temp.EndLine := Lexer.PosXY.Y;
+  Temp.FileName := Lexer.FileName;
 end;
 
 procedure TPasSyntaxTreeBuilder.CallInheritedExpression;
@@ -1092,7 +1101,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.FormalParameterList;
 var
-  Params: TSyntaxNode;
+  Params, Temp: TSyntaxNode;
   ParamList, Param, TypeInfo, ParamExpr: TSyntaxNode;
   ParamKind: string;
 begin
@@ -1118,12 +1127,12 @@ begin
         if Param.Typ <> ntName then
           Continue;
 
-        FStack.Push(ntParameter);
+        Temp := FStack.Push(ntParameter);
         if ParamKind <> '' then
-          FStack.Peek.SetAttribute(anKind, ParamKind);
+          Temp.SetAttribute(anKind, ParamKind);
 
-        FStack.Peek.Col  := Param.Col;
-        FStack.Peek.Line := Param.Line;
+        Temp.Col := Param.Col;
+        Temp.Line := Param.Line;
 
         FStack.AddChild(Param.Clone);
         if Assigned(TypeInfo) then
@@ -1205,14 +1214,14 @@ end;
 
 procedure TPasSyntaxTreeBuilder.FunctionProcedureName;
 var
-  ChildNode, nameNode, TypeParam, TypeNode: TSyntaxNode;
+  ChildNode, NameNode, TypeParam, TypeNode, Temp: TSyntaxNode;
   FullName, TypeParams: string;
 begin
   FStack.Push(ntName);
-  nameNode := FStack.Peek;
+  NameNode := FStack.Peek;
   try
     inherited;
-    for ChildNode in nameNode.ChildNodes do
+    for ChildNode in NameNode.ChildNodes do
     begin
       if ChildNode.Typ = ntTypeParams then
       begin
@@ -1239,8 +1248,9 @@ begin
     end;
   finally
     FStack.Pop;
-    FStack.Peek.SetAttribute(anName, FullName);
-    FStack.Peek.DeleteChild(nameNode);
+    Temp := FStack.Peek;
+    Temp.SetAttribute(anName, FullName);
+    Temp.DeleteChild(NameNode);
   end;
 end;
 
@@ -1387,7 +1397,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.MainUsedUnitStatement;
 var
-  NameNode, PathNode, PathLiteralNode: TSyntaxNode;
+  NameNode, PathNode, PathLiteralNode, Temp: TSyntaxNode;
 begin
   FStack.Push(ntUnit);
   try
@@ -1397,8 +1407,9 @@ begin
 
     if Assigned(NameNode) then
     begin
-      FStack.Peek.SetAttribute(anName, NameNode.GetAttribute(anName));
-      FStack.Peek.DeleteChild(NameNode);
+      Temp := FStack.Peek;
+      Temp.SetAttribute(anName, NameNode.GetAttribute(anName));
+      Temp.DeleteChild(NameNode);
     end;
 
     PathNode := FStack.Peek.FindNode(ntExpression);
@@ -1717,7 +1728,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.RequiresIdentifierId;
 begin
-  FStack.AddChild(ntUnknown, False).SetAttribute(anName, Lexer.Token);
+  FStack.AddChild(ntUnknown).SetAttribute(anName, Lexer.Token);
   inherited;
 end;
 
@@ -1846,7 +1857,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.SimpleStatement;
 var
-  RawStatement: TSyntaxNode;
+  RawStatement, Temp: TSyntaxNode;
   Node, LHS, RHS: TSyntaxNode;
   NodeList: TList<TSyntaxNode>;
   I, AssignIdx: Integer;
@@ -1870,11 +1881,11 @@ begin
 
     if RawStatement.FindNode(ntAssign) <> nil then
     begin
-      FStack.Push(ntAssign, False);
+      Temp := FStack.Push(ntAssign);
       try
-        FStack.Peek.Col  := Position.X;
-        FStack.Peek.Line := Position.Y;
-        FStack.Peek.FileName := FileName;
+        Temp.Col := Position.X;
+        Temp.Line := Position.Y;
+        Temp.FileName := FileName;
 
         NodeList := TList<TSyntaxNode>.Create;
         try
@@ -1892,8 +1903,8 @@ begin
           if NodeList.Count = 0 then
             raise EParserException.Create(Position.Y, Position.X, Lexer.FileName, 'Illegal expression');
 
-          LHS := FStack.AddChild(ntLHS, False);
-          LHS.Col  := NodeList[0].Col;
+          LHS := FStack.AddChild(ntLHS);
+          LHS.Col := NodeList[0].Col;
           LHS.Line := NodeList[0].Line;
           LHS.FileName := NodeList[0].FileName;
           TExpressionTools.RawNodeListToTree(RawStatement, NodeList, LHS);
@@ -1906,8 +1917,8 @@ begin
           if NodeList.Count = 0 then
             raise EParserException.Create(Position.Y, Position.X, Lexer.FileName, 'Illegal expression');
 
-          RHS := FStack.AddChild(ntRHS, False);
-          RHS.Col  := NodeList[0].Col;
+          RHS := FStack.AddChild(ntRHS);
+          RHS.Col := NodeList[0].Col;
           RHS.Line := NodeList[0].Line;
           RHS.FileName := NodeList[0].FileName;
           TExpressionTools.RawNodeListToTree(RawStatement, NodeList, RHS);
@@ -1919,10 +1930,10 @@ begin
       end;
     end else
     begin
-      FStack.Push(ntCall, False);
+      Temp := FStack.Push(ntCall);
       try
-        FStack.Peek.Col  := Position.X;
-        FStack.Peek.Line := Position.Y;
+        Temp.Col := Position.X;
+        Temp.Line := Position.Y;
 
         NodeList := TList<TSyntaxNode>.Create;
         try
@@ -2199,15 +2210,18 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.UnitFile;
+var
+  Temp: TSyntaxNode;
 begin
-  FStack.Peek.Col  := Lexer.PosXY.X;
-  FStack.Peek.Line := Lexer.PosXY.Y;
+  Temp := FStack.Peek;
+  Temp.Col := Lexer.PosXY.X;
+  Temp.Line := Lexer.PosXY.Y;
   inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.UnitId;
 begin
-  FStack.AddChild(ntUnknown, False).SetAttribute(anName, Lexer.Token);
+  FStack.AddChild(ntUnknown).SetAttribute(anName, Lexer.Token);
   inherited;
 end;
 
@@ -2297,7 +2311,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.VarSection;
 var
-  VarSect: TSyntaxNode;
+  VarSect, Temp: TSyntaxNode;
   VarList, Variable, TypeInfo, ValueInfo: TSyntaxNode;
 begin
   VarSect := TSyntaxNode.Create(ntUnknown);
@@ -2320,10 +2334,10 @@ begin
         if Variable.Typ <> ntName then
           Continue;
 
-        FStack.Push(ntVariable, False);
+        Temp := FStack.Push(ntVariable);
         try
-          FStack.Peek.Col  := Variable.Col;
-          FStack.Peek.Line := Variable.Line;
+          Temp.Col := Variable.Col;
+          Temp.Line := Variable.Line;
 
           FStack.AddChild(Variable.Clone);
           if Assigned(TypeInfo) then
@@ -2344,10 +2358,12 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.VisibilityStrictPrivate;
+var
+  Temp: TSyntaxNode;
 begin
-  FStack.Push(ntStrictPrivate);
+  Temp := FStack.Push(ntStrictPrivate);
   try
-    FStack.Peek.SetAttribute(anVisibility, 'true');
+    Temp.SetAttribute(anVisibility, 'true');
     inherited;
   finally
     FStack.Pop;
@@ -2355,10 +2371,12 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.VisibilityPrivate;
+var
+  Temp: TSyntaxNode;
 begin
-  FStack.Push(ntPrivate);
+  Temp := FStack.Push(ntPrivate);
   try
-    FStack.Peek.SetAttribute(anVisibility, 'true');
+    Temp.SetAttribute(anVisibility, 'true');
     inherited;
   finally
     FStack.Pop;
@@ -2366,10 +2384,12 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.VisibilityStrictProtected;
+var
+  Temp: TSyntaxNode;
 begin
-  FStack.Push(ntStrictProtected);
+  Temp := FStack.Push(ntStrictProtected);
   try
-    FStack.Peek.SetAttribute(anVisibility, 'true');
+    Temp.SetAttribute(anVisibility, 'true');
     inherited;
   finally
     FStack.Pop;
@@ -2377,10 +2397,12 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.VisibilityProtected;
+var
+  Temp: TSyntaxNode;
 begin
-  FStack.Push(ntProtected);
+  Temp := FStack.Push(ntProtected);
   try
-    FStack.Peek.SetAttribute(anVisibility, 'true');
+    Temp.SetAttribute(anVisibility, 'true');
     inherited;
   finally
     FStack.Pop;
@@ -2388,10 +2410,12 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.VisibilityPublic;
+var
+  Temp: TSyntaxNode;
 begin
-  FStack.Push(ntPublic);
+  Temp := FStack.Push(ntPublic);
   try
-    FStack.Peek.SetAttribute(anVisibility, 'true');
+    Temp.SetAttribute(anVisibility, 'true');
     inherited;
   finally
     FStack.Pop;
@@ -2399,10 +2423,12 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.VisibilityPublished;
+var
+  Temp: TSyntaxNode;
 begin
-  FStack.Push(ntPublished);
+  Temp := FStack.Push(ntPublished);
   try
-    FStack.Peek.SetAttribute(anVisibility, 'true');
+    Temp.SetAttribute(anVisibility, 'true');
     inherited;
   finally
     FStack.Pop;
@@ -2441,17 +2467,12 @@ end;
 
 { TNodeStack }
 
-function TNodeStack.AddChild(Typ: TSyntaxNodeType;
-  SetPositionAttributes: Boolean): TSyntaxNode;
+function TNodeStack.AddChild(Typ: TSyntaxNodeType): TSyntaxNode;
 begin
   Result := FStack.Peek.AddChild(TSyntaxNode.Create(Typ));
-
-  if SetPositionAttributes then
-  begin
-    Result.Col  := FParser.Lexer.PosXY.X;
-    Result.Line := FParser.Lexer.PosXY.Y;
-    Result.FileName := FParser.Lexer.FileName;
-  end;
+  Result.Col := FParser.Lexer.PosXY.X;
+  Result.Line := FParser.Lexer.PosXY.Y;
+  Result.FileName := FParser.Lexer.FileName;
 end;
 
 function TNodeStack.AddChild(Node: TSyntaxNode): TSyntaxNode;
@@ -2463,7 +2484,7 @@ function TNodeStack.AddValuedChild(Typ: TSyntaxNodeType;
   const Value: string): TSyntaxNode;
 begin
   Result := FStack.Peek.AddChild(TValuedSyntaxNode.Create(Typ));
-  Result.Col  := FParser.Lexer.PosXY.X;
+  Result.Col := FParser.Lexer.PosXY.X;
   Result.Line := FParser.Lexer.PosXY.Y;
   Result.FileName := FParser.Lexer.FileName;
 
@@ -2502,17 +2523,13 @@ begin
   Result := FStack.Pop;
 end;
 
-function TNodeStack.Push(Node: TSyntaxNode; SetPositionAttributes: Boolean): TSyntaxNode;
+function TNodeStack.Push(Node: TSyntaxNode): TSyntaxNode;
 begin
   FStack.Push(Node);
   Result := Node;
-
-  if SetPositionAttributes then
-  begin
-    Result.Col  := FParser.Lexer.PosXY.X;
-    Result.Line := FParser.Lexer.PosXY.Y;
-    Result.FileName := FParser.Lexer.FileName;
-  end;
+  Result.Col := FParser.Lexer.PosXY.X;
+  Result.Line := FParser.Lexer.PosXY.Y;
+  Result.FileName := FParser.Lexer.FileName;
 end;
 
 function TNodeStack.PushCompoundSyntaxNode(Typ: TSyntaxNodeType): TSyntaxNode;
@@ -2527,10 +2544,10 @@ begin
   TValuedSyntaxNode(Result).Value := Value;
 end;
 
-function TNodeStack.Push(Typ: TSyntaxNodeType; SetPositionAttributes: Boolean = True): TSyntaxNode;
+function TNodeStack.Push(Typ: TSyntaxNodeType): TSyntaxNode;
 begin
   Result := FStack.Peek.AddChild(TSyntaxNode.Create(Typ));
-  Push(Result, SetPositionAttributes);
+  Push(Result);
 end;
 
 { ESyntaxTreeException }
