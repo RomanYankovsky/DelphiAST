@@ -5548,7 +5548,7 @@ end;
 procedure TmwSimplePasPar.ExportsName;
 begin
   ExportsNameId;
-  if FLexer.TokenID = ptPoint then
+  while FLexer.TokenID = ptPoint do
   begin
     NextToken;
     ExportsNameId;
