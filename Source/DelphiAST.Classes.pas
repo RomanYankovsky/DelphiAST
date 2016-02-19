@@ -46,6 +46,7 @@ type
     function GetAttribute(const Key: TAttributeName): string;
     function HasAttribute(const Key: TAttributeName): Boolean;
     procedure SetAttribute(const Key: TAttributeName; const Value: string);
+    procedure ClearAttributes;
 
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
     function AddChild(Typ: TSyntaxNodeType): TSyntaxNode; overload;
@@ -508,6 +509,11 @@ var
   AttributeEntry: PAttributeEntry;
 begin
   Result := TryGetAttributeEntry(Key, AttributeEntry);
+end;
+
+procedure TSyntaxNode.ClearAttributes;
+begin
+  SetLength(FAttributes, 0);
 end;
 
 { TCompoundSyntaxNode }
