@@ -2583,7 +2583,7 @@ begin
     InitAhead;
     AheadParse.Designator;
 
-    if AheadParse.TokenId in [ptAssign, ptSemicolon] then
+    if AheadParse.TokenId in [ptAssign, ptSemicolon, ptElse] then
       SimpleStatement
     else
       Expression;
