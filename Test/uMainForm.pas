@@ -46,6 +46,7 @@ procedure TForm2.btnRunClick(Sender: TObject);
 var
   Path, FileName: string;
   SyntaxTree: TSyntaxNode;
+  LineNumber: integer;
 begin
   memLog.Clear;
 
@@ -56,19 +57,20 @@ begin
   for FileName in TDirectory.GetFiles(Path, '*.pas', TSearchOption.soAllDirectories) do
   begin
     try
+      LineNumber := memlog.Lines.Add('Testing:' + FileName);
       SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, False, TIncludeHandler.Create(Path));
       try
-        memLog.Lines.Add('OK:     ' + FileName);
+        memLog.Lines[LineNumber]:= 'OK:     ' + FileName;
       finally
         SyntaxTree.Free;
       end;
     except
       on E: Exception do
       begin
-        memLog.Lines.Add('FAILED: ' + FileName);
-        memLog.Lines.Add('        ' + E.ClassName);
-        memLog.Lines.Add('        ' + E.Message);
-        memLog.Repaint;
+          memLog.Lines[Linenumber]:= 'FAILED: ' + FileName;
+          memLog.Lines.Add('        ' + E.ClassName);
+          memLog.Lines.Add('        ' + E.Message);
+          memLog.Repaint;
       end;
     end;
   end;
