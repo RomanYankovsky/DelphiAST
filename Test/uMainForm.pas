@@ -17,6 +17,7 @@ type
   TForm2 = class(TForm)
     memLog: TMemo;
     btnRun: TButton;
+    FileOpenDialog1: TFileOpenDialog;
     procedure btnRunClick(Sender: TObject);
   private
     { Private declarations }
@@ -47,18 +48,24 @@ var
   Path, FileName: string;
   SyntaxTree: TSyntaxNode;
   LineNumber: integer;
+  FilePath: string;
 begin
   memLog.Clear;
 
   Path := ExtractFilePath(Application.ExeName) + 'Snippets\';
-  if not SelectDirectory('Select Folder', '', Path) then
-    Exit;
+  FileOpenDialog1.DefaultFolder:= Path;
+  if not(FileOpenDialog1.Execute) then Exit;
+  Path:= FileOpenDialog1.FileName;
+
+  //if not SelectDirectory('Select Folder', '', Path) then
+  //  Exit;
 
   for FileName in TDirectory.GetFiles(Path, '*.pas', TSearchOption.soAllDirectories) do
   begin
     try
       LineNumber := memlog.Lines.Add('Testing:' + FileName);
-      SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, False, TIncludeHandler.Create(Path));
+      FilePath:= TPath.GetDirectoryName(Filename);
+      SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, False, TIncludeHandler.Create(FilePath));
       try
         memLog.Lines[LineNumber]:= 'OK:     ' + FileName;
       finally

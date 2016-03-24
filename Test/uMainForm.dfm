@@ -40,4 +40,11 @@ object Form2: TForm2
     TabOrder = 1
     OnClick = btnRunClick
   end
+  object FileOpenDialog1: TFileOpenDialog
+    FavoriteLinks = <>
+    FileTypes = <>
+    Options = [fdoPickFolders, fdoPathMustExist, fdoDontAddToRecent, fdoForceShowHidden]
+    Left = 400
+    Top = 200
+  end
 end
