@@ -132,6 +132,7 @@ type
     procedure ForStatementFrom; override;
     procedure ForStatementIn; override;
     procedure ForStatementTo; override;
+    procedure ForwardDeclaration; override;
     procedure FunctionHeading; override;
     procedure FunctionMethodName; override;
     procedure FunctionProcedureName; override;
@@ -1234,6 +1235,14 @@ begin
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ForwardDeclaration;
+begin
+  if FStack.Peek.ParentNode.Typ = ntImplementation then begin
+    FStack.Peek.SetAttribute(anForwarded, 'true');
+  end;
+  inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.FunctionHeading;
