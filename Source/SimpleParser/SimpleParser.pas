@@ -614,10 +614,8 @@ end;
 
 procedure TmwSimplePasPar.ForwardDeclaration;
 begin
-  //semicolon is optional after forward directive.
   NextToken;
-  if TokenID = ptSemiColon then NextToken;
-  //Semicolon;
+  Semicolon;
 end;
 
 procedure TmwSimplePasPar.ObjectProperty;
@@ -1154,13 +1152,7 @@ procedure TmwSimplePasPar.UnitFile;
 begin
   Expected(ptUnit);
   UnitName;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform, ptExperimental] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-      ptExperimental: NextToken;
-    end;
+  TypeDirective;
 
   Semicolon;
   InterfaceSection;
@@ -3092,12 +3084,8 @@ begin
   VarNameList;
   Expected(ptColon);
   TypeKind;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  TypeDirective;
+
   case GenID of
     ptAbsolute:
       begin
@@ -3108,12 +3096,7 @@ begin
         VarEqual;
       end;
   end;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  TypeDirective;
 end;
 
 procedure TmwSimplePasPar.VarAbsolute;
@@ -3234,12 +3217,7 @@ begin
   FieldNameList;
   Expected(ptColon);
   TypeKind;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  TypeDirective;
 end;
 
 procedure TmwSimplePasPar.FieldList;
@@ -3970,12 +3948,7 @@ begin
   FieldNameList;
   Expected(ptColon);
   TypeKind;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  TypeDirective;
 end;
 
 procedure TmwSimplePasPar.ObjectType;
@@ -4077,12 +4050,7 @@ begin
   IdentifierList;
   Expected(ptColon);
   TypeKind;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  TypeDirective;
 end;
 
 procedure TmwSimplePasPar.ClassReferenceType;
@@ -4630,12 +4598,7 @@ begin
 
   ResourceValue;
 
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  TypeDirective;
 end;
 
 procedure TmwSimplePasPar.ResourceValue;
@@ -4665,12 +4628,7 @@ begin
       SynError(InvalidConstantDeclaration);
     end;
   end;
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary: DirectiveLibrary;
-      ptPlatform: DirectivePlatform;
-    end;
+  TypeDirective;
 end;
 
 procedure TmwSimplePasPar.ConstantColon;
@@ -4778,7 +4736,7 @@ end;
 
 procedure TmwSimplePasPar.ProceduralDirective;
 begin
-  case ExID of
+  case GenID of
     ptAbstract:
       begin
         DirectiveBinding;
@@ -5259,9 +5217,9 @@ end;
 
 procedure TmwSimplePasPar.CharString;
 begin
-  case TokenID of
+  case GenID of
     ptAsciiChar, ptIdentifier, ptRoundOpen, ptStringConst:
-      while TokenID in
+      while GenID in
         [ptAsciiChar, ptIdentifier, ptRoundOpen, ptStringConst, ptString] do
       begin
         case TokenID of
@@ -5436,7 +5394,7 @@ end;
 
 procedure TmwSimplePasPar.DirectiveLibrary;
 begin
-  ExpectedEx(ptLibrary);
+  Expected(ptLibrary);
 end;
 
 procedure TmwSimplePasPar.DirectivePlatform;
@@ -5615,11 +5573,12 @@ end;
 
 procedure TmwSimplePasPar.TypeDirective;
 begin
-  while ExID in [ptDeprecated, ptLibrary, ptPlatform] do
-    case ExID of
-      ptDeprecated: DirectiveDeprecated;
-      ptLibrary:    DirectiveLibrary;
-      ptPlatform:   DirectivePlatform;
+  while GenID in [ptDeprecated, ptLibrary, ptPlatform, ptExperimental] do
+    case GenID of
+      ptDeprecated:   DirectiveDeprecated;
+      ptLibrary:      DirectiveLibrary;
+      ptPlatform:     DirectivePlatform;
+      ptExperimental: NextToken;
     end;
 end;
 

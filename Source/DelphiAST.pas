@@ -56,11 +56,10 @@ type
     procedure CallInheritedExpression;
     procedure SetCurrentCompoundNodesEndPosition;
     procedure DoOnComment(Sender: TObject; const Text: string);
-    procedure SetUnitFilename(const Value: string);
   protected
     FStack: TNodeStack;
     FComments: TObjectList<TCommentNode>;
-    FUnitFilename: string; //Full path of the unit, used to resolve inc filenames.
+
     procedure AccessSpecifier; override;
     procedure AdditiveOperator; override;
     procedure AddressOp; override;
@@ -132,7 +131,6 @@ type
     procedure ForStatementFrom; override;
     procedure ForStatementIn; override;
     procedure ForStatementTo; override;
-    procedure ForwardDeclaration; override;
     procedure FunctionHeading; override;
     procedure FunctionMethodName; override;
     procedure FunctionProcedureName; override;
@@ -231,7 +229,6 @@ type
     procedure NamedArgument; override;
     procedure AttributeArgumentName; override;
     procedure AttributeArgumentExpression; override;
-    property UnitFileName: string read FUnitFilename write SetUnitFilename;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -1237,14 +1234,6 @@ begin
   end;
 end;
 
-procedure TPasSyntaxTreeBuilder.ForwardDeclaration;
-begin
-  if FStack.Peek.ParentNode.Typ = ntImplementation then begin
-    FStack.Peek.SetAttribute(anForwarded, 'true');
-  end;
-  inherited;
-end;
-
 procedure TPasSyntaxTreeBuilder.FunctionHeading;
 begin
   FStack.Peek.SetAttribute(anKind, 'function');
@@ -1829,7 +1818,6 @@ begin
   try
     Stream.LoadFromFile(FileName);
     Builder := TPasSyntaxTreeBuilder.Create;
-    Builder.UnitFilename:= Filename;
     Builder.InterfaceOnly := InterfaceOnly;
     try
       Builder.InitDefinesDefinedByCompiler;
@@ -1865,7 +1853,7 @@ begin
       raise;
   end;
 
-  Assert(FStack.Count = 0, Format('TPasSyntaxTreeBuilder.Run: Stack.count should be 0, but is %d',[FStack.Count]));
+  Assert(FStack.Count = 0);
 end;
 
 function TPasSyntaxTreeBuilder.NodeListToString(NamesNode: TSyntaxNode): string;
@@ -1899,12 +1887,6 @@ begin
   finally
     FStack.Pop;
   end;
-end;
-
-procedure TPasSyntaxTreeBuilder.SetUnitFilename(const Value: string);
-begin
-  Assert(FUnitFilename = '','The filename can only be set once');
-  FUnitFilename := Value;
 end;
 
 procedure TPasSyntaxTreeBuilder.SimpleStatement;

@@ -2,26 +2,18 @@ unit forwardwithoutsemicolon;
 
 interface
 
-procedure proc1(); forward;
-procedure proc2(); forward  // NO TRAILING SEMICOLON
+procedure proc1(); forward // NO TRAILING SEMICOLON
+procedure proc2();
 
 implementation
 
-
-procedure proc3(); forward  // NO TRAILING SEMICOLON
-
-procedure proc1();
+procedure proc1(); 
 begin
-  proc3;
+
 end;
 
 procedure proc2();
-begin
-
-end;
-
-procedure proc3();
-begin
+begin 
 
 end;
 

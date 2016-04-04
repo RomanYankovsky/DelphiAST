@@ -272,7 +272,7 @@ begin
 
     Root.AddChild(Stack.Pop);
 
-    Assert(Stack.Count = 0,Format('TExpressionTools.NodeListToTree: stack should be 0, but is %d',[Stack.Count]));
+    Assert(Stack.Count = 0);
   finally
     Stack.Free;
   end;
@@ -391,7 +391,7 @@ end;
 
 function TSyntaxNode.AddChild(Node: TSyntaxNode): TSyntaxNode;
 begin
-  Assert(Assigned(Node),'TSyntaxNode.AddChild: Node is not assigned');
+  Assert(Assigned(Node));
 
   SetLength(FChildNodes, Length(FChildNodes) + 1);
   FChildNodes[Length(FChildNodes) - 1] := Node;
