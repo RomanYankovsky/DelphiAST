@@ -5237,11 +5237,11 @@ begin
         else
           StringConst;
         end;
-        if Lexer.TokenID = ptPoint then
-        begin
-          NextToken;
-          VariableReference;
-        end;
+//        if Lexer.TokenID = ptPoint then
+//        begin
+//          NextToken;
+//          VariableReference;
+//        end;
       end;
   else
     begin
