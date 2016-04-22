@@ -242,7 +242,7 @@ begin
   {$ifdef STRINGCACHE_THREADSAFE}
     Result := true; // Never clears
   {$else}
-    Result := FPersistent;
+    Result := FIsPersistent;
   {$endif}
 end;
 
@@ -250,7 +250,7 @@ procedure TStringCache.SetIsPersistent(const Value: Boolean);
 begin
   // If threadsafe, always persistent (never clears) so don't set anything
   {$ifndef STRINGCACHE_THREADSAFE}
-    FPersistent := Value;
+    FIsPersistent := Value;
   {$endif}
 end;
 
