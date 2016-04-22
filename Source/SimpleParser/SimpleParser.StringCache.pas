@@ -35,7 +35,7 @@ type
       end;
   strict private
     FStringToId : TDictionary<TStringRec, TStringId>;
-    FRefCount : NativeUInt;
+    FRefCount : NativeInt;
     FIsPersistent : Boolean;
 
     class var FInstance : TStringCache;
@@ -58,41 +58,6 @@ type
 
     property Persistent : Boolean read FIsPersistent write FIsPersistent;
     class property Instance : TStringCache read FInstance;
-  end;
-
-  TStringCacheDictionary<TKey> = class(TEnumerable<TPair<TKey, string>>)
-  strict private
-    type
-      TKeyStringEnumerator = class(TEnumerator<TPair<TKey,string>>)
-      private
-        FDictionary: TStringCacheDictionary<TKey>;
-        FInternalEnum : TDictionary<TKey, TStringId>.TPairEnumerator;
-      protected
-        function DoGetCurrent: TPair<TKey, string>; override;
-        function DoMoveNext: Boolean; override;
-      public
-        constructor Create(const ADictionary: TStringCacheDictionary<TKey>);
-        destructor Destroy; override;
-      end;
-  private
-    FKeyToId : TDictionary<TKey, TStringId>;
-
-    function GetItem(const Key: TKey): string;
-    procedure SetItem(const Key: TKey; const Value: string);
-    function GetCount : Integer;
-  protected
-    function DoGetEnumerator: TEnumerator<TPair<TKey, string>>; override;
-  public
-    constructor Create;
-    destructor Destroy; override;
-
-    function TryGetValue(const Key: TKey; out Value: string): Boolean;
-    procedure AddOrSetValue(const Key: TKey; const Value: string);
-    function ContainsKey(const Key: TKey): Boolean;
-    function ToArray: TArray<TPair<TKey, string>>; override;
-
-    property Items[const Key: TKey]: string read GetItem write SetItem; default;
-    property Count: Integer read GetCount;
   end;
 
 implementation
@@ -258,108 +223,6 @@ end;
 procedure TStringCache.TStringRec.IncUsageCount;
 begin
   Inc(FUsageCount);
-end;
-
-{ TStringCacheDictionary<TKey> }
-
-constructor TStringCacheDictionary<TKey>.Create;
-begin
-  inherited;
-  FKeyToId := TDictionary<TKey, TStringId>.Create;
-  TStringCache.Instance.IncRef; // Uses the cache
-end;
-
-destructor TStringCacheDictionary<TKey>.Destroy;
-begin
-  FKeyToId.Free;
-  TStringCache.Instance.DecRef;
-  inherited;
-end;
-
-function TStringCacheDictionary<TKey>.GetItem(const Key: TKey): string;
-var
-  ID : TStringId;
-begin
-  if FKeyToId.TryGetValue(Key, ID) then
-    Result := TStringCache.Instance.Get(ID)
-  else
-    Result := '';
-end;
-
-procedure TStringCacheDictionary<TKey>.SetItem(const Key: TKey; const Value: string);
-begin
-  FKeyToId.AddOrSetValue(Key, TStringCache.Instance.Add(Value));
-end;
-
-function TStringCacheDictionary<TKey>.GetCount : Integer;
-begin
-  Result := FKeyToId.Count;
-end;
-
-function TStringCacheDictionary<TKey>.TryGetValue(const Key: TKey; out Value: string): Boolean;
-var
-  ID : TStringId;
-begin
-  Result := FKeyToId.TryGetValue(Key, ID);
-  if Result then
-    Value := TStringCache.Instance.Get(ID);
-end;
-
-procedure TStringCacheDictionary<TKey>.AddOrSetValue(const Key: TKey; const Value: string);
-begin
-  SetItem(Key, Value);
-end;
-
-function TStringCacheDictionary<TKey>.ContainsKey(const Key: TKey): Boolean;
-begin
-  Result := FKeyToId.ContainsKey(Key);
-end;
-
-function TStringCacheDictionary<TKey>.ToArray: TArray<TPair<TKey, string>>;
-var
-  Value: TPair<TKey, string>;
-  I : Integer;
-begin
-  SetLength(Result, Count);
-  I := 0;
-  for Value in Self do begin
-    Result[I] := Value;
-    Inc(I);
-  end;
-end;
-
-function TStringCacheDictionary<TKey>.DoGetEnumerator: TEnumerator<TPair<TKey, string>>;
-begin
-  Result := TKeyStringEnumerator.Create(Self);
-end;
-
-{ TStringCacheDictionary<TKey>.TKeyStringEnumerator }
-
-constructor TStringCacheDictionary<TKey>.TKeyStringEnumerator.Create(const ADictionary: TStringCacheDictionary<TKey>);
-begin
-  inherited Create();
-  FDictionary := ADictionary;
-  FInternalEnum := FDictionary.FKeyToId.GetEnumerator;
-end;
-
-destructor TStringCacheDictionary<TKey>.TKeyStringEnumerator.Destroy;
-begin
-  FInternalEnum.Free;
-  inherited;
-end;
-
-function TStringCacheDictionary<TKey>.TKeyStringEnumerator.DoGetCurrent: TPair<TKey, string>;
-var
-  Pair : TPair<TKey, TStringId>;
-begin
-  // Wrap the owner dictionary's internal FKeyToId enumerator, converting ID to string
-  Pair := FInternalEnum.Current;
-  Result := TPair<TKey, string>.Create(Pair.Key, FDictionary.Items[Pair.Key]);
-end;
-
-function TStringCacheDictionary<TKey>.TKeyStringEnumerator.DoMoveNext: Boolean;
-begin
-  Result := FInternalEnum.MoveNext;
 end;
 
 end.
