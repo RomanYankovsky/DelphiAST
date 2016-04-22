@@ -89,11 +89,13 @@ type
 
   TValuedSyntaxNode = class(TSyntaxNode)
   private
-    FValue: string;
+    FValue: {$ifdef USESTRINGCACHE}TStringId{$else}string{$endif};
+    function GetValue: string;
+    procedure SetValue(const Value: string);
   public
     function Clone: TSyntaxNode; override;
 
-    property Value: string read FValue write FValue;
+    property Value: string read GetValue write SetValue;
   end;
 
   TCommentNode = class(TSyntaxNode)
@@ -461,6 +463,7 @@ begin
   SetLength(FAttributes, 0);
   SetLength(FChildNodes, 0);
   FParentNode := nil;
+  {$ifdef USESTRINGCACHE}TStringCache.Instance.IncRef;{$endif}
 end;
 
 procedure TSyntaxNode.ExtractChild(Node: TSyntaxNode);
@@ -493,6 +496,8 @@ destructor TSyntaxNode.Destroy;
 var
   i: integer;
 begin
+  {$ifdef USESTRINGCACHE}TStringCache.Instance.DecRef;{$endif}
+
   for i := 0 to Length(FChildNodes) - 1 do
     FChildNodes[i].Free;
   SetLength(FChildNodes, 0);
@@ -567,6 +572,24 @@ begin
   Result := inherited;
 
   TValuedSyntaxNode(Result).Value := Self.Value;
+end;
+
+function TValuedSyntaxNode.GetValue: string;
+begin
+  {$ifdef USESTRINGCACHE}
+    Result := TStringCache.Instance.Get(FValue);
+  {$else}
+    Result := FValue;
+  {$endif}
+end;
+
+procedure TValuedSyntaxNode.SetValue(const Value: string);
+begin
+  {$ifdef USESTRINGCACHE}
+    FValue := TStringCache.Instance.Add(Value);
+  {$else}
+    FValue := Value;
+  {$endif}
 end;
 
 { TCommentNode }
