@@ -46,7 +46,7 @@ type
     {$ifdef STRINGCACHE_THREADSAFE}
       FLock : TCriticalSection;
     {$else}
-      // If threadsafe, always persistent
+      // If threadsafe, always persistent, so only allow it to be changed when not threadsafe
       FIsPersistent : Boolean;
     {$endif}
 
@@ -186,7 +186,13 @@ var
   SearchStr : string;
 begin
   SetString(SearchStr, P, Length);
-  Result := Get(Add(SearchStr));
+
+  Lock; // Will enter in Get and Add too, but a CS can be entered multiple times
+  try
+    Result := Get(Add(SearchStr));
+  finally
+    Unlock;
+  end;
 end;
 
 function TStringCache.Get(const ID: TStringId): string;
