@@ -5,7 +5,8 @@ unit DelphiAST.Classes;
 interface
 
 uses
-  SysUtils, Generics.Collections, SimpleParser.Lexer.Types, DelphiAST.Consts;
+  SysUtils, Generics.Collections, SimpleParser.Lexer.Types, DelphiAST.Consts
+  {$ifdef USESTRINGCACHE}, SimpleParser.StringCache{$endif};
 
 type
   EParserException = class(Exception)
@@ -19,8 +20,14 @@ type
     property Line: Integer read FLine;
     property Col: Integer read FCol;
   end;
+
+  {$ifdef USESTRINGCACHE}
+    TAttributeEntryValue = TStringId;
+  {$else}
+    TAttributeEntryValue = string;
+  {$endif}
   
-  TAttributeEntry = TPair<TAttributeName, string>;
+  TAttributeEntry = TPair<TAttributeName, TAttributeEntryValue>;
   PAttributeEntry = ^TAttributeEntry;
 
   TSyntaxNodeClass = class of TSyntaxNode;
@@ -32,6 +39,8 @@ type
     function GetHasChildren: Boolean;
     function GetHasAttributes: Boolean;
     function TryGetAttributeEntry(const Key: TAttributeName; var AttributeEntry: PAttributeEntry): boolean;
+    procedure SetAttributeInternal(const Key: TAttributeName; const Value: TAttributeEntryValue);
+    {$ifdef USESTRINGCACHE}procedure SetAttribute(const Key: TAttributeName; const Value: TStringId); overload;{$endif}
   protected
     FAttributes: TArray<TAttributeEntry>;
     FChildNodes: TArray<TSyntaxNode>;
@@ -45,7 +54,7 @@ type
 
     function GetAttribute(const Key: TAttributeName): string;
     function HasAttribute(const Key: TAttributeName): Boolean;
-    procedure SetAttribute(const Key: TAttributeName; const Value: string);
+    procedure SetAttribute(const Key: TAttributeName; const Value: string); {$ifdef USESTRINGCACHE}overload;{$endif}
     procedure ClearAttributes;
 
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
@@ -360,6 +369,27 @@ end;
 { TSyntaxNode }
 
 procedure TSyntaxNode.SetAttribute(const Key: TAttributeName; const Value: string);
+{$ifdef USESTRINGCACHE}
+  var
+    NewValue : TAttributeEntryValue;
+{$endif}
+begin
+  {$ifdef USESTRINGCACHE}
+    NewValue := TStringCache.Instance.Add(Value);
+    SetAttributeInternal(Key, NewValue);
+  {$else}
+    SetAttributeInternal(Key, Value);
+  {$endif}
+end;
+
+{$ifdef USESTRINGCACHE}
+  procedure TSyntaxNode.SetAttribute(const Key: TAttributeName; const Value: TStringId);
+  begin
+    SetAttributeInternal(Key, Value);
+  end;
+{$endif}
+
+procedure TSyntaxNode.SetAttributeInternal(const Key: TAttributeName; const Value: TAttributeEntryValue);
 var
   AttributeEntry: PAttributeEntry;
   NewAttributeEntry: TAttributeEntry;
@@ -409,7 +439,7 @@ end;
 function TSyntaxNode.Clone: TSyntaxNode;
 var
   ChildNode: TSyntaxNode;
-  Attr: TPair<TAttributeName, string>;
+  Attr: TPair<TAttributeName, TAttributeEntryValue>;
 begin
   Result := TSyntaxNodeClass(Self.ClassType).Create(FTyp);
 
@@ -489,7 +519,11 @@ var
   AttributeEntry: PAttributeEntry;
 begin
   if TryGetAttributeEntry(Key, AttributeEntry) then
-    Result := AttributeEntry.Value
+    {$ifdef USESTRINGCACHE}
+      Result := TStringCache.Instance.Get(AttributeEntry.Value)
+    {$else}
+      Result := AttributeEntry.Value
+    {$endif}
   else
     Result := '';
 end;
