@@ -397,7 +397,8 @@ type
 implementation
 
 uses
-  StrUtils;
+  StrUtils
+  {$ifdef USESTRINGCACHE}, SimpleParser.StringCache{$endif};
 
 type
   TmwPasLexExpressionEvaluation = (leeNone, leeAnd, leeOr);
@@ -1313,10 +1314,18 @@ begin
 
   New(FBuffer);
   FillChar(FBuffer^, SizeOf(TBufferRec), 0);
+
+  {$ifdef USESTRINGCACHE}
+    TStringCache.Instance.IncRef;
+  {$endif}
 end;
 
 destructor TmwBasePasLex.Destroy;
 begin
+  {$ifdef USESTRINGCACHE}
+    TStringCache.Instance.DecRef;
+  {$endif}
+
   if not FBuffer.SharedBuffer then
     FreeMem(FBuffer.Buf);
 
@@ -2224,7 +2233,11 @@ end;
 
 function TmwBasePasLex.GetToken: string;
 begin
-  SetString(Result, (FBuffer.Buf + FTokenPos), GetTokenLen);
+  {$ifdef USESTRINGCACHE}
+    Result := TStringCache.Instance.AddAndGet(FBuffer.Buf + FTokenPos, GetTokenLen);
+  {$else}
+    SetString(Result, (FBuffer.Buf + FTokenPos), GetTokenLen);
+  {$endif}
 end;
 
 function TmwBasePasLex.GetTokenLen: Integer;
