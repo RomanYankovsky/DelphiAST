@@ -2,11 +2,16 @@ unit DelphiAST.Classes;
 
 {$IFDEF FPC}{$MODE DELPHI}{$ENDIF}
 
+// Define this to use a memory pool for node instances
+{.$define USEBULKALLOCATOR}
+
 interface
 
 uses
   SysUtils, Generics.Collections, SimpleParser.Lexer.Types, DelphiAST.Consts
-  {$ifdef USESTRINGCACHE}, SimpleParser.StringCache{$endif};
+  {$ifdef USESTRINGCACHE}, SimpleParser.StringCache{$endif}
+  {$ifdef USEBULKALLOCATOR}, SimpleParser.ObjectAllocator{$endif}
+  ;
 
 type
   EParserException = class(Exception)
@@ -32,6 +37,15 @@ type
 
   TSyntaxNodeClass = class of TSyntaxNode;
   TSyntaxNode = class
+  {$ifdef USEBULKALLOCATOR}
+  strict private
+    class var FAllocator : TAllocator<TSyntaxNode>;
+    class constructor ClassCreate;
+    class destructor ClassDestroy;
+  public
+    class function NewInstance: TObject {$IFDEF AUTOREFCOUNT} unsafe {$ENDIF}; override;
+    procedure FreeInstance; override;
+  {$endif}
   private
     FCol: Integer;
     FLine: Integer;
@@ -77,6 +91,15 @@ type
   end;
 
   TCompoundSyntaxNode = class(TSyntaxNode)
+  {$ifdef USEBULKALLOCATOR}
+  strict private
+    class var FAllocator : TAllocator<TCompoundSyntaxNode>;
+    class constructor ClassCreate;
+    class destructor ClassDestroy;
+  public
+    class function NewInstance: TObject {$IFDEF AUTOREFCOUNT} unsafe {$ENDIF}; override;
+    procedure FreeInstance; override;
+  {$endif}
   private
     FEndCol: Integer;
     FEndLine: Integer;
@@ -88,6 +111,15 @@ type
   end;
 
   TValuedSyntaxNode = class(TSyntaxNode)
+  {$ifdef USEBULKALLOCATOR}
+  strict private
+    class var FAllocator : TAllocator<TValuedSyntaxNode>;
+    class constructor ClassCreate;
+    class destructor ClassDestroy;
+  public
+    class function NewInstance: TObject {$IFDEF AUTOREFCOUNT} unsafe {$ENDIF}; override;
+    procedure FreeInstance; override;
+  {$endif}
   private
     FValue: {$ifdef USESTRINGCACHE}TStringId{$else}string{$endif};
     function GetValue: string;
@@ -99,6 +131,15 @@ type
   end;
 
   TCommentNode = class(TSyntaxNode)
+  {$ifdef USEBULKALLOCATOR}
+  strict private
+    class var FAllocator : TAllocator<TCommentNode>;
+    class constructor ClassCreate;
+    class destructor ClassDestroy;
+  public
+    class function NewInstance: TObject {$IFDEF AUTOREFCOUNT} unsafe {$ENDIF}; override;
+    procedure FreeInstance; override;
+  {$endif}
   private
     FText: string;
   public
@@ -370,6 +411,29 @@ end;
 
 { TSyntaxNode }
 
+{$ifdef USEBULKALLOCATOR}
+  class constructor TSyntaxNode.ClassCreate;
+  begin
+    FAllocator := TAllocator<TSyntaxNode>.Create;
+  end;
+
+  class destructor TSyntaxNode.ClassDestroy;
+  begin
+    FAllocator.Free;
+  end;
+
+  class function TSyntaxNode.NewInstance: TObject;
+  begin
+    Result := InitInstance(FAllocator.New);
+  end;
+
+  procedure TSyntaxNode.FreeInstance;
+  begin
+    CleanupInstance;
+    FAllocator.Return(Self);
+  end;
+{$endif}
+
 procedure TSyntaxNode.SetAttribute(const Key: TAttributeName; const Value: string);
 {$ifdef USESTRINGCACHE}
   var
@@ -557,6 +621,29 @@ end;
 
 { TCompoundSyntaxNode }
 
+{$ifdef USEBULKALLOCATOR}
+  class constructor TCompoundSyntaxNode.ClassCreate;
+  begin
+    FAllocator := TAllocator<TCompoundSyntaxNode>.Create;
+  end;
+
+  class destructor TCompoundSyntaxNode.ClassDestroy;
+  begin
+    FAllocator.Free;
+  end;
+
+  class function TCompoundSyntaxNode.NewInstance: TObject;
+  begin
+    Result := InitInstance(FAllocator.New);
+  end;
+
+  procedure TCompoundSyntaxNode.FreeInstance;
+  begin
+    CleanupInstance;
+    FAllocator.Return(Self);
+  end;
+{$endif}
+
 function TCompoundSyntaxNode.Clone: TSyntaxNode;
 begin
   Result := inherited;
@@ -566,6 +653,29 @@ begin
 end;
 
 { TValuedSyntaxNode }
+
+{$ifdef USEBULKALLOCATOR}
+  class constructor TValuedSyntaxNode.ClassCreate;
+  begin
+    FAllocator := TAllocator<TValuedSyntaxNode>.Create;
+  end;
+
+  class destructor TValuedSyntaxNode.ClassDestroy;
+  begin
+    FAllocator.Free;
+  end;
+
+  class function TValuedSyntaxNode.NewInstance: TObject;
+  begin
+    Result := InitInstance(FAllocator.New);
+  end;
+
+  procedure TValuedSyntaxNode.FreeInstance;
+  begin
+    CleanupInstance;
+    FAllocator.Return(Self);
+  end;
+{$endif}
 
 function TValuedSyntaxNode.Clone: TSyntaxNode;
 begin
@@ -593,6 +703,29 @@ begin
 end;
 
 { TCommentNode }
+
+{$ifdef USEBULKALLOCATOR}
+  class constructor TCommentNode.ClassCreate;
+  begin
+    FAllocator := TAllocator<TCommentNode>.Create;
+  end;
+
+  class destructor TCommentNode.ClassDestroy;
+  begin
+    FAllocator.Free;
+  end;
+
+  class function TCommentNode.NewInstance: TObject;
+  begin
+    Result := InitInstance(FAllocator.New);
+  end;
+
+  procedure TCommentNode.FreeInstance;
+  begin
+    CleanupInstance;
+    FAllocator.Return(Self);
+  end;
+{$endif}
 
 function TCommentNode.Clone: TSyntaxNode;
 begin
