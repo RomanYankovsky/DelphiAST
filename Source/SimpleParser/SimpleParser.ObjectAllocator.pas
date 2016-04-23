@@ -10,7 +10,7 @@ unit SimpleParser.ObjectAllocator;
   round is a good strategy. Some bookkeeping could track when an entire OS
   allocation is unused and return it.
 
-  Originally written by David Millington
+  Originally written by David Millington: vintagedave@gmail.com or dave@parnassus.co
   See https://parnassus.co/custom-object-memory-allocation-in-delphi-bypassing-fastmm-for-fun-and-profit/
   for an overview.
   Code donated to the DelphiAST project, April 2016.
