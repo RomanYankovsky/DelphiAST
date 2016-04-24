@@ -656,43 +656,29 @@ begin
 end;
 
 type
-  TBytesStreamHelper = class helper for TBytesStream
-    function GetBytes: TBytes;
-    property Bytes: TBytes read GetBytes;
+  TStringStreamHelper = class helper for TStringStream
+    function GetDataString: string;
+  {$IFNDEF FPC}
+    property DataString: string read GetDataString;
+  {$ENDIF}
   end;
 
-    TStringStreamHelper = class helper for TStringStream
-      function GetDataString: string;
-      {$IFNDEF FPC}
-      property DataString: string read GetDataString;
-      {$ENDIF}
-    end;
-
-function TBytesStreamHelper.GetBytes: TBytes;
-begin
-  {$IFNDEF FPC}
-    Result := Self.FBytes;
-  {$ELSE}
-    Result := Self.Bytes;
-  {$ENDIF}
-end;
-
-{$IFNDEF FPC}
 function TStringStreamHelper.GetDataString: string;
+{$IFNDEF FPC}
+var
+  Encoding: TEncoding;
 begin
   // try to read a bom from the buffer to create the correct encoding
   // but only if the encoding is still the default encoding
-  if Self.FEncoding = TEncoding.Default then
+  if Self.Encoding = TEncoding.Default then
   begin
-    Self.FEncoding := nil;
-    TEncoding.GetBufferEncoding(Bytes, Self.FEncoding);
-    Result := Self.FEncoding.GetString(Bytes, Length(Self.FEncoding.GetPreamble), Size);
+    Encoding := nil;
+    TEncoding.GetBufferEncoding(Bytes, Encoding);
+    Result := Encoding.GetString(Bytes, Length(Encoding.GetPreamble), Size);
   end
   else
-    Result := Self.FEncoding.GetString(Bytes, 0, Size);
-end;
+    Result := Self.Encoding.GetString(Bytes, 0, Size);
 {$ELSE}
-function TStringStreamHelper.GetDataString: string;
 var
   Encoding: TEncoding;
   Bytes: TBytes;
@@ -702,34 +688,33 @@ begin
   Bytes := BytesOf(DataString);
   TEncoding.GetBufferEncoding(Bytes, Encoding);
   Result := Encoding.GetString(Bytes, Length(Encoding.GetPreamble), Size);
-end;
 {$ENDIF}
+end;
 
 procedure TmwSimplePasPar.Run(const UnitName: string; SourceStream: TStream);
 var
   StringStream: TStringStream;
   OwnStream: Boolean;
-
-  {$IFDEF FPC}
-    Strings: TStringList;
-  {$ENDIF}
+{$IFDEF FPC}
+  Strings: TStringList;
+{$ENDIF}
 begin
   OwnStream := not (SourceStream is TStringStream);
   if OwnStream then
   begin
-    {$IFNDEF FPC}
+  {$IFNDEF FPC}
     StringStream := TStringStream.Create;
     StringStream.LoadFromStream(SourceStream);
-    {$ELSE}
-      Strings := TStringList.Create;
-      try
-        Strings.LoadFromStream(SourceStream);
-        StringStream := TStringStream.Create('');
-        Strings.SaveToStream(StringStream);
-      finally
-        FreeAndNil(Strings);
-      end;
-    {$ENDIF}
+  {$ELSE}
+    Strings := TStringList.Create;
+    try
+      Strings.LoadFromStream(SourceStream);
+      StringStream := TStringStream.Create('');
+      Strings.SaveToStream(StringStream);
+    finally
+      FreeAndNil(Strings);
+    end;
+  {$ENDIF}
   end
   else
     StringStream := TStringStream(SourceStream);
