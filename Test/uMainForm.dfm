@@ -28,6 +28,7 @@ object Form2: TForm2
     Font.Name = 'Lucida Console'
     Font.Style = []
     ParentFont = False
+    ScrollBars = ssBoth
     TabOrder = 0
   end
   object btnRun: TButton

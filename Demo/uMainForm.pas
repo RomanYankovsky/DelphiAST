@@ -82,6 +82,12 @@ var
 begin
   FileContent := TStringList.Create;
   try
+    if not FileExists(TPath.Combine(FPath, FileName)) then
+    begin
+      Result := '';
+      Exit;
+    end;
+
     FileContent.LoadFromFile(TPath.Combine(FPath, FileName));
     Result := FileContent.Text;
   finally
