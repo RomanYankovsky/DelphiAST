@@ -2538,6 +2538,9 @@ begin
   {$IFDEF VER300} // Seattle
   AddDefine('VER300');
   {$ENDIF}
+  {$IFDEF VER310} // Berlin
+  AddDefine('VER310');
+  {$ENDIF}
   {$IFDEF WIN32}
   AddDefine('WIN32');
   {$ENDIF}
@@ -2559,6 +2562,12 @@ begin
   {$IFDEF CPUARM}
   AddDefine('CPUARM');
   {$ENDIF}
+  {$IFDEF CPUARM32}
+  AddDefine('CPUARM32');
+  {$ENDIF}
+  {$IFDEF CPUARM64}
+  AddDefine('CPUARM64');
+  {$ENDIF}
   {$IFDEF CPU386}
   AddDefine('CPU386');
   {$ENDIF}
@@ -2567,6 +2576,12 @@ begin
   {$ENDIF}
   {$IFDEF CPUX64}
   AddDefine('CPUX64');
+  {$ENDIF}
+  {$IFDEF CPU32BITS}
+  AddDefine('CPU32BITS');
+  {$ENDIF}
+  {$IFDEF CPU64BITS}
+  AddDefine('CPU64BITS');
   {$ENDIF}
   {$IFDEF MSWINDOWS}
   AddDefine('MSWINDOWS');
@@ -2580,8 +2595,14 @@ begin
   {$IFDEF IOS}
   AddDefine('IOS');
   {$ENDIF}
+  {$IFDEF IOS32}
+  AddDefine('IOS32');
+  {$ENDIF}
   {$IFDEF ANDROID}
   AddDefine('ANDROID');
+  {$ENDIF}
+  {$IFDEF ANDROID32}
+  AddDefine('ANDROID32');
   {$ENDIF}
   {$IFDEF CONSOLE}
   AddDefine('CONSOLE');
@@ -2597,6 +2618,9 @@ begin
   {$ENDIF}
   {$IFDEF ALIGN_STACK}
   AddDefine('ALIGN_STACK');
+  {$ENDIF}
+  {$IFDEF ARM_NO_VFP_USE}
+  AddDefine('ARM_NO_VFP_USE');
   {$ENDIF}
   {$IFDEF ASSEMBLER}
   AddDefine('ASSEMBLER');
@@ -2628,8 +2652,8 @@ begin
   {$IFDEF WEAKINSTREF}
   AddDefine('WEAKINSTREF');
   {$ENDIF}
-  {$IFDEF WEAKINTREF}
-  AddDefine('WEAKINTREF');
+  {$IFDEF WEAKINTFREF}
+  AddDefine('WEAKINTFREF');
   {$ENDIF}
 end;
 
