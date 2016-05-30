@@ -1415,7 +1415,11 @@ begin
     while CharInSet(FBuffer.Buf[FBuffer.Run], ['0'..'9', 'A'..'F', 'a'..'f']) do Inc(FBuffer.Run);
   end else
   begin
+{$IFDEF SUPPORTS_INTRINSIC_HELPERS}
+    while FBuffer.Buf[FBuffer.Run].IsDigit do
+{$ELSE}
     while IsDigit(FBuffer.Buf[FBuffer.Run]) do
+{$ENDIF}
       Inc(FBuffer.Run);
   end;
 end;
