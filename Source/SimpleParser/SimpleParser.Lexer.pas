@@ -1483,6 +1483,9 @@ begin
 end;
 
 procedure TmwBasePasLex.BraceOpenProc;
+var
+  BeginRun: Integer;
+  CommentText: String;
 begin
   case FBuffer.Buf[FBuffer.Run + 1] of
     '$': FTokenID := GetDirectiveKind;
@@ -1493,10 +1496,17 @@ begin
     end;
   end;
   Inc(FBuffer.Run);
+  BeginRun := FBuffer.Run; // EvB
   while FBuffer.Buf[FBuffer.Run] <> #0 do
     case FBuffer.Buf[FBuffer.Run] of
       '}':
         begin
+          if (FTokenId = ptBorComment) and Assigned(FOnComment) then
+          begin
+            SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun);
+            FOnComment(Self, CommentText);
+          end;
+
           FCommentState := csNo;
           Inc(FBuffer.Run);
           Break;
@@ -1990,6 +2000,9 @@ begin
 end;
 
 procedure TmwBasePasLex.RoundOpenProc;
+var
+  CommentText: String;
+  BeginRun: Integer;
 begin
   Inc(FBuffer.Run);
   case FBuffer.Buf[FBuffer.Run] of
@@ -2001,11 +2014,18 @@ begin
         else
           FCommentState := csAnsi;
         Inc(FBuffer.Run);
+        BeginRun := FBuffer.Run; // EvB
         while FBuffer.Buf[FBuffer.Run] <> #0 do
           case FBuffer.Buf[FBuffer.Run] of
             '*':
               if FBuffer.Buf[FBuffer.Run + 1] = ')' then
               begin
+                if (FTokenId = ptAnsiComment) and Assigned(FOnComment) then
+                begin
+                  SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun);
+                  FOnComment(Self, CommentText);
+                end;
+
                 FCommentState := csNo;
                 Inc(FBuffer.Run, 2);
                 Break;
