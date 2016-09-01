@@ -303,6 +303,7 @@ type
     procedure ClearDefines;
     procedure InitDefinesDefinedByCompiler;
 
+    property Buffer: PBufferRec read FBuffer;
     property CompilerDirective: string read GetCompilerDirective;
     property DirectiveParam: string read GetDirectiveParam;
     property IsJunk: Boolean read GetIsJunk;
