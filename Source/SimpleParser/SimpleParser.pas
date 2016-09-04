@@ -3832,7 +3832,14 @@ begin
       if AheadParse.TokenId = ptEqual then
         ConstantDeclaration
       else
+      begin
         ClassField;
+        if TokenID = ptEqual then
+        begin
+          NextToken;
+          TypedConstant;
+        end;
+      end;
 
       Semicolon;
     end
