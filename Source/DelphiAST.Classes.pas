@@ -2,10 +2,16 @@ unit DelphiAST.Classes;
 
 {$IFDEF FPC}{$MODE DELPHI}{$ENDIF}
 
+// Define this to use a memory pool for node instances
+{.$define USEBULKALLOCATOR}
+
 interface
 
 uses
-  SysUtils, Generics.Collections, SimpleParser.Lexer.Types, DelphiAST.Consts;
+  SysUtils, Generics.Collections, SimpleParser.Lexer.Types, DelphiAST.Consts
+  {$ifdef USESTRINGCACHE}, SimpleParser.StringCache{$endif}
+  {$ifdef USEBULKALLOCATOR}, SimpleParser.ObjectAllocator{$endif}
+  ;
 
 type
   EParserException = class(Exception)
@@ -19,12 +25,27 @@ type
     property Line: Integer read FLine;
     property Col: Integer read FCol;
   end;
+
+  {$ifdef USESTRINGCACHE}
+    TAttributeEntryValue = TStringId;
+  {$else}
+    TAttributeEntryValue = string;
+  {$endif}
   
-  TAttributeEntry = TPair<TAttributeName, string>;
+  TAttributeEntry = TPair<TAttributeName, TAttributeEntryValue>;
   PAttributeEntry = ^TAttributeEntry;
 
   TSyntaxNodeClass = class of TSyntaxNode;
   TSyntaxNode = class
+  {$ifdef USEBULKALLOCATOR}
+  strict private
+    class var FAllocator : TAllocator<TSyntaxNode>;
+    class constructor ClassCreate;
+    class destructor ClassDestroy;
+  public
+    class function NewInstance: TObject {$IFDEF AUTOREFCOUNT} unsafe {$ENDIF}; override;
+    procedure FreeInstance; override;
+  {$endif}
   private
     FCol: Integer;
     FLine: Integer;
@@ -32,6 +53,8 @@ type
     function GetHasChildren: Boolean;
     function GetHasAttributes: Boolean;
     function TryGetAttributeEntry(const Key: TAttributeName; var AttributeEntry: PAttributeEntry): boolean;
+    procedure SetAttributeInternal(const Key: TAttributeName; const Value: TAttributeEntryValue);
+    {$ifdef USESTRINGCACHE}procedure SetAttribute(const Key: TAttributeName; const Value: TStringId); overload;{$endif}
   protected
     FAttributes: TArray<TAttributeEntry>;
     FChildNodes: TArray<TSyntaxNode>;
@@ -45,7 +68,7 @@ type
 
     function GetAttribute(const Key: TAttributeName): string;
     function HasAttribute(const Key: TAttributeName): Boolean;
-    procedure SetAttribute(const Key: TAttributeName; const Value: string);
+    procedure SetAttribute(const Key: TAttributeName; const Value: string); {$ifdef USESTRINGCACHE}overload;{$endif}
     procedure ClearAttributes;
 
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
@@ -68,6 +91,15 @@ type
   end;
 
   TCompoundSyntaxNode = class(TSyntaxNode)
+  {$ifdef USEBULKALLOCATOR}
+  strict private
+    class var FAllocator : TAllocator<TCompoundSyntaxNode>;
+    class constructor ClassCreate;
+    class destructor ClassDestroy;
+  public
+    class function NewInstance: TObject {$IFDEF AUTOREFCOUNT} unsafe {$ENDIF}; override;
+    procedure FreeInstance; override;
+  {$endif}
   private
     FEndCol: Integer;
     FEndLine: Integer;
@@ -79,15 +111,35 @@ type
   end;
 
   TValuedSyntaxNode = class(TSyntaxNode)
+  {$ifdef USEBULKALLOCATOR}
+  strict private
+    class var FAllocator : TAllocator<TValuedSyntaxNode>;
+    class constructor ClassCreate;
+    class destructor ClassDestroy;
+  public
+    class function NewInstance: TObject {$IFDEF AUTOREFCOUNT} unsafe {$ENDIF}; override;
+    procedure FreeInstance; override;
+  {$endif}
   private
-    FValue: string;
+    FValue: {$ifdef USESTRINGCACHE}TStringId{$else}string{$endif};
+    function GetValue: string;
+    procedure SetValue(const Value: string);
   public
     function Clone: TSyntaxNode; override;
 
-    property Value: string read FValue write FValue;
+    property Value: string read GetValue write SetValue;
   end;
 
   TCommentNode = class(TSyntaxNode)
+  {$ifdef USEBULKALLOCATOR}
+  strict private
+    class var FAllocator : TAllocator<TCommentNode>;
+    class constructor ClassCreate;
+    class destructor ClassDestroy;
+  public
+    class function NewInstance: TObject {$IFDEF AUTOREFCOUNT} unsafe {$ENDIF}; override;
+    procedure FreeInstance; override;
+  {$endif}
   private
     FText: string;
   public
@@ -359,7 +411,51 @@ end;
 
 { TSyntaxNode }
 
+{$ifdef USEBULKALLOCATOR}
+  class constructor TSyntaxNode.ClassCreate;
+  begin
+    FAllocator := TAllocator<TSyntaxNode>.Create;
+  end;
+
+  class destructor TSyntaxNode.ClassDestroy;
+  begin
+    FAllocator.Free;
+  end;
+
+  class function TSyntaxNode.NewInstance: TObject;
+  begin
+    Result := InitInstance(FAllocator.New);
+  end;
+
+  procedure TSyntaxNode.FreeInstance;
+  begin
+    CleanupInstance;
+    FAllocator.Return(Self);
+  end;
+{$endif}
+
 procedure TSyntaxNode.SetAttribute(const Key: TAttributeName; const Value: string);
+{$ifdef USESTRINGCACHE}
+  var
+    NewValue : TAttributeEntryValue;
+{$endif}
+begin
+  {$ifdef USESTRINGCACHE}
+    NewValue := TStringCache.Instance.Add(Value);
+    SetAttributeInternal(Key, NewValue);
+  {$else}
+    SetAttributeInternal(Key, Value);
+  {$endif}
+end;
+
+{$ifdef USESTRINGCACHE}
+  procedure TSyntaxNode.SetAttribute(const Key: TAttributeName; const Value: TStringId);
+  begin
+    SetAttributeInternal(Key, Value);
+  end;
+{$endif}
+
+procedure TSyntaxNode.SetAttributeInternal(const Key: TAttributeName; const Value: TAttributeEntryValue);
 var
   AttributeEntry: PAttributeEntry;
   NewAttributeEntry: TAttributeEntry;
@@ -409,7 +505,7 @@ end;
 function TSyntaxNode.Clone: TSyntaxNode;
 var
   ChildNode: TSyntaxNode;
-  Attr: TPair<TAttributeName, string>;
+  Attr: TPair<TAttributeName, TAttributeEntryValue>;
 begin
   Result := TSyntaxNodeClass(Self.ClassType).Create(FTyp);
 
@@ -431,6 +527,7 @@ begin
   SetLength(FAttributes, 0);
   SetLength(FChildNodes, 0);
   FParentNode := nil;
+  {$ifdef USESTRINGCACHE}TStringCache.Instance.IncRef;{$endif}
 end;
 
 procedure TSyntaxNode.ExtractChild(Node: TSyntaxNode);
@@ -463,6 +560,8 @@ destructor TSyntaxNode.Destroy;
 var
   i: integer;
 begin
+  {$ifdef USESTRINGCACHE}TStringCache.Instance.DecRef;{$endif}
+
   for i := 0 to Length(FChildNodes) - 1 do
     FChildNodes[i].Free;
   SetLength(FChildNodes, 0);
@@ -489,7 +588,11 @@ var
   AttributeEntry: PAttributeEntry;
 begin
   if TryGetAttributeEntry(Key, AttributeEntry) then
-    Result := AttributeEntry.Value
+    {$ifdef USESTRINGCACHE}
+      Result := TStringCache.Instance.Get(AttributeEntry.Value)
+    {$else}
+      Result := AttributeEntry.Value
+    {$endif}
   else
     Result := '';
 end;
@@ -518,6 +621,29 @@ end;
 
 { TCompoundSyntaxNode }
 
+{$ifdef USEBULKALLOCATOR}
+  class constructor TCompoundSyntaxNode.ClassCreate;
+  begin
+    FAllocator := TAllocator<TCompoundSyntaxNode>.Create;
+  end;
+
+  class destructor TCompoundSyntaxNode.ClassDestroy;
+  begin
+    FAllocator.Free;
+  end;
+
+  class function TCompoundSyntaxNode.NewInstance: TObject;
+  begin
+    Result := InitInstance(FAllocator.New);
+  end;
+
+  procedure TCompoundSyntaxNode.FreeInstance;
+  begin
+    CleanupInstance;
+    FAllocator.Return(Self);
+  end;
+{$endif}
+
 function TCompoundSyntaxNode.Clone: TSyntaxNode;
 begin
   Result := inherited;
@@ -528,6 +654,29 @@ end;
 
 { TValuedSyntaxNode }
 
+{$ifdef USEBULKALLOCATOR}
+  class constructor TValuedSyntaxNode.ClassCreate;
+  begin
+    FAllocator := TAllocator<TValuedSyntaxNode>.Create;
+  end;
+
+  class destructor TValuedSyntaxNode.ClassDestroy;
+  begin
+    FAllocator.Free;
+  end;
+
+  class function TValuedSyntaxNode.NewInstance: TObject;
+  begin
+    Result := InitInstance(FAllocator.New);
+  end;
+
+  procedure TValuedSyntaxNode.FreeInstance;
+  begin
+    CleanupInstance;
+    FAllocator.Return(Self);
+  end;
+{$endif}
+
 function TValuedSyntaxNode.Clone: TSyntaxNode;
 begin
   Result := inherited;
@@ -535,7 +684,48 @@ begin
   TValuedSyntaxNode(Result).Value := Self.Value;
 end;
 
+function TValuedSyntaxNode.GetValue: string;
+begin
+  {$ifdef USESTRINGCACHE}
+    Result := TStringCache.Instance.Get(FValue);
+  {$else}
+    Result := FValue;
+  {$endif}
+end;
+
+procedure TValuedSyntaxNode.SetValue(const Value: string);
+begin
+  {$ifdef USESTRINGCACHE}
+    FValue := TStringCache.Instance.Add(Value);
+  {$else}
+    FValue := Value;
+  {$endif}
+end;
+
 { TCommentNode }
+
+{$ifdef USEBULKALLOCATOR}
+  class constructor TCommentNode.ClassCreate;
+  begin
+    FAllocator := TAllocator<TCommentNode>.Create;
+  end;
+
+  class destructor TCommentNode.ClassDestroy;
+  begin
+    FAllocator.Free;
+  end;
+
+  class function TCommentNode.NewInstance: TObject;
+  begin
+    Result := InitInstance(FAllocator.New);
+  end;
+
+  procedure TCommentNode.FreeInstance;
+  begin
+    CleanupInstance;
+    FAllocator.Return(Self);
+  end;
+{$endif}
 
 function TCommentNode.Clone: TSyntaxNode;
 begin
