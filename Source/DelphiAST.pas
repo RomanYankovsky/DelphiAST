@@ -56,6 +56,14 @@ type
     procedure CallInheritedExpression;
     procedure SetCurrentCompoundNodesEndPosition;
     procedure DoOnComment(Sender: TObject; const Text: string);
+  private
+    FCommentIndex: Integer;
+    FCommentNode: TCommentNode;
+    FCommentText: String;
+    FCommentPos: UInt32;
+    function SetActiveComment(const Index: Integer): Boolean;
+    procedure ApplyCommentNodes(const Node, PrevNode: TSyntaxNode);
+    class function GetNodePos(const Node: TSyntaxNode): UInt32; static;
   protected
     FStack: TNodeStack;
     FComments: TObjectList<TCommentNode>;
@@ -236,6 +244,11 @@ type
     function Run(SourceStream: TStream): TSyntaxNode; reintroduce; overload; virtual;
     class function Run(const FileName: string;
       InterfaceOnly: Boolean = False; IncludeHandler: IIncludeHandler = nil): TSyntaxNode; reintroduce; overload; static;
+
+    { Sets the LastPrecedingCommentNode property of each node to the last
+      comment that preceeds the node.
+      Root must be the node returned from Run. }
+    procedure AttachCommentNodes(const Root: TSyntaxNode);
 
     property Comments: TObjectList<TCommentNode> read FComments;
   end;
@@ -439,6 +452,38 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.ApplyCommentNodes(const Node,
+  PrevNode: TSyntaxNode);
+var
+  LastNode, Child: TSyntaxNode;
+begin
+  Assert(Assigned(Node));
+  Assert(Assigned(PrevNode));
+
+  { Use "while True" loop so that if multiple comments preceed a declaration,
+    only the last one is used. }
+  while True do
+  begin
+    if (FCommentPos > GetNodePos(PrevNode)) and (FCommentPos < GetNodePos(Node)) then
+    begin
+      Node.LastPrecedingCommentNode := FCommentNode;
+      if (not SetActiveComment(FCommentIndex + 1)) then
+        Exit;
+    end
+    else
+      Break;
+  end;
+
+  LastNode := Node;
+  for Child in Node.ChildNodes do
+  begin
+    ApplyCommentNodes(Child, LastNode);
+    if (FCommentNode = nil) then
+      Exit;
+    LastNode := Child;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.ArrayBounds;
 begin
   FStack.Push(ntBounds);
@@ -500,6 +545,12 @@ begin
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.AttachCommentNodes(const Root: TSyntaxNode);
+begin
+  if SetActiveComment(0) then
+    ApplyCommentNodes(Root, Root);
 end;
 
 procedure TPasSyntaxTreeBuilder.Attribute;
@@ -1397,6 +1448,19 @@ begin
   end;
 end;
 
+class function TPasSyntaxTreeBuilder.GetNodePos(
+  const Node: TSyntaxNode): UInt32;
+var
+  Line, Col: UInt32;
+begin
+  Assert(Assigned(Node));
+  Line := Node.Line;
+  Col := Node.Col;
+  if (Col > 255) then
+    Col := 255;
+  Result := (Line shl 24) or Col;
+end;
+
 procedure TPasSyntaxTreeBuilder.GotoStatement;
 begin
   FStack.Push(ntGoto);
@@ -1657,7 +1721,7 @@ var
 begin
   case TokenID of
     ptAnsiComment: Node := TCommentNode.Create(ntAnsiComment);
-    ptBorComment: Node := TCommentNode.Create(ntAnsiComment);
+    ptBorComment: Node := TCommentNode.Create(ntBorComment);
     ptSlashesComment: Node := TCommentNode.Create(ntSlashesComment);
   else
     raise EParserException.Create(Lexer.PosXY.Y, Lexer.PosXY.X, Lexer.FileName, 'Invalid comment type');
@@ -1976,6 +2040,20 @@ begin
       Result := Result + '.';
     Result := Result + NamePartNode.GetAttribute(anName);
   end;
+end;
+
+function TPasSyntaxTreeBuilder.SetActiveComment(const Index: Integer): Boolean;
+begin
+  Result := (Index < FComments.Count);
+  if (Result) then
+  begin
+    FCommentIndex := Index;
+    FCommentNode := FComments[Index];
+    FCommentText := FCommentNode.Text;
+    FCommentPos := GetNodePos(FCommentNode);
+  end
+  else
+    FCommentNode := nil;
 end;
 
 procedure TPasSyntaxTreeBuilder.SetConstructor;

@@ -19,9 +19,11 @@ type
     property Line: Integer read FLine;
     property Col: Integer read FCol;
   end;
-  
+
   TAttributeEntry = TPair<TAttributeName, string>;
   PAttributeEntry = ^TAttributeEntry;
+
+  TCommentNode = class;
 
   TSyntaxNodeClass = class of TSyntaxNode;
   TSyntaxNode = class
@@ -37,6 +39,7 @@ type
     FChildNodes: TArray<TSyntaxNode>;
     FTyp: TSyntaxNodeType;
     FParentNode: TSyntaxNode;
+    FLastPrecedingCommentNode: TCommentNode;
   public
     constructor Create(Typ: TSyntaxNodeType);
     destructor Destroy; override;
@@ -62,6 +65,11 @@ type
     property HasChildren: Boolean read GetHasChildren;
     property Typ: TSyntaxNodeType read FTyp;
     property ParentNode: TSyntaxNode read FParentNode;
+
+    { The last comment node that preceeds this node.
+      Only available after TPasSyntaxTreeBuilder.AttachCommentNodes has been
+      called. }
+    property LastPrecedingCommentNode: TCommentNode read FLastPrecedingCommentNode write FLastPrecedingCommentNode;
 
     property Col: Integer read FCol write FCol;
     property Line: Integer read FLine write FLine;
@@ -414,6 +422,7 @@ begin
   Result.Col := Self.Col;
   Result.Line := Self.Line;
   Result.FileName := Self.FileName;
+  Result.FLastPrecedingCommentNode := Self.FLastPrecedingCommentNode;
 end;
 
 constructor TSyntaxNode.Create(Typ: TSyntaxNodeType);
