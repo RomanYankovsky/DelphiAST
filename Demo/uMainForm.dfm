@@ -18,10 +18,24 @@ object MainForm: TMainForm
     Left = 0
     Top = 0
     Width = 666
-    Height = 389
+    Height = 370
     Align = alClient
     ScrollBars = ssBoth
     TabOrder = 0
+    ExplicitHeight = 389
+  end
+  object StatusBar: TStatusBar
+    Left = 0
+    Top = 370
+    Width = 666
+    Height = 19
+    Panels = <
+      item
+        Width = 50
+      end>
+    ExplicitLeft = 344
+    ExplicitTop = 216
+    ExplicitWidth = 0
   end
   object MainMenu: TMainMenu
     Left = 224

@@ -289,17 +289,7 @@ const
     'slashescomment'
   );
 
-const
-  sENUM              = 'enum';
-  sSUBRANGE          = 'subrange';
-
-  function AttributeNameToStr(const AttributeName : TAttributeName) : string;
-
-implementation
-
-function AttributeNameToStr(const AttributeName : TAttributeName) : string;
-const
-  AttributeNameStrings : array[TAttributeName] of string = (
+  AttributeNameStrings: array[TAttributeName] of string = (
     'type',
     'class',
     'forwarded',
@@ -313,8 +303,7 @@ const
     'overload',
     'abstract'
   );
-begin
-  Exit(AttributeNameStrings[AttributeName]);
-end;
+
+implementation
 
 end.

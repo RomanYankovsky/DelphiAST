@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, Menus, StdCtrls, SimpleParser.Lexer.Types;
+  Dialogs, Menus, StdCtrls, ComCtrls;
 
 type
   TMainForm = class(TForm)
@@ -14,13 +14,28 @@ type
     MainMenu: TMainMenu;
     OpenDelphiUnit1: TMenuItem;
     OpenDialog: TOpenDialog;
+    StatusBar: TStatusBar;
     procedure OpenDelphiUnit1Click(Sender: TObject);
-  private
-    function Parse(const FileName: string): string;
-  public
-    { Public declarations }
   end;
 
+var
+  MainForm: TMainForm;
+
+function Parse(const FileName: string; out StatusText: string): string;
+
+implementation
+
+uses
+  DelphiAST, DelphiAST.Writer, DelphiAST.Classes,
+  SimpleParser.Lexer.Types, IOUtils, Diagnostics;
+
+{$IFNDEF FPC}
+  {$R *.dfm}
+{$ELSE}
+  {$R *.lfm}
+{$ENDIF}
+
+type
   TIncludeHandler = class(TInterfacedObject, IIncludeHandler)
   private
     FPath: string;
@@ -29,27 +44,28 @@ type
     function GetIncludeFileContent(const FileName: string): string;
   end;
 
+function MemoryUsed: Cardinal;
 var
-  MainForm: TMainForm;
+  st: TMemoryManagerState;
+  sb: TSmallBlockTypeState;
+begin
+  GetMemoryManagerState(st);
+  Result := st.TotalAllocatedMediumBlockSize + st.TotalAllocatedLargeBlockSize;
+  for sb in st.SmallBlockTypeStates do
+    Result := Result + sb.UseableBlockSize * sb.AllocatedBlockCount;
+end;
 
-implementation
-
-uses
-  DelphiAST, DelphiAST.Writer, DelphiAST.Classes, IOUtils;
-
-{$IFNDEF FPC}
-  {$R *.dfm}
-{$ELSE}
-  {$R *.lfm}
-{$ENDIF}
-
-function TMainForm.Parse(const FileName: string): string;
+function Parse(const FileName: string; out StatusText: string): string;
 var
   SyntaxTree: TSyntaxNode;
+  memused: Cardinal;
+  sw: TStopwatch;
 begin
-  Result := '';
   try
+    sw := TStopwatch.StartNew;
+    memused := MemoryUsed;
     SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, False, TIncludeHandler.Create(ExtractFilePath(FileName)));
+    StatusText := Format('Parsed file in %d ms - used memory: %d K', [sw.ElapsedMilliseconds, (MemoryUsed - memused) div 1024]);
     try
       Result := TSyntaxTreeWriter.ToXML(SyntaxTree, True);
     finally
@@ -63,9 +79,14 @@ begin
 end;
 
 procedure TMainForm.OpenDelphiUnit1Click(Sender: TObject);
+var
+  StatusText: string;
 begin
   if OpenDialog.Execute then
-    OutputMemo.Lines.Text := Parse(OpenDialog.FileName);
+  begin
+    OutputMemo.Lines.Text := Parse(OpenDialog.FileName, StatusText);
+    StatusBar.Panels[0].Text := StatusText;
+  end
 end;
 
 { TIncludeHandler }
