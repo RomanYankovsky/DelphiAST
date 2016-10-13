@@ -1,31 +1,40 @@
 object MainForm: TMainForm
-  Left = 0
-  Top = 0
+  Left = 309
+  Height = 389
+  Top = 89
+  Width = 666
   Caption = 'DelphiAST Demo'
-  ClientHeight = 389
+  ClientHeight = 369
   ClientWidth = 666
   Color = clBtnFace
-  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
-  Font.Style = []
   Menu = MainMenu
-  OldCreateOrder = False
-  PixelsPerInch = 96
-  TextHeight = 13
+  LCLVersion = '1.6.0.4'
   object OutputMemo: TMemo
     Left = 0
+    Height = 346
     Top = 0
     Width = 666
-    Height = 389
     Align = alClient
     ScrollBars = ssBoth
     TabOrder = 0
   end
+  object StatusBar: TStatusBar
+    Left = 0
+    Height = 23
+    Top = 346
+    Width = 666
+    Panels = <    
+      item
+        Text = 'TEST'
+        Width = 500
+      end>
+  end
   object MainMenu: TMainMenu
-    Left = 224
-    Top = 96
+    left = 224
+    top = 96
     object OpenDelphiUnit1: TMenuItem
       Caption = 'Open Delphi Unit...'
       OnClick = OpenDelphiUnit1Click
@@ -34,7 +43,7 @@ object MainForm: TMainForm
   object OpenDialog: TOpenDialog
     Filter = 'Delphi Unit|*.pas|Delphi Package|*.dpk|Delphi Project|*.dpr'
     Options = [ofHideReadOnly, ofPathMustExist, ofFileMustExist, ofEnableSizing]
-    Left = 272
-    Top = 96
+    left = 272
+    top = 96
   end
 end

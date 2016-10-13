@@ -54,7 +54,11 @@ unit SimpleParser.Lexer;
 interface
 
 uses
-  SysUtils, Classes, Character, SimpleParser.Lexer.Types;
+  SysUtils, Classes, Character, 
+  {$IFDEF FPC}
+    Generics.Collections, 
+  {$ENDIF}
+  SimpleParser.Lexer.Types;
 
 var
   Identifiers: array[#0..#127] of ByteBool;
