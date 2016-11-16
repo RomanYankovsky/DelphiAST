@@ -1393,7 +1393,7 @@ begin
   end else
   begin
 {$IFDEF SUPPORTS_INTRINSIC_HELPERS}
-    while FBuffer.Buf[FBuffer.Run].IsDigit do
+    while Char(FBuffer.Buf[FBuffer.Run]).IsDigit do
 {$ELSE}
     while IsDigit(FBuffer.Buf[FBuffer.Run]) do
 {$ENDIF}
