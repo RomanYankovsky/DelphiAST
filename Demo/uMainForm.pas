@@ -15,17 +15,20 @@ type
     OpenDelphiUnit1: TMenuItem;
     OpenDialog: TOpenDialog;
     StatusBar: TStatusBar;
+    CheckBox1: TCheckBox;
     procedure OpenDelphiUnit1Click(Sender: TObject);
   end;
 
 var
   MainForm: TMainForm;
 
-function Parse(const FileName: string; out StatusText: string): string;
+function Parse(const FileName: string; out StatusText: string;
+  UseStringInterning: Boolean): string;
 
 implementation
 
 uses
+  StringUsageLogging, FastMM4, StringPool,
   DelphiAST, DelphiAST.Writer, DelphiAST.Classes,
   SimpleParser.Lexer.Types, IOUtils, Diagnostics;
 
@@ -55,17 +58,38 @@ begin
     Result := Result + sb.UseableBlockSize * sb.AllocatedBlockCount;
 end;
 
-function Parse(const FileName: string; out StatusText: string): string;
+function Parse(const FileName: string; out StatusText: string;
+  UseStringInterning: Boolean): string;
 var
   SyntaxTree: TSyntaxNode;
   memused: Cardinal;
   sw: TStopwatch;
+  StringPool: TStringPool;
+  OnHandleString: TStringEvent;
 begin
   try
-    sw := TStopwatch.StartNew;
+    if UseStringInterning then
+    begin
+      StringPool := TStringPool.Create;
+      OnHandleString := StringPool.StringIntern;
+    end
+    else
+    begin
+      StringPool := nil;
+      OnHandleString := nil;
+    end;
     memused := MemoryUsed;
-    SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, False, TIncludeHandler.Create(ExtractFilePath(FileName)));
+    sw := TStopwatch.StartNew;
+    try
+      SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, False,
+        TIncludeHandler.Create(ExtractFilePath(FileName)), OnHandleString);
+    finally
+      if UseStringInterning then
+        StringPool.Free;
+    end;
     StatusText := Format('Parsed file in %d ms - used memory: %d K', [sw.ElapsedMilliseconds, (MemoryUsed - memused) div 1024]);
+
+//    LogStringUsageToFile('strings.log');
     try
       Result := TSyntaxTreeWriter.ToXML(SyntaxTree, True);
     finally
@@ -84,7 +108,7 @@ var
 begin
   if OpenDialog.Execute then
   begin
-    OutputMemo.Lines.Text := Parse(OpenDialog.FileName, StatusText);
+    OutputMemo.Lines.Text := Parse(OpenDialog.FileName, StatusText, CheckBox1.Checked);
     StatusBar.Panels[0].Text := StatusText;
   end
 end;

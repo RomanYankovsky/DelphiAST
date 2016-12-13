@@ -18,11 +18,10 @@ object MainForm: TMainForm
     Left = 0
     Top = 0
     Width = 666
-    Height = 370
+    Height = 347
     Align = alClient
     ScrollBars = ssBoth
     TabOrder = 0
-    ExplicitHeight = 389
   end
   object StatusBar: TStatusBar
     Left = 0
@@ -33,9 +32,18 @@ object MainForm: TMainForm
       item
         Width = 50
       end>
-    ExplicitLeft = 344
-    ExplicitTop = 216
-    ExplicitWidth = 0
+  end
+  object CheckBox1: TCheckBox
+    AlignWithMargins = True
+    Left = 3
+    Top = 350
+    Width = 660
+    Height = 17
+    Align = alBottom
+    Caption = 
+      'Use string interning for less memory consumption (has a minor im' +
+      'pact on speed)'
+    TabOrder = 2
   end
   object MainMenu: TMainMenu
     Left = 224
