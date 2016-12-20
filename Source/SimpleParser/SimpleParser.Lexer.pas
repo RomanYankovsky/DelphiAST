@@ -307,6 +307,7 @@ type
     procedure ClearDefines;
     procedure InitDefinesDefinedByCompiler;
 
+    property Buffer: PBufferRec read FBuffer;
     property CompilerDirective: string read GetCompilerDirective;
     property DirectiveParam: string read GetDirectiveParam;
     property IsJunk: Boolean read GetIsJunk;
@@ -1397,7 +1398,7 @@ begin
   end else
   begin
 {$IFDEF SUPPORTS_INTRINSIC_HELPERS}
-    while FBuffer.Buf[FBuffer.Run].IsDigit do
+    while Char(FBuffer.Buf[FBuffer.Run]).IsDigit do
 {$ELSE}
     while IsDigit(FBuffer.Buf[FBuffer.Run]) do
 {$ENDIF}

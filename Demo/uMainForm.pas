@@ -14,7 +14,8 @@ type
     MainMenu: TMainMenu;
     OpenDelphiUnit1: TMenuItem;
     OpenDialog: TOpenDialog;
-    StatusBar: TStatusBar;
+    StatusBar: TStatusBar;    
+    CheckBox1: TCheckBox;
     procedure OpenDelphiUnit1Click(Sender: TObject);  
   private
     procedure UpdateStatusBarText(const StatusText: string);
@@ -23,11 +24,16 @@ type
 var
   MainForm: TMainForm;
 
-function Parse(const FileName: string; out StatusText: string): string;
+function Parse(const FileName: string; out StatusText: string;
+  UseStringInterning: Boolean): string;
 
 implementation
 
 uses
+  {$IFNDEF FPC}
+    StringUsageLogging, FastMM4,
+  {$ENDIF}
+  StringPool,
   DelphiAST, DelphiAST.Writer, DelphiAST.Classes,
   SimpleParser.Lexer.Types, IOUtils, Diagnostics;
 
@@ -64,18 +70,39 @@ begin
 end;
 {$ENDIF}
 
-function Parse(const FileName: string; out StatusText: string): string;
+function Parse(const FileName: string; out StatusText: string;
+  UseStringInterning: Boolean): string;
 var
   SyntaxTree: TSyntaxNode;
   memused: Cardinal;
   sw: TStopwatch;
+  StringPool: TStringPool;
+  OnHandleString: TStringEvent;
 begin
   try
+    if UseStringInterning then
+    begin
+      StringPool := TStringPool.Create;
+      OnHandleString := StringPool.StringIntern;
+    end
+    else
+    begin
+      StringPool := nil;
+      OnHandleString := nil;
+    end;
     memused := MemoryUsed;
     sw := TStopwatch.StartNew;
-    SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, False, TIncludeHandler.Create(ExtractFilePath(FileName)));
+    try
+      SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, False,
+        TIncludeHandler.Create(ExtractFilePath(FileName)), OnHandleString);
+    finally
+      if UseStringInterning then
+        StringPool.Free;
+    end;
     sw.Stop;
     StatusText := Format('Parsed file in %d ms - used memory: %d K', [sw.ElapsedMilliseconds, (MemoryUsed - memused) div 1024]);
+
+//    LogStringUsageToFile('strings.log');
     try
       Result := TSyntaxTreeWriter.ToXML(SyntaxTree, True);
     finally
@@ -94,7 +121,7 @@ var
 begin 
   if OpenDialog.Execute then
   begin
-    OutputMemo.Lines.Text := Parse(OpenDialog.FileName, StatusText);
+    OutputMemo.Lines.Text := Parse(OpenDialog.FileName, StatusText, CheckBox1.Checked);
     UpdateStatusBarText(StatusText);
   end
 end;
