@@ -32,6 +32,18 @@ object MainForm: TMainForm
         Width = 500
       end>
   end
+  object CheckBox1: TCheckBox
+    AlignWithMargins = True
+    Left = 3
+    Top = 350
+    Width = 660
+    Height = 17
+    Align = alBottom
+    Caption = 
+      'Use string interning for less memory consumption (has a minor im' +
+      'pact on speed)'
+    TabOrder = 2
+  end  
   object MainMenu: TMainMenu
     left = 224
     top = 96

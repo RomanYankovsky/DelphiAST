@@ -1,8 +1,10 @@
 program DelphiASTDemo;
 
 uses
+  FastMM4,
   Forms,
-  uMainForm in 'uMainForm.pas' {MainForm};
+  uMainForm in 'uMainForm.pas' {MainForm},
+  StringUsageLogging in 'StringUsageLogging.pas';
 
 {$R *.res}
 

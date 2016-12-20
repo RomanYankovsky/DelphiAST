@@ -19,14 +19,31 @@ type
     property SyntaxTree: TSyntaxNode read FSyntaxTree;
   end;
 
+  TStringEvent = procedure(var s: string) of object;
+
+  TPasLexer = class
+  private
+    FLexer: TmwPasLex;
+    FOnHandleString: TStringEvent;
+    function GetToken: string; inline;
+    function GetPosXY: TTokenPoint; inline;
+    function GetFileName: string;
+  public
+    constructor Create(const ALexer: TmwPasLex; AOnHandleString: TStringEvent);
+
+    property FileName: string read GetFileName;
+    property PosXY: TTokenPoint read GetPosXY;
+    property Token: string read GetToken;
+  end;
+
   TNodeStack = class
   strict private
-    FLexer: TmwPasLex;
+    FLexer: TPasLexer;
     FStack: TStack<TSyntaxNode>;
 
     function GetCount: Integer;
   public
-    constructor Create(Lexer: TmwPasLex);
+    constructor Create(Lexer: TPasLexer);
     destructor Destroy; override;
 
     function AddChild(Typ: TSyntaxNodeType): TSyntaxNode; overload;
@@ -56,9 +73,12 @@ type
     procedure CallInheritedExpression;
     procedure SetCurrentCompoundNodesEndPosition;
     procedure DoOnComment(Sender: TObject; const Text: string);
+    procedure DoHandleString(var s: string); inline;
   protected
     FStack: TNodeStack;
     FComments: TObjectList<TCommentNode>;
+    FLexer: TPasLexer;
+    FOnHandleString: TStringEvent;
 
     procedure AccessSpecifier; override;
     procedure AdditiveOperator; override;
@@ -234,10 +254,13 @@ type
     destructor Destroy; override;
 
     function Run(SourceStream: TStream): TSyntaxNode; reintroduce; overload; virtual;
-    class function Run(const FileName: string;
-      InterfaceOnly: Boolean = False; IncludeHandler: IIncludeHandler = nil): TSyntaxNode; reintroduce; overload; static;
+    class function Run(const FileName: string; InterfaceOnly: Boolean = False;
+      IncludeHandler: IIncludeHandler = nil;
+      OnHandleString: TStringEvent = nil): TSyntaxNode; reintroduce; overload; static;
 
     property Comments: TObjectList<TCommentNode> read FComments;
+    property Lexer: TPasLexer read FLexer;
+    property OnHandleString: TStringEvent read FOnHandleString write FOnHandleString;
   end;
 
 implementation
@@ -247,8 +270,7 @@ uses
 
 {$IFDEF FPC}
   type
-
-   TStringStreamHelper = class helper for TStringStream
+    TStringStreamHelper = class helper for TStringStream
       class function Create: TStringStream; overload;
       procedure LoadFromFile(const FileName: string);
     end;
@@ -274,7 +296,6 @@ uses
   end;
 {$ENDIF}
 
-
 // do not use const strings here to prevent allocating new strings every time
 
 type
@@ -291,6 +312,31 @@ var
 begin
   for value := Low(TAttributeValue) to High(TAttributeValue) do
     AttributeValues[value] := Copy(LowerCase(GetEnumName(TypeInfo(TAttributeValue), Ord(value))), 3);
+end;
+
+{ TPasLexer }
+
+constructor TPasLexer.Create(const ALexer: TmwPasLex; AOnHandleString: TStringEvent);
+begin
+  inherited Create;
+  FLexer := ALexer;
+  FOnHandleString := AOnHandleString;
+end;
+
+function TPasLexer.GetFileName: string;
+begin
+  Result := FLexer.Buffer.FileName;
+end;
+
+function TPasLexer.GetPosXY: TTokenPoint;
+begin
+  Result := FLexer.PosXY;
+end;
+
+function TPasLexer.GetToken: string;
+begin
+  SetString(Result, FLexer.Buffer.Buf + FLexer.TokenPos, FLexer.TokenLen);
+  FOnHandleString(Result);
 end;
 
 { TNodeStack }
@@ -324,7 +370,7 @@ begin
   FStack.Clear;
 end;
 
-constructor TNodeStack.Create(Lexer: TmwPasLex);
+constructor TNodeStack.Create(Lexer: TPasLexer);
 begin
   FLexer := Lexer;
   FStack := TStack<TSyntaxNode>.Create;
@@ -973,14 +1019,22 @@ end;
 constructor TPasSyntaxTreeBuilder.Create;
 begin
   inherited;
-  FStack := TNodeStack.Create(Lexer);
+  FLexer := TPasLexer.Create(inherited Lexer, DoHandleString);
+  FStack := TNodeStack.Create(FLexer);
   FComments := TObjectList<TCommentNode>.Create(True);
 
   OnComment := DoOnComment;
 end;
 
+procedure TPasSyntaxTreeBuilder.DoHandleString(var s: string);
+begin
+  if Assigned(FOnHandleString) then
+    FOnHandleString(s);
+end;
+
 destructor TPasSyntaxTreeBuilder.Destroy;
 begin
+  FLexer.Free;
   FStack.Free;
   FComments.Free;
   inherited;
@@ -1392,6 +1446,7 @@ begin
   finally
     FStack.Pop;
     Temp := FStack.Peek;
+    DoHandleString(FullName);
     Temp.SetAttribute(anName, FullName);
     Temp.DeleteChild(NameNode);
   end;
@@ -1585,8 +1640,12 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.MethodKind;
+var
+  value: string;
 begin
-  FStack.Peek.SetAttribute(anKind, LowerCase(Lexer.Token));
+  value := LowerCase(Lexer.Token);
+  DoHandleString(value);
+  FStack.Peek.SetAttribute(anKind, value);
   inherited;
 end;
 
@@ -1918,7 +1977,8 @@ begin
 end;
 
 class function TPasSyntaxTreeBuilder.Run(const FileName: string;
-  InterfaceOnly: Boolean; IncludeHandler: IIncludeHandler): TSyntaxNode;
+  InterfaceOnly: Boolean; IncludeHandler: IIncludeHandler;
+  OnHandleString: TStringEvent): TSyntaxNode;
 var
   Stream: TStringStream;
   Builder: TPasSyntaxTreeBuilder;
@@ -1928,6 +1988,7 @@ begin
     Stream.LoadFromFile(FileName);
     Builder := TPasSyntaxTreeBuilder.Create;
     Builder.InterfaceOnly := InterfaceOnly;
+    Builder.OnHandleString := OnHandleString;
     try
       Builder.InitDefinesDefinedByCompiler;
       Builder.IncludeHandler := IncludeHandler;
@@ -1976,6 +2037,7 @@ begin
       Result := Result + '.';
     Result := Result + NamePartNode.GetAttribute(anName);
   end;
+  DoHandleString(Result);
 end;
 
 procedure TPasSyntaxTreeBuilder.SetConstructor;
@@ -2148,6 +2210,7 @@ begin
     StrConst.Free;
   end;
 
+  DoHandleString(Str);
   Node := FStack.AddValuedChild(ntLiteral, Str);
   Node.SetAttribute(anType, AttributeValues[atString]);
 end;
@@ -2265,8 +2328,8 @@ begin
       TypeName := '.' + TypeName;   
     TypeName := InnerTypeName + TypeName;  
       
+    DoHandleString(TypeName);
     TypeNode.SetAttribute(anName, TypeName);
-   
   finally
     FStack.Pop;
   end;
