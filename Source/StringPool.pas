@@ -1,5 +1,7 @@
 unit StringPool;
 
+{$IFDEF FPC}{$MODE Delphi}{$ENDIF}
+
 interface
 
 type
