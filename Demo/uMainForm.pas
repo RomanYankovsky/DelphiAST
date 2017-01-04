@@ -9,14 +9,16 @@ uses
   Dialogs, Menus, StdCtrls, ComCtrls;
 
 type
-  TMainForm = class(TForm)
+  TMainForm = class(TForm)   
     OutputMemo: TMemo;
     MainMenu: TMainMenu;
     OpenDelphiUnit1: TMenuItem;
     OpenDialog: TOpenDialog;
-    StatusBar: TStatusBar;
+    StatusBar: TStatusBar;    
     CheckBox1: TCheckBox;
-    procedure OpenDelphiUnit1Click(Sender: TObject);
+    procedure OpenDelphiUnit1Click(Sender: TObject);  
+  private
+    procedure UpdateStatusBarText(const StatusText: string);
   end;
 
 var
@@ -28,7 +30,10 @@ function Parse(const FileName: string; out StatusText: string;
 implementation
 
 uses
-  StringUsageLogging, FastMM4, StringPool,
+  {$IFNDEF FPC}
+    StringUsageLogging, FastMM4,
+  {$ENDIF}
+  StringPool,
   DelphiAST, DelphiAST.Writer, DelphiAST.Classes,
   SimpleParser.Lexer.Types, IOUtils, Diagnostics;
 
@@ -47,16 +52,23 @@ type
     function GetIncludeFileContent(const FileName: string): string;
   end;
 
+{$IFNDEF FPC}
 function MemoryUsed: Cardinal;
-var
-  st: TMemoryManagerState;
-  sb: TSmallBlockTypeState;
-begin
-  GetMemoryManagerState(st);
-  Result := st.TotalAllocatedMediumBlockSize + st.TotalAllocatedLargeBlockSize;
-  for sb in st.SmallBlockTypeStates do
-    Result := Result + sb.UseableBlockSize * sb.AllocatedBlockCount;
+ var
+   st: TMemoryManagerState;
+   sb: TSmallBlockTypeState;
+ begin
+   GetMemoryManagerState(st);
+   Result := st.TotalAllocatedMediumBlockSize + st.TotalAllocatedLargeBlockSize;
+   for sb in st.SmallBlockTypeStates do
+     Result := Result + sb.UseableBlockSize * sb.AllocatedBlockCount;
 end;
+{$ELSE}
+function MemoryUsed: Cardinal;
+begin
+  Result := GetFPCHeapStatus.CurrHeapUsed;
+end;
+{$ENDIF}
 
 function Parse(const FileName: string; out StatusText: string;
   UseStringInterning: Boolean): string;
@@ -87,13 +99,14 @@ begin
       if UseStringInterning then
         StringPool.Free;
     end;
+    sw.Stop;
     StatusText := Format('Parsed file in %d ms - used memory: %d K', [sw.ElapsedMilliseconds, (MemoryUsed - memused) div 1024]);
 
 //    LogStringUsageToFile('strings.log');
     try
       Result := TSyntaxTreeWriter.ToXML(SyntaxTree, True);
     finally
-      SyntaxTree.Free;
+     SyntaxTree.Free;
     end;
   except
     on E: ESyntaxTreeException do
@@ -105,11 +118,11 @@ end;
 procedure TMainForm.OpenDelphiUnit1Click(Sender: TObject);
 var
   StatusText: string;
-begin
+begin 
   if OpenDialog.Execute then
   begin
     OutputMemo.Lines.Text := Parse(OpenDialog.FileName, StatusText, CheckBox1.Checked);
-    StatusBar.Panels[0].Text := StatusText;
+    UpdateStatusBarText(StatusText);
   end
 end;
 
@@ -138,6 +151,15 @@ begin
   finally
     FileContent.Free;
   end;
+end;
+
+procedure TMainForm.UpdateStatusBarText(const StatusText: string);
+begin
+  {$IFDEF FPC}
+    StatusBar.SimpleText:= StatusText;
+  {$ELSE}
+    StatusBar.Panels[0].Text := StatusText;
+  {$ENDIF}
 end;
 
 end.
