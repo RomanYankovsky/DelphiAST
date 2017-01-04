@@ -104,6 +104,7 @@ type
     procedure ClassFunctionHeading; override;
     procedure ClassHelper; override;
     procedure ClassMethod; override;
+    procedure ClassMethodResolution; override;
     procedure ClassMethodHeading; override;
     procedure ClassProcedureHeading; override;
     procedure ClassProperty; override;
@@ -771,6 +772,16 @@ procedure TPasSyntaxTreeBuilder.ClassMethod;
 begin
   FStack.Peek.SetAttribute(anClass, AttributeValues[atTrue]);
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.ClassMethodResolution;
+begin
+  FStack.Push(ntResolutionClause);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.ClassMethodHeading;
