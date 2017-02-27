@@ -2844,7 +2844,7 @@ procedure TmwBasePasLex.AmpersandOpProc;
 begin
   FTokenID := ptAmpersand;
   Inc(FBuffer.Run);
-  while CharInSet(FBuffer.Buf[FBuffer.Run], ['a'..'z', 'A'..'Z','0'..'9', '_']) do
+  while CharInSet(FBuffer.Buf[FBuffer.Run], ['a'..'z', 'A'..'Z','0'..'9', '_', '&']) do
     Inc(FBuffer.Run);
   FTokenID := ptIdentifier;
 end;
