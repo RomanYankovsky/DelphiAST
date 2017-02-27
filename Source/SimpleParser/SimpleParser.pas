@@ -2048,7 +2048,7 @@ begin
   else
     begin
       Expected(ptColon);
-      ReturnType; 
+      ReturnType;
       FunctionProcedureBlock;
     end;
   end;
@@ -2119,7 +2119,7 @@ begin
   end;
 
   if HasBlock then
-  begin 
+  begin
     case TokenID of
       ptAsm:
         begin
@@ -4412,7 +4412,7 @@ begin
 end;
 
 procedure TmwSimplePasPar.TypeKind;
-begin 
+begin
   case TokenID of
     ptAsciiChar, ptFloat, ptIntegerConst, ptMinus, ptNil, ptPlus, ptStringConst, ptConst:
       begin
@@ -4678,7 +4678,7 @@ begin
   else
     begin
       SynError(InvalidProcedureDeclarationSection);
-    end; 
+    end;
   end;
 end;
 
