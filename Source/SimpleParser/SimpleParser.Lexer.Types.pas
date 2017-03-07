@@ -25,6 +25,11 @@ uses
 
 {$INCLUDE SimpleParser.inc}
 
+{$IFNDEF D14_NEWER}
+type
+  TArray<T> = array of T;
+{$ENDIF}
+
 var
   CompTable: array[#0..#255] of byte;
 
