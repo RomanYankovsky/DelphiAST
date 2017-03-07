@@ -5659,6 +5659,11 @@ begin
       AttributeTargetSpecifier;
     AttributeList;
   end;
+  while TokenID = ptPoint do
+  begin
+    DotOp;
+    Identifier;
+  end;
   Expected(ptSquareClose);
 end;
 
