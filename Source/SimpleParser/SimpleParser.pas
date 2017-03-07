@@ -5703,7 +5703,14 @@ begin
     ptIn, ptOut, ptConst, ptVar, ptUnsafe:
       NextToken;
   else
-    Expected(ptIdentifier);
+    begin
+      Expected(ptIdentifier);
+      while TokenID = ptPoint do
+      begin
+        NextToken;
+        Expected(ptIdentifier);
+      end;
+    end;
   end;
 end;
 
