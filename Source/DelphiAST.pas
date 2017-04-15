@@ -129,6 +129,7 @@ type
     procedure DirectiveBinding; override;
     procedure DirectiveBindingMessage; override;
     procedure DirectiveCalling; override;
+    procedure DirectiveInline; override;
     procedure DispInterfaceForward; override;
     procedure DotOp; override;
     procedure ElseStatement; override;
@@ -1155,6 +1156,12 @@ end;
 procedure TPasSyntaxTreeBuilder.DirectiveCalling;
 begin
   FStack.Peek.SetAttribute(anCallingConvention, Lexer.Token);
+  inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.DirectiveInline;
+begin
+  FStack.Peek.SetAttribute(anInline, AttributeValues[atTrue]);
   inherited;
 end;
 

@@ -300,6 +300,7 @@ type
     procedure DirectiveBindingMessage; virtual;
     procedure DirectiveCalling; virtual;
     procedure DirectiveDeprecated; virtual;
+    procedure DirectiveInline; virtual;
     procedure DirectiveLibrary; virtual;
     procedure DirectiveLocal; virtual;
     procedure DirectivePlatform; virtual;
@@ -4715,7 +4716,7 @@ begin
       end;
     ptInline:
       begin
-        NextToken;
+        DirectiveInline;
       end;
     ptDeprecated:
       DirectiveDeprecated;
@@ -5338,6 +5339,11 @@ begin
   ExpectedEx(ptDeprecated);
   if TokenID = ptStringConst then
     NextToken;
+end;
+
+procedure TmwSimplePasPar.DirectiveInline;
+begin
+  Expected(ptInline);
 end;
 
 procedure TmwSimplePasPar.DirectiveLibrary;
