@@ -2139,6 +2139,10 @@ begin
     begin
       if FLexer.ExID <> ptName then
         SimpleExpression;
+
+      if FLexer.ExID = ptDelayed then
+        NextToken;
+
       ExternalDirectiveTwo;
     end;
   end;
