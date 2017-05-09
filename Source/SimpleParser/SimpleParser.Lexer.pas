@@ -2544,6 +2544,9 @@ begin
   {$IFDEF VER310} // Berlin
   AddDefine('VER310');
   {$ENDIF}
+  {$IFDEF VER320} // Tokyo
+  AddDefine('VER320');
+  {$ENDIF}
   {$IFDEF WIN32}
   AddDefine('WIN32');
   {$ENDIF}
@@ -2555,6 +2558,9 @@ begin
   {$ENDIF}
   {$IFDEF LINUX32}
   AddDefine('LINUX32');
+  {$ENDIF}
+  {$IFDEF LINUX64}
+  AddDefine('LINUX64');
   {$ENDIF}
   {$IFDEF POSIX}
   AddDefine('POSIX');
