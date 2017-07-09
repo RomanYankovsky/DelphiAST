@@ -151,7 +151,8 @@ type
     anMethodBinding,
     anReintroduce,
     anOverload,
-    anAbstract
+    anAbstract,
+    anInline
   );
 
 const
@@ -303,7 +304,8 @@ const
     'methodbinding',
     'reintroduce',
     'overload',
-    'abstract'
+    'abstract',
+    'inline'
   );
 
 implementation

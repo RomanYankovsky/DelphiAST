@@ -64,13 +64,16 @@ type
 
   TPasSyntaxTreeBuilder = class(TmwSimplePasPar)
   private type
-    TExpressionMethod = procedure of object;
+    TTreeBuilderMethod = procedure of object;
   private
-    procedure BuildExpressionTree(ExpressionMethod: TExpressionMethod);
+    procedure BuildExpressionTree(ExpressionMethod: TTreeBuilderMethod);
+    procedure BuildParametersList(ParametersListMethod: TTreeBuilderMethod);
     procedure ParserMessage(Sender: TObject; const Typ: TMessageEventType; const Msg: string; X, Y: Integer);
     function NodeListToString(NamesNode: TSyntaxNode): string;
     procedure CallInheritedConstantExpression;
     procedure CallInheritedExpression;
+    procedure CallInheritedFormalParameterList;
+    procedure CallInheritedPropertyParameterList;
     procedure SetCurrentCompoundNodesEndPosition;
     procedure DoOnComment(Sender: TObject; const Text: string);
     procedure DoHandleString(var s: string); inline;
@@ -126,6 +129,7 @@ type
     procedure DirectiveBinding; override;
     procedure DirectiveBindingMessage; override;
     procedure DirectiveCalling; override;
+    procedure DirectiveInline; override;
     procedure DispInterfaceForward; override;
     procedure DotOp; override;
     procedure ElseStatement; override;
@@ -603,7 +607,7 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.BuildExpressionTree(
-  ExpressionMethod: TExpressionMethod);
+  ExpressionMethod: TTreeBuilderMethod);
 var
   RawExprNode: TSyntaxNode;
   ExprNode: TSyntaxNode;
@@ -648,6 +652,58 @@ begin
     end;
   finally
     RawExprNode.Free;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.BuildParametersList(
+  ParametersListMethod: TTreeBuilderMethod);
+var
+  Params, Temp: TSyntaxNode;
+  ParamList, Param, TypeInfo, ParamExpr: TSyntaxNode;
+  ParamKind: string;
+begin
+  Params := TSyntaxNode.Create(ntUnknown);
+  try
+    FStack.Push(ntParameters);
+
+    FStack.Push(Params);
+    try
+      ParametersListMethod;
+    finally
+      FStack.Pop;
+    end;
+
+    for ParamList in Params.ChildNodes do
+    begin
+      TypeInfo := ParamList.FindNode(ntType);
+      ParamKind := ParamList.GetAttribute(anKind);
+      ParamExpr := ParamList.FindNode(ntExpression);
+
+      for Param in ParamList.ChildNodes do
+      begin
+        if Param.Typ <> ntName then
+          Continue;
+
+        Temp := FStack.Push(ntParameter);
+        if ParamKind <> '' then
+          Temp.SetAttribute(anKind, ParamKind);
+
+        Temp.Col := Param.Col;
+        Temp.Line := Param.Line;
+
+        FStack.AddChild(Param.Clone);
+        if Assigned(TypeInfo) then
+          FStack.AddChild(TypeInfo.Clone);
+
+        if Assigned(ParamExpr) then
+          FStack.AddChild(ParamExpr.Clone);
+
+        FStack.Pop;
+      end;
+    end;
+    FStack.Pop;
+  finally
+    Params.Free;
   end;
 end;
 
@@ -895,10 +951,15 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ConstantExpression;
 var
-  ExpressionMethod: TExpressionMethod;
+  ExpressionMethod: TTreeBuilderMethod;
 begin
   ExpressionMethod := CallInheritedConstantExpression;
   BuildExpressionTree(ExpressionMethod);
+end;
+
+procedure TPasSyntaxTreeBuilder.CallInheritedFormalParameterList;
+begin
+  inherited FormalParameterList;
 end;
 
 procedure TPasSyntaxTreeBuilder.CallInheritedConstantExpression;
@@ -1097,6 +1158,12 @@ begin
   inherited;
 end;
 
+procedure TPasSyntaxTreeBuilder.DirectiveInline;
+begin
+  FStack.Peek.SetAttribute(anInline, AttributeValues[atTrue]);
+  inherited;
+end;
+
 procedure TPasSyntaxTreeBuilder.DispInterfaceForward;
 begin
   FStack.Peek.SetAttribute(anForwarded, AttributeValues[atTrue]);
@@ -1238,7 +1305,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.Expression;
 var
-  ExpressionMethod: TExpressionMethod;
+  ExpressionMethod: TTreeBuilderMethod;
 begin
   ExpressionMethod := CallInheritedExpression;
   BuildExpressionTree(ExpressionMethod);
@@ -1257,6 +1324,11 @@ end;
 procedure TPasSyntaxTreeBuilder.CallInheritedExpression;
 begin
   inherited Expression;
+end;
+
+procedure TPasSyntaxTreeBuilder.CallInheritedPropertyParameterList;
+begin
+  inherited PropertyParameterList;
 end;
 
 procedure TPasSyntaxTreeBuilder.ExpressionList;
@@ -1308,10 +1380,9 @@ end;
 
 procedure TPasSyntaxTreeBuilder.FormalParameterList;
 var
-  Params, Temp: TSyntaxNode;
-  ParamList, Param, TypeInfo, ParamExpr: TSyntaxNode;
-  ParamKind: string;
+  TreeBuilderMethod: TTreeBuilderMethod;
 begin
+<<<<<<< HEAD
   Params := TSyntaxNode.Create(ntUnknown);
   try
     FStack.Push(ntParameters);
@@ -1354,6 +1425,10 @@ begin
   finally
     Params.Free;
   end;
+=======
+  TreeBuilderMethod := CallInheritedFormalParameterList;
+  BuildParametersList(TreeBuilderMethod);
+>>>>>>> roman/master
 end;
 
 procedure TPasSyntaxTreeBuilder.ForStatement;
@@ -1836,13 +1911,11 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.PropertyParameterList;
+var
+  TreeBuilderMethod: TTreeBuilderMethod;
 begin
-  FStack.Push(ntParameters);
-  try
-    inherited PropertyParameterList;
-  finally
-    FStack.Pop;
-  end;
+  TreeBuilderMethod := CallInheritedPropertyParameterList;
+  BuildParametersList(TreeBuilderMethod);
 end;
 
 procedure TPasSyntaxTreeBuilder.RaiseStatement;

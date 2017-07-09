@@ -462,7 +462,7 @@ var
   AttributeEntry: PAttributeEntry;
 begin
   if TryGetAttributeEntry(Key, AttributeEntry) then
-    Result := AttributeEntry.Value
+    Result := AttributeEntry^.Value
   else
     Result := '';
 end;

@@ -300,6 +300,7 @@ type
     procedure DirectiveBindingMessage; virtual;
     procedure DirectiveCalling; virtual;
     procedure DirectiveDeprecated; virtual;
+    procedure DirectiveInline; virtual;
     procedure DirectiveLibrary; virtual;
     procedure DirectiveLocal; virtual;
     procedure DirectivePlatform; virtual;
@@ -424,10 +425,6 @@ type
     procedure PropertyDefault; virtual;
     procedure PropertyInterface; virtual;
     procedure PropertyName; virtual;
-    procedure PropertyParameter; virtual;
-    procedure PropertyParameterConst; virtual;
-    procedure PropertyParameterOut; virtual;
-    procedure PropertyParameterVar; virtual;
     procedure PropertyParameterList; virtual;
     procedure PropertySpecifiers; virtual;
     procedure QualifiedIdentifier; virtual;
@@ -1476,53 +1473,13 @@ end;
 procedure TmwSimplePasPar.PropertyParameterList;
 begin
   Expected(ptSquareOpen);
-  PropertyParameter;
+  FormalParameterSection;
   while TokenID = ptSemiColon do
   begin
     Semicolon;
-    PropertyParameter;
+    FormalParameterSection;
   end;
   Expected(ptSquareClose);
-end;
-
-procedure TmwSimplePasPar.PropertyParameterOut;
-begin
-  ExpectedEx(ptOut);
-end;
-
-procedure TmwSimplePasPar.PropertyParameterVar;
-begin
-  Expected(ptVar);
-end;
-
-procedure TmwSimplePasPar.PropertyParameter;
-begin
-  case TokenID of
-    ptConst: PropertyParameterConst;
-    ptVar: PropertyParameterVar;
-    ptIdentifier:
-      begin
-        if ExID = ptOut then
-          PropertyParameterOut;
-      end;
-  end;
-  IdentifierList;
-  if TokenID = ptColon then
-  begin
-    NextToken;
-
-    TypeId;
-    if TokenID = ptEqual then
-    begin
-      Expected(ptEqual);
-      ConstantExpression;
-    end;
-  end;
-end;
-
-procedure TmwSimplePasPar.PropertyParameterConst;
-begin
-  Expected(ptConst);
 end;
 
 procedure TmwSimplePasPar.PropertySpecifiers;
@@ -2084,7 +2041,7 @@ begin
   else
     begin
       Expected(ptColon);
-      ReturnType;
+      ReturnType; 
       FunctionProcedureBlock;
     end;
   end;
@@ -2155,7 +2112,7 @@ begin
   end;
 
   if HasBlock then
-  begin
+  begin 
     case TokenID of
       ptAsm:
         begin
@@ -2182,6 +2139,10 @@ begin
     begin
       if FLexer.ExID <> ptName then
         SimpleExpression;
+
+      if FLexer.ExID = ptDelayed then
+        NextToken;
+
       ExternalDirectiveTwo;
     end;
   end;
@@ -4444,7 +4405,7 @@ begin
 end;
 
 procedure TmwSimplePasPar.TypeKind;
-begin
+begin 
   case TokenID of
     ptAsciiChar, ptFloat, ptIntegerConst, ptMinus, ptNil, ptPlus, ptStringConst, ptConst:
       begin
@@ -4710,7 +4671,7 @@ begin
   else
     begin
       SynError(InvalidProcedureDeclarationSection);
-    end;
+    end; 
   end;
 end;
 
@@ -4759,7 +4720,7 @@ begin
       end;
     ptInline:
       begin
-        NextToken;
+        DirectiveInline;
       end;
     ptDeprecated:
       DirectiveDeprecated;
@@ -5384,6 +5345,11 @@ begin
     NextToken;
 end;
 
+procedure TmwSimplePasPar.DirectiveInline;
+begin
+  Expected(ptInline);
+end;
+
 procedure TmwSimplePasPar.DirectiveLibrary;
 begin
   Expected(ptLibrary);
@@ -5703,7 +5669,14 @@ begin
     ptIn, ptOut, ptConst, ptVar, ptUnsafe:
       NextToken;
   else
-    Expected(ptIdentifier);
+    begin
+      Expected(ptIdentifier);
+      while TokenID = ptPoint do
+      begin
+        NextToken;
+        Expected(ptIdentifier);
+      end;
+    end;
   end;
 end;
 
