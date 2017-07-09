@@ -1382,53 +1382,8 @@ procedure TPasSyntaxTreeBuilder.FormalParameterList;
 var
   TreeBuilderMethod: TTreeBuilderMethod;
 begin
-<<<<<<< HEAD
-  Params := TSyntaxNode.Create(ntUnknown);
-  try
-    FStack.Push(ntParameters);
-
-    FStack.Push(Params);
-    try
-      inherited;
-    finally
-      FStack.Pop;
-    end;
-
-    for ParamList in Params.ChildNodes do
-    begin
-      TypeInfo := ParamList.FindNode(ntType);
-      ParamKind := ParamList.GetAttribute(anKind);
-      ParamExpr := ParamList.FindNode(ntExpression);
-
-      for Param in ParamList.ChildNodes do
-      begin
-        if Param.Typ <> ntName then
-          Continue;
-
-        Temp := FStack.Push(ntParameter);
-        if ParamKind <> '' then
-          Temp.SetAttribute(anKind, ParamKind);
-
-        Temp.AssignPositionFrom(Param);
-
-        FStack.AddChild(Param.Clone);
-        if Assigned(TypeInfo) then
-          FStack.AddChild(TypeInfo.Clone);
-
-        if Assigned(ParamExpr) then
-          FStack.AddChild(ParamExpr.Clone);
-
-        FStack.Pop;
-      end;
-    end;
-    FStack.Pop;
-  finally
-    Params.Free;
-  end;
-=======
   TreeBuilderMethod := CallInheritedFormalParameterList;
   BuildParametersList(TreeBuilderMethod);
->>>>>>> roman/master
 end;
 
 procedure TPasSyntaxTreeBuilder.ForStatement;
