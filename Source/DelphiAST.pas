@@ -731,6 +731,7 @@ begin
       try
         Temp.Col := Field.Col;
         Temp.Line := Field.Line;
+        Temp.FileName := Field.FileName;
 
         FStack.AddChild(Field.Clone);
         TypeInfo := TypeInfo.Clone;
@@ -1001,6 +1002,7 @@ begin
         try
           Temp.Col := Constant.Col;
           Temp.Line := Constant.Line;
+          Temp.FileName := Constant.FileName;
 
           FStack.AddChild(Constant.Clone);
           if Assigned(TypeInfo) then
@@ -1341,6 +1343,7 @@ begin
 
         Temp.Col := Param.Col;
         Temp.Line := Param.Line;
+        Temp.FileName := Param.FileName;
 
         FStack.AddChild(Param.Clone);
         if Assigned(TypeInfo) then
@@ -2433,6 +2436,7 @@ begin
   Temp := FStack.Peek;
   Temp.Col := Lexer.PosXY.X;
   Temp.Line := Lexer.PosXY.Y;
+  Temp.FileName := Lexer.FileName;
   inherited;
 end;
 
@@ -2555,6 +2559,7 @@ begin
         try
           Temp.Col := Variable.Col;
           Temp.Line := Variable.Line;
+          Temp.FileName := Variable.FileName;
 
           FStack.AddChild(Variable.Clone);
           if Assigned(TypeInfo) then
