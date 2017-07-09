@@ -42,7 +42,8 @@ type
     destructor Destroy; override;
 
     function Clone: TSyntaxNode; virtual;
-
+    procedure AssignPositionFrom(const Node: TSyntaxNode);
+    
     function GetAttribute(const Key: TAttributeName): string;
     function HasAttribute(const Key: TAttributeName): Boolean;
     procedure SetAttribute(const Key: TAttributeName; const Value: string);
@@ -57,7 +58,6 @@ type
 
     property Attributes: TArray<TAttributeEntry> read FAttributes;
     property ChildNodes: TArray<TSyntaxNode> read FChildNodes;
-    property FileName: string read FFileName write FFileName;
     property HasAttributes: Boolean read GetHasAttributes;
     property HasChildren: Boolean read GetHasChildren;
     property Typ: TSyntaxNodeType read FTyp;
@@ -65,6 +65,7 @@ type
 
     property Col: Integer read FCol write FCol;
     property Line: Integer read FLine write FLine;
+    property FileName: string read FFileName write FFileName;
   end;
 
   TCompoundSyntaxNode = class(TSyntaxNode)
@@ -320,9 +321,7 @@ end;
 class function TExpressionTools.CreateNodeWithParentsPosition(NodeType: TSyntaxNodeType; ParentNode: TSyntaxNode): TSyntaxNode;
 begin
   Result := TSyntaxNode.Create(NodeType);
-  Result.Line := ParentNode.Line;
-  Result.Col := ParentNode.Col;
-  Result.FileName := ParentNode.FileName;
+  Result.AssignPositionFrom(ParentNode);
 end;
 
 class procedure TExpressionTools.RawNodeListToTree(RawParentNode: TSyntaxNode; RawNodeList: TList<TSyntaxNode>;
@@ -410,10 +409,7 @@ begin
   end;
 
   Result.FAttributes := Copy(FAttributes);
-
-  Result.Col := Self.Col;
-  Result.Line := Self.Line;
-  Result.FileName := Self.FileName;
+  Result.AssignPositionFrom(Self);
 end;
 
 constructor TSyntaxNode.Create(Typ: TSyntaxNodeType);
@@ -491,6 +487,13 @@ end;
 procedure TSyntaxNode.ClearAttributes;
 begin
   SetLength(FAttributes, 0);
+end;
+
+procedure TSyntaxNode.AssignPositionFrom(const Node: TSyntaxNode);
+begin
+  FCol := Node.Col;
+  FLine := Node.Line;
+  FFileName := Node.FileName;
 end;
 
 { TCompoundSyntaxNode }
