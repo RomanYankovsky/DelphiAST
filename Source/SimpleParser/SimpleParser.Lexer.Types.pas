@@ -17,6 +17,8 @@ unit CastaliaPasLexTypes;
 
 unit SimpleParser.Lexer.Types;
 
+{$IFDEF FPC}{$MODE DELPHI}{$ENDIF}
+
 interface
 
 uses
@@ -320,4 +322,3 @@ begin
 end;
 
 end.
-
