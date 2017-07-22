@@ -6,6 +6,7 @@ uses
   {$IFDEF FPC}
      StringBuilderUnit,
   {$ENDIF}
+  Classes,
   DelphiAST.Classes, SysUtils;
 
 type
@@ -16,12 +17,14 @@ type
   public
     class function ToXML(const Root: TSyntaxNode;
       Formatted: Boolean = False): string; static;
+    class procedure ToBinary(const Root: TSyntaxNode; Stream: TStream); static;
   end;
 
 implementation
 
 uses
-  Generics.Collections, DelphiAST.Consts;
+  Generics.Collections, TaggedStream,
+  DelphiAST.Consts, DelphiAST.Serialize.Binary;
 
 {$I SimpleParser.inc}
 {$IFDEF D18_NEWER}
@@ -112,9 +115,19 @@ class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
         Builder.AppendLine;
     end;
   end;
-  
+
 begin
   NodeToXMLInternal(Node, '');
+end;
+
+class procedure TSyntaxTreeWriter.ToBinary(const Root: TSyntaxNode; Stream: TStream);
+var
+  Writer: TBinarySerializer;
+begin
+  Writer := TBinarySerializer.Create;
+  try
+    Writer.Write(Root, Stream);
+  finally FreeAndNil(Writer); end;
 end;
 
 class function TSyntaxTreeWriter.ToXML(const Root: TSyntaxNode; 
