@@ -119,9 +119,10 @@ type
     FDefineStack: Integer;
     FTopDefineRec: PDefineRec;
     FUseDefines: Boolean;
+    FScopedEnums: Boolean;
     FIncludeHandler: IIncludeHandler;
     FOnComment: TCommentEvent;
-
+    
     function KeyHash: Integer;
     function KeyComp(const aKey: string): Boolean;
     function Func9: tptTokenKind;
@@ -288,6 +289,7 @@ type
     procedure SetSharedBuffer(SharedBuffer: PBufferRec);
     procedure DisposeBuffer(Buf: PBufferRec);
     function GetFileName: string;
+    procedure UpdateScopedEnums;
   protected
     procedure SetOrigin(const NewValue: string); virtual;
   public
@@ -349,6 +351,7 @@ type
     property AsmCode: Boolean read FAsmCode write FAsmCode;
     property DirectiveParamOrigin: PChar read FDirectiveParamOrigin;
     property UseDefines: Boolean read FUseDefines write FUseDefines;
+    property ScopedEnums: Boolean read FScopedEnums;
     property IncludeHandler: IIncludeHandler read FIncludeHandler write FIncludeHandler;
     property FileName: string read GetFileName;
   end;
@@ -1287,6 +1290,7 @@ begin
   FExID := ptUnKnown;
 
   FUseDefines := True;
+  FScopedEnums := False;
   FTopDefineRec := nil;
   ClearDefines;
 
@@ -1593,8 +1597,6 @@ begin
       end;
     PtIncludeDirect:
       begin
-//        if Assigned(FOnIncludeDirect) then
-//          FOnIncludeDirect(Self);
         if Assigned(FIncludeHandler) then
           IncludeFile
         else
@@ -1605,6 +1607,10 @@ begin
         if Assigned(FOnResourceDirect) then
           FOnResourceDirect(Self);
       end;
+    PtScopedEnumsDirect:
+      begin
+        UpdateScopedEnums;
+      end;      
     PtUndefDirect:
       begin
         if FUseDefines and (FDefineStack = 0) then
@@ -2079,8 +2085,6 @@ begin
       end;
     PtIncludeDirect:
       begin
-//        if Assigned(FOnIncludeDirect) then
-//          FOnIncludeDirect(Self);
         if Assigned(FIncludeHandler) then
           IncludeFile;
       end;
@@ -2089,6 +2093,10 @@ begin
         if Assigned(FOnResourceDirect) then
           FOnResourceDirect(Self);
       end;
+    PtScopedEnumsDirect:
+      begin
+        UpdateScopedEnums;
+      end;      
     PtUndefDirect:
       begin
         if Assigned(FOnUnDefDirect) then
@@ -2366,6 +2374,10 @@ begin
       if KeyComp('Resource') then
         Result := ptResourceDirect else
         Result := ptCompDirect;
+    134:
+      if KeyComp('SCOPEDENUMS') then
+        Result := ptScopedEnumsDirect else
+        Result := ptCompDirect;        
   else Result := ptCompDirect;
   end;
   FTokenPos := TempPos;
@@ -2466,6 +2478,7 @@ procedure TmwBasePasLex.InitFrom(ALexer: TmwBasePasLex);
 begin
   SetSharedBuffer(ALexer.FBuffer);
   FCommentState := ALexer.FCommentState;
+  FScopedEnums := ALexer.ScopedEnums;
   FBuffer.Run := ALexer.RunPos;
   FTokenID := ALexer.TokenID;
   FExID := ALexer.ExID;
@@ -2746,7 +2759,7 @@ function TmwBasePasLex.GetIsCompilerDirective: Boolean;
 begin
   Result := FTokenID in [ptCompDirect, ptDefineDirect, ptElseDirect,
     ptEndIfDirect, ptIfDefDirect, ptIfNDefDirect, ptIfOptDirect,
-    ptIncludeDirect, ptResourceDirect, ptUndefDirect];
+    ptIncludeDirect, ptResourceDirect, ptScopedEnumsDirect, ptUndefDirect];
 end;
 
 function TmwBasePasLex.GetGenID: TptTokenKind;
@@ -2853,6 +2866,11 @@ begin
   while CharInSet(FBuffer.Buf[FBuffer.Run], ['a'..'z', 'A'..'Z','0'..'9', '_', '&']) do
     Inc(FBuffer.Run);
   FTokenID := ptIdentifier;
+end;
+
+procedure TmwBasePasLex.UpdateScopedEnums;
+begin
+  FScopedEnums := SameText(DirectiveParam, 'ON');
 end;
 
 initialization
