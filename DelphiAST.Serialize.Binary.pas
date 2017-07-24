@@ -5,21 +5,30 @@ interface
 uses
   Classes,
   System.Generics.Collections,
+  DelphiAST.Consts,
   DelphiAST.Classes;
 
 type
+  TNodeClass = (ntSyntax, ntCompound, ntValued, ntComment);
+
   TBinarySerializer = class
   strict private
     FStream     : TStream;
+    FStringList : TStringList;
     FStringTable: TDictionary<string,integer>;
   strict protected
+    function CheckSignature: boolean;
+    function CheckVersion: boolean;
+    function CreateNode(nodeClass: TNodeClass; nodeType: TSyntaxNodeType): TSyntaxNode;
+    function ReadNode(var node: TSyntaxNode): boolean;
+    function ReadNumber(var num: cardinal): Boolean;
+    function ReadString(var str: string): boolean;
     procedure WriteNode(Node: TSyntaxNode);
     procedure WriteNumber(Num: cardinal);
     procedure WriteString(const S: string);
   public
-    constructor Create;
-    destructor  Destroy; override;
-    procedure Write(Root: TSyntaxNode; Stream: TStream);
+    function Read(Stream: TStream; var Root: TSyntaxNode): boolean;
+    procedure Write(Stream: TStream; Root: TSyntaxNode);
   end;
 
 implementation
@@ -27,40 +36,192 @@ implementation
 var
   CSignature: AnsiString = 'DAST binary file'#26;
 
-type
-  TNodeClass = (ntSyntax, ntCompound, ntValued, ntComment);
-
-constructor TBinarySerializer.Create;
+function TBinarySerializer.CheckSignature: boolean;
+var
+  sig: AnsiString;
 begin
-  inherited Create;
-  FStringTable := TDictionary<string,integer>.Create;
+  SetLength(sig, Length(CSignature));
+  Result := (FStream.Read(sig[1], Length(CSignature)) = Length(CSignature))
+        and (sig = CSignature);
 end;
 
-destructor TBinarySerializer.Destroy;
-begin
-  FStringTable.Free;
-  inherited Destroy;
-end;
-
-procedure TBinarySerializer.Write(Root: TSyntaxNode; Stream: TStream);
+function TBinarySerializer.CheckVersion: boolean;
 var
   version: Integer;
 begin
-  FStream := Stream;
-  FStream.Write(CSignature[1], Length(CSignature));
-  version := $01000000;
-  FStream.Write(version, 4);
-  WriteNode(Root);
+  Result := (FStream.Read(version, 4) = 4)
+        and ((version AND $FFFF0000) = $01000000);
+end;
+
+function TBinarySerializer.CreateNode(nodeClass: TNodeClass; nodeType: TSyntaxNodeType):
+  TSyntaxNode;
+begin
+  case nodeClass of
+    ntSyntax:   Result := TSyntaxNode.Create(nodeType);
+    ntCompound: Result := TCompoundSyntaxNode.Create(nodeType);
+    ntValued:   Result := TValuedSyntaxNode.Create(nodeType);
+    ntComment:  Result := TCommentNode.Create(nodeType);
+  end;
+end;
+
+function TBinarySerializer.Read(Stream: TStream; var Root: TSyntaxNode): boolean;
+var
+  node: TSyntaxNode;
+begin
+  Result := false;
+  FStringList := TStringList.Create;
+  try
+    FStream := Stream;
+    if not CheckSignature then
+      Exit;
+    if not CheckVersion then
+      Exit;
+    if not ReadNode(node) then
+      Exit;
+    Root := node;
+  finally FStringList.Free; end;
+  Result := true;
+end;
+
+function TBinarySerializer.ReadNode(var node: TSyntaxNode): boolean;
+var
+  childNode: TSyntaxNode;
+  i        : Integer;
+  nodeClass: TNodeClass;
+  num      : cardinal;
+  numSub: cardinal;
+  str      : string;
+begin
+  Result := false;
+  node := nil;
+  if (not ReadNumber(num)) or (num > Ord(High(TNodeClass))) then
+    Exit;
+  nodeClass := TNodeClass(num);
+  if (not ReadNumber(num)) or (num > Ord(High(TSyntaxNodeType))) then
+    Exit;
+  node := CreateNode(nodeClass, TSyntaxNodeType(num));
+  try
+
+    if (not ReadNumber(num)) or (num > High(integer)) then
+      Exit;
+    Node.Col := num;
+    if (not ReadNumber(num)) or (num > High(integer)) then
+      Exit;
+    Node.Line := num;
+
+    case nodeClass of
+      ntCompound:
+        begin
+          if (not ReadNumber(num)) or (num > High(integer)) then
+            Exit;
+          TCompoundSyntaxNode(Node).EndCol := num;
+          if (not ReadNumber(num)) or (num > High(integer)) then
+            Exit;
+          TCompoundSyntaxNode(Node).EndLine := num;
+        end;
+      ntValued:
+        begin
+          if not ReadString(str) then
+            Exit;
+          TValuedSyntaxNode(Node).Value := str;
+        end;
+      ntComment:
+        begin
+          if not ReadString(str) then
+            Exit;
+          TCommentNode(Node).Text := str;
+        end;
+    end;
+
+    if not ReadNumber(numSub) then
+      Exit;
+    for i := 1 to numSub do begin
+      if (not ReadNumber(num)) or (num > Ord(High(TAttributeName))) then
+        Exit;
+      if not ReadString(str) then
+        Exit;
+      Node.SetAttribute(TAttributeName(num), str);
+    end;
+
+    if not ReadNumber(numSub) then
+      Exit;
+    for i := 1 to numSub do begin
+      if not ReadNode(childNode) then
+        Exit;
+      Node.AddChild(childNode);
+    end;
+
+    Result := true;
+  finally
+    if not Result then begin
+      node.Free;
+      node := nil;
+    end;
+  end;
+end;
+
+function TBinarySerializer.ReadNumber(var num: cardinal): Boolean;
+var
+  lowPart: byte;
+  shift  : Integer;
+begin
+  Result := false;
+  shift := 0;
+  num := 0;
+  repeat
+    if FStream.Read(lowPart, 1) <> 1 then
+      Exit;
+    num := num OR ((lowPart AND $7F) SHL shift);
+    Inc(shift, 7);
+  until (lowPart AND $80) = 0;
+  Result := true;
+end;
+
+function TBinarySerializer.ReadString(var str: string): boolean;
+var
+  id: integer;
+  len: cardinal;
+  u8: UTF8String;
+begin
+  Result := false;
+  if not ReadNumber(len) then
+    Exit;
+  if (len SHR 24) = $FF then begin
+    id := len AND $00FFFFFF;
+    if id >= FStringList.Count then
+      Exit;
+    str := FStringList[id];
+  end
+  else begin
+    SetLength(u8, len);
+    if len > 0 then
+      if FStream.Read(u8[1], len) <> len then
+        Exit;
+    str := UTF8ToUnicodeString(u8);
+    FStringList.Add(str);
+  end;
+  Result := true;
+end;
+
+procedure TBinarySerializer.Write(Stream: TStream; Root: TSyntaxNode);
+var
+  version: Integer;
+begin
+  FStringTable := TDictionary<string,integer>.Create;
+  try
+    FStream := Stream;
+    FStream.Write(CSignature[1], Length(CSignature));
+    version := $01000000;
+    FStream.Write(version, 4);
+    WriteNode(Root);
+  finally FStringTable.Free; end;
 end;
 
 procedure TBinarySerializer.WriteNode(Node: TSyntaxNode);
 var
   attr     : TAttributeEntry;
-  b        : byte;
   childNode: TSyntaxNode;
-  i        : Integer;
   nodeClass: TNodeClass;
-  w        : word;
 begin
   if Node is TCompoundSyntaxNode then
     nodeClass := ntCompound
@@ -119,7 +280,7 @@ var
   u8: UTF8String;
 begin
   if (Length(S) > 4) and FStringTable.TryGetValue(S, id) then
-    WriteNumber(id OR $FF000000)
+    WriteNumber(cardinal(id) OR $FF000000)
   else begin
     if Length(S) > 4 then
       FStringTable.Add(S, FStringTable.Count + 1);

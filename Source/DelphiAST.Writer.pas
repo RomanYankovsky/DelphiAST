@@ -23,7 +23,7 @@ type
 implementation
 
 uses
-  Generics.Collections, TaggedStream,
+  Generics.Collections,
   DelphiAST.Consts, DelphiAST.Serialize.Binary;
 
 {$I SimpleParser.inc}
@@ -126,7 +126,7 @@ var
 begin
   Writer := TBinarySerializer.Create;
   try
-    Writer.Write(Root, Stream);
+    Writer.Write(Stream, Root);
   finally FreeAndNil(Writer); end;
 end;
 
