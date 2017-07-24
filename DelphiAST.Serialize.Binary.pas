@@ -1,4 +1,4 @@
-unit DelphiAST.Serialize.Binary;
+ unit DelphiAST.Serialize.Binary;
 
 interface
 
@@ -6,7 +6,7 @@ uses
   Classes,
   System.Generics.Collections,
   DelphiAST.Consts,
-  DelphiAST.Classes, Vcl.Imaging.pngimage;
+  DelphiAST.Classes;
 
 type
   TNodeClass = (ntSyntax, ntCompound, ntValued, ntComment);
@@ -32,6 +32,9 @@ type
   end;
 
 implementation
+
+uses
+  SysUtils;
 
 var
   CSignature: AnsiString = 'DAST binary file'#26;
@@ -61,6 +64,7 @@ begin
     ntCompound: Result := TCompoundSyntaxNode.Create(nodeType);
     ntValued:   Result := TValuedSyntaxNode.Create(nodeType);
     ntComment:  Result := TCommentNode.Create(nodeType);
+    else raise Exception.Create('TBinarySerializer.CreateNode: Unexpected node class');
   end;
 end;
 
@@ -96,7 +100,7 @@ var
 begin
   Result := false;
   node := nil;
-  if (not ReadNumber(num)) or (num > Ord(High(TNodeClass))) then
+  if (not ReadNumber(num)) or (num > cardinal(Ord(High(TNodeClass)))) then
     Exit;
   nodeClass := TNodeClass(num);
   if (not ReadNumber(num)) or (num > Ord(High(TSyntaxNodeType))) then
@@ -104,20 +108,20 @@ begin
   node := CreateNode(nodeClass, TSyntaxNodeType(num));
   try
 
-    if (not ReadNumber(num)) or (num > High(integer)) then
+    if (not ReadNumber(num)) or (num > cardinal(High(integer))) then
       Exit;
     Node.Col := num;
-    if (not ReadNumber(num)) or (num > High(integer)) then
+    if (not ReadNumber(num)) or (num > cardinal(High(integer))) then
       Exit;
     Node.Line := num;
 
     case nodeClass of
       ntCompound:
         begin
-          if (not ReadNumber(num)) or (num > High(integer)) then
+          if (not ReadNumber(num)) or (num > cardinal(High(integer))) then
             Exit;
           TCompoundSyntaxNode(Node).EndCol := num;
-          if (not ReadNumber(num)) or (num > High(integer)) then
+          if (not ReadNumber(num)) or (num > cardinal(High(integer))) then
             Exit;
           TCompoundSyntaxNode(Node).EndLine := num;
         end;
@@ -138,7 +142,7 @@ begin
     if not ReadNumber(numSub) then
       Exit;
     for i := 1 to numSub do begin
-      if (not ReadNumber(num)) or (num > Ord(High(TAttributeName))) then
+      if (not ReadNumber(num)) or (num > cardinal(Ord(High(TAttributeName)))) then
         Exit;
       if not ReadString(str) then
         Exit;
@@ -200,7 +204,7 @@ begin
   else begin
     SetLength(u8, len);
     if len > 0 then
-      if FStream.Read(u8[1], len) <> len then
+      if cardinal(FStream.Read(u8[1], len)) <> len then
         Exit;
     str := UTF8ToUnicodeString(u8);
     if Length(Str) > 4 then
