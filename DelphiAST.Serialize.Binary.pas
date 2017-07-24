@@ -6,7 +6,7 @@ uses
   Classes,
   System.Generics.Collections,
   DelphiAST.Consts,
-  DelphiAST.Classes;
+  DelphiAST.Classes, Vcl.Imaging.pngimage;
 
 type
   TNodeClass = (ntSyntax, ntCompound, ntValued, ntComment);
@@ -23,12 +23,12 @@ type
     function ReadNode(var node: TSyntaxNode): boolean;
     function ReadNumber(var num: cardinal): Boolean;
     function ReadString(var str: string): boolean;
-    procedure WriteNode(Node: TSyntaxNode);
-    procedure WriteNumber(Num: cardinal);
-    procedure WriteString(const S: string);
+    function WriteNode(Node: TSyntaxNode): Boolean;
+    function WriteNumber(Num: cardinal): Boolean;
+    function WriteString(const S: string): Boolean;
   public
     function Read(Stream: TStream; var Root: TSyntaxNode): boolean;
-    procedure Write(Stream: TStream; Root: TSyntaxNode);
+    function Write(Stream: TStream; Root: TSyntaxNode): boolean;
   end;
 
 implementation
@@ -69,6 +69,7 @@ var
   node: TSyntaxNode;
 begin
   Result := false;
+
   FStringList := TStringList.Create;
   try
     FStream := Stream;
@@ -80,6 +81,7 @@ begin
       Exit;
     Root := node;
   finally FStringList.Free; end;
+
   Result := true;
 end;
 
@@ -166,6 +168,7 @@ var
   shift  : Integer;
 begin
   Result := false;
+
   shift := 0;
   num := 0;
   repeat
@@ -174,6 +177,7 @@ begin
     num := num OR ((lowPart AND $7F) SHL shift);
     Inc(shift, 7);
   until (lowPart AND $80) = 0;
+
   Result := true;
 end;
 
@@ -184,6 +188,7 @@ var
   u8: UTF8String;
 begin
   Result := false;
+
   if not ReadNumber(len) then
     Exit;
   if (len SHR 24) = $FF then begin
@@ -198,31 +203,42 @@ begin
       if FStream.Read(u8[1], len) <> len then
         Exit;
     str := UTF8ToUnicodeString(u8);
-    FStringList.Add(str);
+    if Length(Str) > 4 then
+      FStringList.Add(str);
   end;
+
   Result := true;
 end;
 
-procedure TBinarySerializer.Write(Stream: TStream; Root: TSyntaxNode);
+function TBinarySerializer.Write(Stream: TStream; Root: TSyntaxNode): boolean;
 var
   version: Integer;
 begin
+  Result := false;
+
   FStringTable := TDictionary<string,integer>.Create;
   try
     FStream := Stream;
-    FStream.Write(CSignature[1], Length(CSignature));
+    if FStream.Write(CSignature[1], Length(CSignature)) <> Length(CSignature) then
+      Exit;
     version := $01000000;
-    FStream.Write(version, 4);
-    WriteNode(Root);
+    if FStream.Write(version, 4) <> 4 then
+      Exit;
+    if not WriteNode(Root) then
+      Exit;
   finally FStringTable.Free; end;
+
+  Result := true;
 end;
 
-procedure TBinarySerializer.WriteNode(Node: TSyntaxNode);
+function TBinarySerializer.WriteNode(Node: TSyntaxNode): Boolean;
 var
   attr     : TAttributeEntry;
   childNode: TSyntaxNode;
   nodeClass: TNodeClass;
 begin
+  Result := false;
+
   if Node is TCompoundSyntaxNode then
     nodeClass := ntCompound
   else if Node is TValuedSyntaxNode then
@@ -232,64 +248,79 @@ begin
   else
     nodeClass := ntSyntax;
 
-  WriteNumber(Ord(nodeClass));
-  WriteNumber(Ord(Node.Typ));
-  WriteNumber(Node.Col);
-  WriteNumber(Node.Line);
+  if not WriteNumber(Ord(nodeClass)) then Exit;
+  if not WriteNumber(Ord(Node.Typ)) then Exit;
+  if not WriteNumber(Node.Col) then Exit;
+  if not WriteNumber(Node.Line) then Exit;
 
   case nodeClass of
     ntCompound:
       begin
-        WriteNumber(TCompoundSyntaxNode(Node).EndCol);
-        WriteNumber(TCompoundSyntaxNode(Node).EndLine);
+        if not WriteNumber(TCompoundSyntaxNode(Node).EndCol) then Exit;
+        if not WriteNumber(TCompoundSyntaxNode(Node).EndLine) then Exit;
       end;
     ntValued:
-      WriteString(TValuedSyntaxNode(Node).Value);
+      if not WriteString(TValuedSyntaxNode(Node).Value) then Exit;
     ntComment:
-      WriteString(TCommentNode(Node).Text);
+      if not WriteString(TCommentNode(Node).Text) then Exit;
   end;
 
-  WriteNumber(Length(Node.Attributes));
+  if not WriteNumber(Length(Node.Attributes)) then Exit;
   for attr in Node.Attributes do begin // causes dynamic array assignment, yuck
-    WriteNumber(Ord(attr.Key));
-    WriteString(attr.Value);
+    if not WriteNumber(Ord(attr.Key)) then Exit;
+    if not WriteString(attr.Value) then Exit;
   end;
 
-  WriteNumber(Length(Node.ChildNodes));
+  if not WriteNumber(Length(Node.ChildNodes)) then Exit;
   for childNode in Node.ChildNodes do // causes dynamic array assignment, yuck
-    WriteNode(childNode);
+    if not WriteNode(childNode) then Exit;
+
+  Result := true;
 end;
 
-procedure TBinarySerializer.WriteNumber(Num: cardinal);
+function TBinarySerializer.WriteNumber(Num: cardinal): Boolean;
 var
   lowPart: byte;
 begin
+  Result := false;
+
   repeat
     lowPart := Num AND $7F;
     Num := Num SHR 7;
     if Num <> 0 then
       lowPart := lowPart OR $80;
-    FStream.Write(lowPart, 1);
+    if FStream.Write(lowPart, 1) <> 1 then
+      Exit;
   until Num = 0;
+
+  Result := true;
 end;
 
-procedure TBinarySerializer.WriteString(const S: string);
+function TBinarySerializer.WriteString(const S: string): Boolean;
 var
   i: Integer;
   id: integer;
   u8: UTF8String;
 begin
-  if (Length(S) > 4) and FStringTable.TryGetValue(S, id) then
-    WriteNumber(cardinal(id) OR $FF000000)
+  Result := false;
+
+  if (Length(S) > 4) and FStringTable.TryGetValue(S, id) then begin
+    if not WriteNumber(cardinal(id) OR $FF000000) then
+      Exit;
+  end
   else begin
     if Length(S) > 4 then
-      FStringTable.Add(S, FStringTable.Count + 1);
+      FStringTable.Add(S, FStringTable.Count);
     u8 := UTF8Encode(s);
     i := Length(u8);
-    WriteNumber(i);
+    if not WriteNumber(i) then
+      Exit;
     if i > 0 then
-      FStream.Write(@(u8[1]), i);
+      if FStream.Write(@(u8[1]), i) <> i then
+        Exit;
   end;
+
+  Result := true;
 end;
 
 end.

@@ -17,7 +17,7 @@ type
   public
     class function ToXML(const Root: TSyntaxNode;
       Formatted: Boolean = False): string; static;
-    class procedure ToBinary(const Root: TSyntaxNode; Stream: TStream); static;
+    class function ToBinary(const Root: TSyntaxNode; Stream: TStream): Boolean; static;
   end;
 
 implementation
@@ -120,13 +120,14 @@ begin
   NodeToXMLInternal(Node, '');
 end;
 
-class procedure TSyntaxTreeWriter.ToBinary(const Root: TSyntaxNode; Stream: TStream);
+class function TSyntaxTreeWriter.ToBinary(const Root: TSyntaxNode; Stream: TStream):
+  Boolean;
 var
   Writer: TBinarySerializer;
 begin
   Writer := TBinarySerializer.Create;
   try
-    Writer.Write(Stream, Root);
+    Result := Writer.Write(Stream, Root);
   finally FreeAndNil(Writer); end;
 end;
 
