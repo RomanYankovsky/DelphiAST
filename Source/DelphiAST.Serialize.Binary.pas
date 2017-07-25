@@ -313,8 +313,11 @@ begin
       Exit;
   end
   else begin
-    if Length(S) > 4 then
+    if Length(S) > 4 then begin
       FStringTable.Add(S, FStringTable.Count);
+      if FStringTable.Count > $FFFFFF then
+        raise Exception.Create('TBinarySerializer.WriteString: Too many strings!');
+    end;
     u8 := UTF8Encode(s);
     i := Length(u8);
     if not WriteNumber(i) then
