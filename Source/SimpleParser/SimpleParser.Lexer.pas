@@ -279,7 +279,7 @@ type
     procedure DoProcTable(AChar: Char);
     function IsIdentifiers(AChar: Char): Boolean; inline;
     function HashValue(AChar: Char): Integer;
-    function EvaluateCompilerVersion(const AOper: String; AValue: Integer): Boolean;
+    function EvaluateComparison(AValue1: Extended; const AOper: String; AValue2: Extended): Boolean;
     function EvaluateConditionalExpression(const AParams: String): Boolean;
     procedure IncludeFile;
     function GetIncludeFileNameFromToken(const IncludeToken: string): string;
@@ -1616,21 +1616,20 @@ begin
   end;
 end;
 
-function TmwBasePasLex.EvaluateCompilerVersion(const AOper: String; AValue: Integer):
-  Boolean;
+function TmwBasePasLex.EvaluateComparison(AValue1: Extended; const AOper: String; AValue2: Extended): Boolean;
 begin
   if AOper = '=' then
-    Result := CompilerVersion = AValue
+    Result := AValue1 = AValue2
   else if AOper = '<>' then
-    Result := CompilerVersion <> AValue
+    Result := AValue1 <> AValue2
   else if AOper = '<' then
-    Result := CompilerVersion < AValue
+    Result := AValue1 < AValue2
   else if AOper = '<=' then
-    Result := CompilerVersion <= AValue
+    Result := AValue1 <= AValue2
   else if AOper = '>' then
-    Result := CompilerVersion > AValue
+    Result := AValue1 > AValue2
   else if AOper = '>=' then
-    Result := CompilerVersion >= AValue
+    Result := AValue1 >= AValue2
   else
     Result := False;
 end;
@@ -1640,6 +1639,8 @@ var
   LParams: String;
   LDefine: String;
   LEvaluation: TmwPasLexExpressionEvaluation;
+  LIsComVer: Boolean;
+  LIsRtlVer: Boolean;
   LOper: string;
   LValue: Integer;
   p: Integer;
@@ -1647,10 +1648,15 @@ begin
   { TODO : Expand support for <=> evaluations (complicated to do). Expand support for NESTED expressions }
   LEvaluation := leeNone;
   LParams := TrimLeft(AParams);
-  if Pos('COMPILERVERSION', LParams) = 1 then //simple parser which covers most frequent use cases
+  LIsComVer := Pos('COMPILERVERSION', LParams) = 1;
+  LIsRtlVer := Pos('RTLVERSION', LParams) = 1;
+  if LIsComVer or LIsRtlVer then //simple parser which covers most frequent use cases
   begin
     Result := False;
-    Delete(LParams, 1, Length('COMPILERVERSION'));
+    if LIsComVer then
+      Delete(LParams, 1, Length('COMPILERVERSION'));
+    if LIsRtlVer then
+      Delete(LParams, 1, Length('RTLVERSION'));
     while (LParams <> '') and (LParams[1] = ' ') do
       Delete(LParams, 1, 1);
     p := Pos(' ', LParams);
@@ -1669,7 +1675,10 @@ begin
         while (LParams <> '') and (LParams[1] = ' ') do
           Delete(LParams, 1, 1);
         if LParams = '' then
-          Result := EvaluateCompilerVersion(LOper, LValue);
+          if LIsComVer then
+            Result := EvaluateComparison(CompilerVersion, LOper, LValue)
+          else if LIsRtlVer then
+            Result := EvaluateComparison(RTLVersion, LOper, LValue);
       end;
     end;
   end else
