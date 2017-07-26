@@ -279,6 +279,7 @@ type
     procedure DoProcTable(AChar: Char);
     function IsIdentifiers(AChar: Char): Boolean; inline;
     function HashValue(AChar: Char): Integer;
+    function EvaluateCompilerVersion(const AOper: String; AValue: Integer): Boolean;
     function EvaluateConditionalExpression(const AParams: String): Boolean;
     procedure IncludeFile;
     function GetIncludeFileNameFromToken(const IncludeToken: string): string;
@@ -1615,15 +1616,63 @@ begin
   end;
 end;
 
+function TmwBasePasLex.EvaluateCompilerVersion(const AOper: String; AValue: Integer):
+  Boolean;
+begin
+  if AOper = '=' then
+    Result := CompilerVersion = AValue
+  else if AOper = '<>' then
+    Result := CompilerVersion <> AValue
+  else if AOper = '<' then
+    Result := CompilerVersion < AValue
+  else if AOper = '<=' then
+    Result := CompilerVersion <= AValue
+  else if AOper = '>' then
+    Result := CompilerVersion > AValue
+  else if AOper = '>=' then
+    Result := CompilerVersion >= AValue
+  else
+    Result := False;
+end;
+
 function TmwBasePasLex.EvaluateConditionalExpression(const AParams: String): Boolean;
 var
   LParams: String;
   LDefine: String;
   LEvaluation: TmwPasLexExpressionEvaluation;
+  LOper: string;
+  LValue: Integer;
+  p: Integer;
 begin
   { TODO : Expand support for <=> evaluations (complicated to do). Expand support for NESTED expressions }
   LEvaluation := leeNone;
   LParams := TrimLeft(AParams);
+  if Pos('COMPILERVERSION', LParams) = 1 then //simple parser which covers most frequent use cases
+  begin
+    Result := False;
+    Delete(LParams, 1, Length('COMPILERVERSION'));
+    while (LParams <> '') and (LParams[1] = ' ') do
+      Delete(LParams, 1, 1);
+    p := Pos(' ', LParams);
+    if p > 0 then
+    begin
+      LOper := Copy(LParams, 1, p-1);
+      Delete(LParams, 1, p);
+      while (LParams <> '') and (LParams[1] = ' ') do
+        Delete(LParams, 1, 1);
+      p := Pos(' ', LParams);
+      if p = 0 then
+        p := Length(LParams) + 1;
+      if TryStrToInt(Copy(LParams, 1, p-1), LValue) then
+      begin
+        Delete(LParams, 1, p);
+        while (LParams <> '') and (LParams[1] = ' ') do
+          Delete(LParams, 1, 1);
+        if LParams = '' then
+          Result := EvaluateCompilerVersion(LOper, LValue);
+      end;
+    end;
+  end else
   if (Pos('DEFINED(', LParams) = 1) or (Pos('NOT DEFINED(', LParams) = 1) then
   begin
     Result := True; // Optimistic
