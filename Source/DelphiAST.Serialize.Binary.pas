@@ -1,10 +1,12 @@
  unit DelphiAST.Serialize.Binary;
+ 
+ {$IFDEF FPC}{$MODE DELPHI}{$ENDIF}
 
 interface
 
 uses
   Classes,
-  System.Generics.Collections,
+  Generics.Collections,
   DelphiAST.Consts,
   DelphiAST.Classes;
 
