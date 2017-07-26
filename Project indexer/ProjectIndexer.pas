@@ -9,19 +9,28 @@ uses
 type
   TProjectIndexer = class
   strict private
-    FParsedUnits: TDictionary<string,TSyntaxNode>;
+    FParsedUnits  : TObjectDictionary<string,TSyntaxNode>;
+    FProjectFolder: string;
+    FSearchPath   : string;
+    FSearchPaths  : TStringList;
   strict protected
     procedure AppendUnits(usesNode: TSyntaxNode; unitList: TStrings);
     procedure BuildUsesList(unitNode: TSyntaxNode; isProject: boolean; unitList: TStringList);
-    function FindType(node: TSyntaxNode; nodeType: TSyntaxNodeType): TSyntaxNode;
-    procedure ParseUnit(const fileName: string; isProject: boolean);
+    function  FindType(node: TSyntaxNode; nodeType: TSyntaxNodeType): TSyntaxNode;
+    procedure ParseUnit(const unitName: string; const fileName: string; isProject: boolean);
+    function  ResolveUnit(const unitName: string; var unitPath: string): boolean;
+    procedure SetSearchPath(const value: string);
   public
+    constructor Create;
+    destructor  Destroy; override;
     procedure Index(const fileName: string);
+    property SearchPath: string read FSearchPath write SetSearchPath;
   end;
 
 implementation
 
 uses
+  Windows,
   System.SysUtils;
 
 { TProjectIndexer }
@@ -63,6 +72,21 @@ begin
   end;
 end;
 
+constructor TProjectIndexer.Create;
+begin
+AllocConsole;
+  inherited Create;
+  FSearchPaths := TStringList.Create;
+  FSearchPaths.Delimiter := ';';
+  FSearchPaths.StrictDelimiter := true;
+end;
+
+destructor TProjectIndexer.Destroy;
+begin
+  FreeAndNil(FSearchPaths);
+  inherited;
+end;
+
 function TProjectIndexer.FindType(node: TSyntaxNode; nodeType: TSyntaxNodeType):
   TSyntaxNode;
 begin
@@ -74,26 +98,76 @@ end;
 
 procedure TProjectIndexer.Index(const fileName: string);
 begin
-  FParsedUnits := TDictionary<string,TSyntaxNode>.Create;
-  ParseUnit(fileName, true);
-  FParsedUnits.Free;
+  FParsedUnits := TObjectDictionary<string,TSyntaxNode>.Create([doOwnsValues]);
+  FProjectFolder := IncludeTrailingPathDelimiter(ExtractFilePath(fileName));
+  ParseUnit(ChangeFileExt(ExtractFileName(fileName), ''), fileName, true);
+  FreeAndNil(FParsedUnits);
 end;
 
-procedure TProjectIndexer.ParseUnit(const fileName: string; isProject: boolean);
+procedure TProjectIndexer.ParseUnit(const unitName: string; const fileName: string; isProject: boolean);
 var
-  syntaxTree: TSyntaxNode;
-  unitList  : TStringList;
-  unitNode  : TSyntaxNode;
+  syntaxTree  : TSyntaxNode;
+  thisUnitName: string;
+  unitList    : TStringList;
+  unitNode    : TSyntaxNode;
+  usesName    : string;
+  usesPath    : string;
 begin
-  syntaxTree := TPasSyntaxTreeBuilder.Run(fileName, false);
-  unitNode := FindType(syntaxTree, ntUnit);
-  if assigned(unitNode) then begin
-    unitList := TStringList.Create;
-    try
-      BuildUsesList(unitNode, isProject, unitList);
-
-    finally FreeAndNil(unitList); end;
+  try
+    syntaxTree := TPasSyntaxTreeBuilder.Run(fileName, false);
+  except
+    on E: ESyntaxTreeException do begin
+      syntaxTree := nil;
+      Writeln(unitName, ' @ ', E.Line, ',', E.Col, ': ', E.Message);
+    end;
   end;
+
+  FParsedUnits.Add(unitName, syntaxTree);
+
+  if not assigned(syntaxTree) then
+    Exit;
+  unitNode := FindType(syntaxTree, ntUnit);
+  if not assigned(unitNode) then
+    Exit;
+
+  unitList := TStringList.Create;
+  try
+    BuildUsesList(unitNode, isProject, unitList);
+    for usesName in unitList do
+      if not FParsedUnits.ContainsKey(usesName) then
+        if ResolveUnit(usesName, usesPath) then
+          ParseUnit(usesName, usesPath, false)
+        else
+          FParsedUnits.Add(usesName, nil)
+  finally FreeAndNil(unitList); end;
+end;
+
+function TProjectIndexer.ResolveUnit(const unitName: string; var unitPath: string):
+  boolean;
+var
+  searchPath : string;
+  unitNamePas: string;
+begin
+  Result := false;
+  unitNamePas := unitName + '.pas';
+  unitPath := FProjectFolder + unitNamePas;
+  if FileExists(unitPath) then
+    Exit(true);
+  for searchPath in FSearchPaths do begin
+    unitPath := searchPath + unitNamePas;
+    if FileExists(unitPath) then
+      Exit(true);
+  end;
+end;
+
+procedure TProjectIndexer.SetSearchPath(const value: string);
+var
+  iPath: integer;
+begin
+  FSearchPath := value;
+  FSearchPaths.DelimitedText := value;
+  for iPath := 0 to FSearchPaths.Count - 1 do
+    FSearchPaths[iPath] := IncludeTrailingPathDelimiter(FSearchPaths[iPath]);
 end;
 
 end.

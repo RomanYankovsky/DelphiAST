@@ -66,7 +66,7 @@
         <DCC_Optimize>false</DCC_Optimize>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
-        <Debugger_RunParams>x:\gp\dvb\ASIDiskRecorder.dpr</Debugger_RunParams>
+        <Debugger_RunParams>x:\ms\sttwin\sttwin.dpr</Debugger_RunParams>
         <Manifest_File>(None)</Manifest_File>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
         <DCC_UnitSearchPath>..\source;..\source\simpleparser;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
