@@ -107,9 +107,6 @@ begin
   Result := false;
   fName := fileName.DeQuotedString;
 
-//  if SameText(fName, 'msdefine.inc') then
-//    fName := fName;
-
   if relativeToFolder <> '' then begin
     filePath := relativeToFolder + fName;
     if FileExists(filePath) then
@@ -125,6 +122,9 @@ begin
     if FileExists(filePath) then
       Exit(true);
   end;
+
+  if not SameText(ExtractFileExt(fileName), '.pas') then
+    Result := FindFile(fileName + '.pas', relativeToFolder, filePath);
 end;
 
 function TProjectIndexer.FindType(node: TSyntaxNode; nodeType: TSyntaxNodeType):

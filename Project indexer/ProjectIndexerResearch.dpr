@@ -7,7 +7,8 @@ program ProjectIndexerResearch;
 uses
   FastMM4,
   System.SysUtils,
-  ProjectIndexer in 'ProjectIndexer.pas';
+  ProjectIndexer in 'ProjectIndexer.pas',
+  TestUnit in 'TestUnit.pas';
 
 var
   indexer: TProjectIndexer;
