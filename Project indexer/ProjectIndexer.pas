@@ -4,10 +4,20 @@ interface
 
 uses
   System.Classes, System.Generics.Collections,
+  SimpleParser.Lexer.Types,
   DelphiAST, DelphiAST.Classes, DelphiAST.Consts;
 
 type
   TProjectIndexer = class
+  strict private type
+    TIncludeHandler = class(TInterfacedObject, IIncludeHandler)
+    strict private
+      FUnitFileFolder: string;
+      [weak] FIndexer: TProjectIndexer;
+    public
+      function  GetIncludeFileContent(const fileName: string): string;
+      constructor Create(indexer: TProjectIndexer; const currentFile: string);
+    end;
   strict private
     FParsedUnits  : TObjectDictionary<string,TSyntaxNode>;
     FProjectFolder: string;
@@ -20,6 +30,8 @@ type
     procedure ParseUnit(const unitName: string; const fileName: string; isProject: boolean);
     function  ResolveUnit(const unitName: string; var unitPath: string): boolean;
     procedure SetSearchPath(const value: string);
+  protected
+    function  FindFile(const fileName: string; relativeToFolder: string; var filePath: string): boolean;
   public
     constructor Create;
     destructor  Destroy; override;
@@ -30,8 +42,8 @@ type
 implementation
 
 uses
-  Windows,
-  System.SysUtils;
+  System.SysUtils,
+  GpStreams;
 
 { TProjectIndexer }
 
@@ -41,7 +53,7 @@ var
 begin
   for childNode in usesNode.ChildNodes do
     if childNode.Typ = ntUnit then
-      unitList.Add(childNode.GetAttribute(anName)); // 'path' is currently ignored
+      unitList.Add(childNode.GetAttribute(anName)); // TODO 1 -oPrimoz Gabrijelcic : 'path' is currently ignored
 end;
 
 procedure TProjectIndexer.BuildUsesList(unitNode: TSyntaxNode; isProject: boolean;
@@ -74,7 +86,6 @@ end;
 
 constructor TProjectIndexer.Create;
 begin
-AllocConsole;
   inherited Create;
   FSearchPaths := TStringList.Create;
   FSearchPaths.Delimiter := ';';
@@ -85,6 +96,35 @@ destructor TProjectIndexer.Destroy;
 begin
   FreeAndNil(FSearchPaths);
   inherited;
+end;
+
+function TProjectIndexer.FindFile(const fileName: string; relativeToFolder: string;
+  var filePath: string): boolean;
+var
+  fName     : string;
+  searchPath: string;
+begin
+  Result := false;
+  fName := fileName.DeQuotedString;
+
+//  if SameText(fName, 'msdefine.inc') then
+//    fName := fName;
+
+  if relativeToFolder <> '' then begin
+    filePath := relativeToFolder + fName;
+    if FileExists(filePath) then
+      Exit(true);
+  end;
+
+  filePath := FProjectFolder + fName;
+  if FileExists(filePath) then
+    Exit(true);
+
+  for searchPath in FSearchPaths do begin
+    filePath := searchPath + fName;
+    if FileExists(filePath) then
+      Exit(true);
+  end;
 end;
 
 function TProjectIndexer.FindType(node: TSyntaxNode; nodeType: TSyntaxNodeType):
@@ -114,11 +154,11 @@ var
   usesPath    : string;
 begin
   try
-    syntaxTree := TPasSyntaxTreeBuilder.Run(fileName, false);
+    syntaxTree := TPasSyntaxTreeBuilder.Run(fileName, false, TIncludeHandler.Create(Self, fileName));
   except
     on E: ESyntaxTreeException do begin
       syntaxTree := nil;
-      Writeln(unitName, ' @ ', E.Line, ',', E.Col, ': ', E.Message);
+      Writeln(unitName, ' @ ', E.Line, ',', E.Col, ': ', E.Message); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
     end;
   end;
 
@@ -144,20 +184,8 @@ end;
 
 function TProjectIndexer.ResolveUnit(const unitName: string; var unitPath: string):
   boolean;
-var
-  searchPath : string;
-  unitNamePas: string;
 begin
-  Result := false;
-  unitNamePas := unitName + '.pas';
-  unitPath := FProjectFolder + unitNamePas;
-  if FileExists(unitPath) then
-    Exit(true);
-  for searchPath in FSearchPaths do begin
-    unitPath := searchPath + unitNamePas;
-    if FileExists(unitPath) then
-      Exit(true);
-  end;
+  Result := FindFile(unitName + '.pas', '', unitPath);
 end;
 
 procedure TProjectIndexer.SetSearchPath(const value: string);
@@ -168,6 +196,35 @@ begin
   FSearchPaths.DelimitedText := value;
   for iPath := 0 to FSearchPaths.Count - 1 do
     FSearchPaths[iPath] := IncludeTrailingPathDelimiter(FSearchPaths[iPath]);
+end;
+
+{ TProjectIndexer.TIncludeHandler }
+
+constructor TProjectIndexer.TIncludeHandler.Create(indexer: TProjectIndexer;
+  const currentFile: string);
+begin
+  inherited Create;
+  FIndexer := indexer;
+  FUnitFileFolder := IncludeTrailingPathDelimiter(ExtractFilePath(currentFile));
+end;
+
+function TProjectIndexer.TIncludeHandler.GetIncludeFileContent(
+  const fileName: string): string;
+var
+  data    : AnsiString;
+  filePath: string;
+begin
+  if not (FIndexer.FindFile(fileName, FUnitFileFolder, filePath)
+          and ReadFromFile(filePath, data))
+  then
+    Exit('');
+
+  if (Length(data) >= 3) and (Ord(data[1]) = $EF) and (Ord(data[2]) = $BB) and (Ord(data[3]) = $BF) then begin
+    Delete(data, 1, 3);
+    Result := UTF8ToUnicodeString(data);
+  end
+  else
+    Result := data;
 end;
 
 end.

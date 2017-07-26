@@ -5,6 +5,7 @@ program ProjectIndexerResearch;
 {$R *.res}
 
 uses
+  FastMM4,
   System.SysUtils,
   ProjectIndexer in 'ProjectIndexer.pas';
 

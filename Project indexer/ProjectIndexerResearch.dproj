@@ -66,6 +66,7 @@
         <DCC_Optimize>false</DCC_Optimize>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
+        <DCC_Define>FullDebugMode;$(DCC_Define)</DCC_Define>
         <Debugger_RunParams>x:\ms\sttwin\sttwin.dpr</Debugger_RunParams>
         <Manifest_File>(None)</Manifest_File>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
@@ -97,6 +98,8 @@
                     <Source Name="MainSource">ProjectIndexerResearch.dpr</Source>
                 </Source>
                 <Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\fmxdesigner240.bpl">FMX Form designer and property and component editors</Excluded_Packages>
+                    <Excluded_Packages Name="x:\common\pkg\_packages\10_1\bpl\cxEditorsRS24.bpl">ExpressEditors Library by Developer Express Inc.</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k240.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dclofficexp240.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
                 </Excluded_Packages>
