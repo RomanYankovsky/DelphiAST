@@ -33,6 +33,7 @@ begin
           'x:\common\pkg\DragDrop\Source;x:\common\pkg\DM\Source;x:\gp\utils;x:\common\pkg\TsiLang\Units;X:\common;x:\common\pkg\jvcl\run;x:\common\pkg\jvcl\common;x:\common\pkg\jvcl\resources;' +
           'x:\ms\netapi;x:\ln\wm\source;x:\common\ribbon\lib;x:\common\ffmpeg;C:\Program Files (x86)\TestInsight\Source;x:\common\detours\src;x:\common\Spring4D\Source\Base;x:\common\Spring4D\Source\Base\Collections;' +
           'x:\common\Spring4D\Source\Core\Interception';
+        indexer.Defines := 'DEBUG';
         indexer.Index(ParamStr(1));
         Write('>');
         Readln;

@@ -10,40 +10,52 @@ uses
 type
   TProjectIndexer = class
   strict private type
+    TIncludeCache = TDictionary<string,string>;
     TIncludeHandler = class(TInterfacedObject, IIncludeHandler)
     strict private
-      FUnitFileFolder: string;
-      [weak] FIndexer: TProjectIndexer;
+      [weak] FIncludeCache: TIncludeCache;
+      [weak] FIndexer     : TProjectIndexer;
+      FUnitFileFolder     : string;
     public
       function  GetIncludeFileContent(const fileName: string): string;
-      constructor Create(indexer: TProjectIndexer; const currentFile: string);
+      constructor Create(indexer: TProjectIndexer; includeCache: TIncludeCache; const currentFile: string);
     end;
   strict private
+    FDefines      : string;
+    FDefinesList  : TStringList;
+    FIncludeCache : TIncludeCache;
     FParsedUnits  : TObjectDictionary<string,TSyntaxNode>;
     FProjectFolder: string;
     FSearchPath   : string;
     FSearchPaths  : TStringList;
+    FUseDefinesDefinedByCompiler: boolean;
   strict protected
     procedure AppendUnits(usesNode: TSyntaxNode; unitList: TStrings);
     procedure BuildUsesList(unitNode: TSyntaxNode; isProject: boolean; unitList: TStringList);
     function  FindType(node: TSyntaxNode; nodeType: TSyntaxNodeType): TSyntaxNode;
     procedure ParseUnit(const unitName: string; const fileName: string; isProject: boolean);
     function  ResolveUnit(const unitName: string; var unitPath: string): boolean;
+    procedure SetDefines(const value: string);
     procedure SetSearchPath(const value: string);
   protected
     function  FindFile(const fileName: string; relativeToFolder: string; var filePath: string): boolean;
+    class function SafeOpenFileStream(const fileName: string; var fileStream: TStringStream;
+      var errorMsg: string): boolean;
   public
     constructor Create;
     destructor  Destroy; override;
     procedure Index(const fileName: string);
+    property Defines: string read FDefines write SetDefines;
     property SearchPath: string read FSearchPath write SetSearchPath;
+    property UseDefinesDefinedByCompiler: boolean read FUseDefinesDefinedByCompiler write
+      FUseDefinesDefinedByCompiler default true;
   end;
 
 implementation
 
 uses
   System.SysUtils,
-  GpStreams;
+  SimpleParser;
 
 { TProjectIndexer }
 
@@ -87,13 +99,20 @@ end;
 constructor TProjectIndexer.Create;
 begin
   inherited Create;
+  FUseDefinesDefinedByCompiler := true;
   FSearchPaths := TStringList.Create;
   FSearchPaths.Delimiter := ';';
   FSearchPaths.StrictDelimiter := true;
+  FDefinesList := TStringList.Create;
+  FDefinesList.Delimiter := ';';
+  FDefinesList.StrictDelimiter := true;
+  FParsedUnits := TObjectDictionary<string,TSyntaxNode>.Create([doOwnsValues]);
 end;
 
 destructor TProjectIndexer.Destroy;
 begin
+  FreeAndNil(FDefinesList);
+  FreeAndNil(FParsedUnits);
   FreeAndNil(FSearchPaths);
   inherited;
 end;
@@ -138,29 +157,47 @@ end;
 
 procedure TProjectIndexer.Index(const fileName: string);
 begin
-  FParsedUnits := TObjectDictionary<string,TSyntaxNode>.Create([doOwnsValues]);
+  FParsedUnits.Clear;
   FProjectFolder := IncludeTrailingPathDelimiter(ExtractFilePath(fileName));
-  ParseUnit(ChangeFileExt(ExtractFileName(fileName), ''), fileName, true);
-  FreeAndNil(FParsedUnits);
+  FIncludeCache := TIncludeCache.Create;
+  try
+    ParseUnit(ChangeFileExt(ExtractFileName(fileName), ''), fileName, true);
+  finally FreeAndNil(FIncludeCache); end;
 end;
 
 procedure TProjectIndexer.ParseUnit(const unitName: string; const fileName: string; isProject: boolean);
 var
-  syntaxTree  : TSyntaxNode;
-  thisUnitName: string;
-  unitList    : TStringList;
-  unitNode    : TSyntaxNode;
-  usesName    : string;
-  usesPath    : string;
+  builder   : TPasSyntaxTreeBuilder;
+  define: string;
+  errorMsg  : string;
+  fileStream: TStringStream;
+  syntaxTree: TSyntaxNode;
+  unitList  : TStringList;
+  unitNode  : TSyntaxNode;
+  usesName  : string;
+  usesPath  : string;
 begin
-  try
-    syntaxTree := TPasSyntaxTreeBuilder.Run(fileName, false, TIncludeHandler.Create(Self, fileName));
-  except
-    on E: ESyntaxTreeException do begin
-      syntaxTree := nil;
-      Writeln(unitName, ' @ ', E.Line, ',', E.Col, ': ', E.Message); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
-    end;
-  end;
+  syntaxTree := nil;
+
+  if not SafeOpenFileStream(fileName, fileStream, errorMsg) then
+    Writeln('Failed to open ', fileName, '. ', errorMsg) // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
+  else try
+    builder := TPasSyntaxTreeBuilder.Create;
+    try
+      builder.IncludeHandler := TIncludeHandler.Create(Self, FIncludeCache, fileName);
+      if UseDefinesDefinedByCompiler then
+        builder.InitDefinesDefinedByCompiler;
+      for define in FDefinesList do
+        TmwSimplePasPar(builder).Lexer.AddDefine(define);
+      try
+        syntaxTree := builder.Run(fileStream);
+      except
+        on E: ESyntaxTreeException do begin
+          Writeln(unitName, ' @ ', E.Line, ',', E.Col, ': ', E.Message); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
+        end;
+      end;
+    finally FreeAndNil(builder); end;
+  finally FreeAndNil(fileStream); end;
 
   FParsedUnits.Add(unitName, syntaxTree);
 
@@ -188,6 +225,43 @@ begin
   Result := FindFile(unitName + '.pas', '', unitPath);
 end;
 
+class function TProjectIndexer.SafeOpenFileStream(const fileName: string; var fileStream:
+  TStringStream; var errorMsg: string): boolean;
+var
+  buf       : TBytes;
+  encoding  : TEncoding;
+  readStream: TStream;
+begin
+  Result := true;
+  try
+    readStream := TFileStream.Create(fileName, fmOpenRead);
+  except
+    on E: EFCreateError do begin
+      errorMsg := E.Message;
+      Result := false;
+    end;
+    on E: EFOpenError do begin
+      errorMsg := E.Message;
+      Result := false;
+    end;
+  end;
+
+  if Result then try
+    SetLength(buf, 4);
+    SetLength(buf, readStream.Read(buf[0], Length(buf)));
+    encoding := nil;
+    readStream.Position := TEncoding.GetBufferEncoding(buf, encoding);
+    fileStream := TStringStream.Create('', encoding);
+    fileStream.CopyFrom(readStream, readStream.Size - readStream.Position);
+  finally FreeAndNil(readStream); end;
+end;
+
+procedure TProjectIndexer.SetDefines(const value: string);
+begin
+  FDefines := value;
+  FDefinesList.DelimitedText := value;
+end;
+
 procedure TProjectIndexer.SetSearchPath(const value: string);
 var
   iPath: integer;
@@ -201,30 +275,46 @@ end;
 { TProjectIndexer.TIncludeHandler }
 
 constructor TProjectIndexer.TIncludeHandler.Create(indexer: TProjectIndexer;
-  const currentFile: string);
+  includeCache: TIncludeCache; const currentFile: string);
 begin
   inherited Create;
   FIndexer := indexer;
+  FIncludeCache := includeCache;
   FUnitFileFolder := IncludeTrailingPathDelimiter(ExtractFilePath(currentFile));
 end;
 
 function TProjectIndexer.TIncludeHandler.GetIncludeFileContent(
   const fileName: string): string;
 var
-  data    : AnsiString;
-  filePath: string;
+  errorMsg  : string;
+  filePath  : string;
+  fileStream: TStringStream;
+  key       : string;
 begin
-  if not (FIndexer.FindFile(fileName, FUnitFileFolder, filePath)
-          and ReadFromFile(filePath, data))
-  then
-    Exit('');
+  key := fileName + '#13' + FUnitFileFolder;
 
-  if (Length(data) >= 3) and (Ord(data[1]) = $EF) and (Ord(data[2]) = $BB) and (Ord(data[3]) = $BF) then begin
-    Delete(data, 1, 3);
-    Result := UTF8ToUnicodeString(data);
+  if FIncludeCache.TryGetValue(key, Result) then
+    Exit;
+
+  // TODO 1 -oPrimoz Gabrijelcic : Also check in project folder?
+  if not FIndexer.FindFile(fileName, FUnitFileFolder, filePath) then begin
+    Writeln('Include file ', fileName, ' not found from unit folder ', FUnitFileFolder); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
+    FIncludeCache.Add(key, '');
+    Exit('');
+  end;
+
+  if FIncludeCache.TryGetValue(filePath, Result) then
+    Exit;
+
+  if not TProjectIndexer.SafeOpenFileStream(filePath, fileStream, errorMsg) then begin
+    Writeln('Failed to open ', filePath, '. ', errorMsg); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
+    Result := ''
   end
-  else
-    Result := data;
+  else try
+    Result := fileStream.DataString;
+  finally FreeAndNil(fileStream); end;
+
+  FIncludeCache.Add(filePath, Result);
 end;
 
 end.
