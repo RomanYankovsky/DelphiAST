@@ -15,6 +15,7 @@ type
     strict private
       [weak] FIncludeCache: TIncludeCache;
       [weak] FIndexer     : TProjectIndexer;
+      FUnitFile           : string;
       FUnitFileFolder     : string;
     public
       function  GetIncludeFileContent(const fileName: string): string;
@@ -65,7 +66,7 @@ var
 begin
   for childNode in usesNode.ChildNodes do
     if childNode.Typ = ntUnit then
-      unitList.Add(childNode.GetAttribute(anName)); // TODO 1 -oPrimoz Gabrijelcic : 'path' is currently ignored
+      unitList.Add(childNode.GetAttribute(anName)); // TODO 1 -oPrimoz Gabrijelcic : !!! 'path' is currently ignored
 end;
 
 procedure TProjectIndexer.BuildUsesList(unitNode: TSyntaxNode; isProject: boolean;
@@ -281,6 +282,7 @@ begin
   FIndexer := indexer;
   FIncludeCache := includeCache;
   FUnitFileFolder := IncludeTrailingPathDelimiter(ExtractFilePath(currentFile));
+  FUnitFile := ChangeFileExt(ExtractFileName(currentFile), '');
 end;
 
 function TProjectIndexer.TIncludeHandler.GetIncludeFileContent(
@@ -289,16 +291,24 @@ var
   errorMsg  : string;
   filePath  : string;
   fileStream: TStringStream;
+  fName: string;
   key       : string;
 begin
-  key := fileName + '#13' + FUnitFileFolder;
+  if fileName.StartsWith('*.') then
+    fName := FUnitFile + fileName.Remove(0 {0-based}, 1)
+  else if fileName.Contains('*') then
+    fName := fileName.Replace('*', '', [rfReplaceAll])
+  else
+    fName := fileName;
+
+  key := fName + '#13' + FUnitFileFolder;
 
   if FIncludeCache.TryGetValue(key, Result) then
     Exit;
 
-  // TODO 1 -oPrimoz Gabrijelcic : Also check in project folder?
-  if not FIndexer.FindFile(fileName, FUnitFileFolder, filePath) then begin
-    Writeln('Include file ', fileName, ' not found from unit folder ', FUnitFileFolder); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
+  // TODO 1 -oPrimoz Gabrijelcic : ??? Also check in project folder?
+  if not FIndexer.FindFile(fName, FUnitFileFolder, filePath) then begin
+    Writeln('Include file ', fName, ' not found from unit folder ', FUnitFileFolder); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
     FIncludeCache.Add(key, '');
     Exit('');
   end;
