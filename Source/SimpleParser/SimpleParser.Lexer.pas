@@ -1596,7 +1596,7 @@ begin
       begin
 //        if Assigned(FOnIncludeDirect) then
 //          FOnIncludeDirect(Self);
-        if Assigned(FIncludeHandler) then
+        if Assigned(FIncludeHandler) and (FDefineStack = 0) then
           IncludeFile
         else
           Next;
