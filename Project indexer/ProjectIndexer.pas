@@ -29,10 +29,12 @@ type
     FProjectFolder: string;
     FSearchPath   : string;
     FSearchPaths  : TStringList;
+    FUnitPaths    : TDictionary<string,string>;
     FUseDefinesDefinedByCompiler: boolean;
   strict protected
-    procedure AppendUnits(usesNode: TSyntaxNode; unitList: TStrings);
-    procedure BuildUsesList(unitNode: TSyntaxNode; isProject: boolean; unitList: TStringList);
+    procedure AppendUnits(usesNode: TSyntaxNode; const filePath: string; unitList: TStrings);
+    procedure BuildUsesList(unitNode: TSyntaxNode; const fileName: string; isProject: boolean;
+      unitList: TStringList);
     function  FindType(node: TSyntaxNode; nodeType: TSyntaxNodeType): TSyntaxNode;
     procedure ParseUnit(const unitName: string; const fileName: string; isProject: boolean);
     function  ResolveUnit(const unitName: string; var unitPath: string): boolean;
@@ -60,39 +62,54 @@ uses
 
 { TProjectIndexer }
 
-procedure TProjectIndexer.AppendUnits(usesNode: TSyntaxNode; unitList: TStrings);
+procedure TProjectIndexer.AppendUnits(usesNode: TSyntaxNode; const filePath: string;
+  unitList: TStrings);
 var
   childNode: TSyntaxNode;
+  unitName : string;
+  unitPath : string;
 begin
   for childNode in usesNode.ChildNodes do
-    if childNode.Typ = ntUnit then
-      unitList.Add(childNode.GetAttribute(anName)); // TODO 1 -oPrimoz Gabrijelcic : !!! 'path' is currently ignored
+    if childNode.Typ = ntUnit then begin
+      unitName := childNode.GetAttribute(anName);
+      unitList.Add(unitName);
+      if not FUnitPaths.ContainsKey(unitName) then begin
+        unitPath := childNode.GetAttribute(anPath);
+        if unitPath <> '' then begin
+          if IsRelativePath(unitPath) then
+            unitPath := filePath + unitPath;
+          FUnitPaths.Add(unitName + '.pas', unitPath);
+        end;
+      end;
+    end;
 end;
 
-procedure TProjectIndexer.BuildUsesList(unitNode: TSyntaxNode; isProject: boolean;
-  unitList: TStringList);
+procedure TProjectIndexer.BuildUsesList(unitNode: TSyntaxNode; const fileName: string;
+  isProject: boolean; unitList: TStringList);
 var
-  implNode: TSyntaxNode;
-  intfNode: TSyntaxNode;
-  usesNode: TSyntaxNode;
+  fileFolder: string;
+  implNode  : TSyntaxNode;
+  intfNode  : TSyntaxNode;
+  usesNode  : TSyntaxNode;
 begin
+  fileFolder := IncludeTrailingPathDelimiter(ExtractFilePath(fileName));
   if isProject then begin
     usesNode := FindType(unitNode, ntUses);
     if assigned(usesNode) then
-      AppendUnits(usesNode, unitList);
+      AppendUnits(usesNode, fileFolder, unitList);
   end
   else begin
     intfNode := FindType(unitNode, ntInterface);
     if assigned(intfNode) then begin
       usesNode := FindType(intfNode, ntUses);
       if assigned(usesNode) then
-        AppendUnits(usesNode, unitList);
+        AppendUnits(usesNode, fileFolder, unitList);
     end;
     implNode := FindType(unitNode, ntImplementation);
     if assigned(implNode) then begin
       usesNode := FindType(implNode, ntUses);
       if assigned(usesNode) then
-        AppendUnits(usesNode, unitList);
+        AppendUnits(usesNode, fileFolder, unitList);
     end;
   end;
 end;
@@ -126,6 +143,9 @@ var
 begin
   Result := false;
   fName := fileName.DeQuotedString;
+
+  if FUnitPaths.TryGetValue(fName, filePath) then
+    Exit(true);
 
   if relativeToFolder <> '' then begin
     filePath := relativeToFolder + fName;
@@ -162,7 +182,10 @@ begin
   FProjectFolder := IncludeTrailingPathDelimiter(ExtractFilePath(fileName));
   FIncludeCache := TIncludeCache.Create;
   try
-    ParseUnit(ChangeFileExt(ExtractFileName(fileName), ''), fileName, true);
+    FUnitPaths := TDictionary<string,string>.Create;
+    try
+      ParseUnit(ChangeFileExt(ExtractFileName(fileName), ''), fileName, true);
+    finally FreeAndNil(FUnitPaths); end;
   finally FreeAndNil(FIncludeCache); end;
 end;
 
@@ -210,7 +233,7 @@ begin
 
   unitList := TStringList.Create;
   try
-    BuildUsesList(unitNode, isProject, unitList);
+    BuildUsesList(unitNode, fileName, isProject, unitList);
     for usesName in unitList do
       if not FParsedUnits.ContainsKey(usesName) then
         if ResolveUnit(usesName, usesPath) then
