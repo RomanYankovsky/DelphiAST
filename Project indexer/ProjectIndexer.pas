@@ -3,12 +3,49 @@ unit ProjectIndexer;
 interface
 
 uses
-  System.Classes, System.Generics.Collections,
+  System.Classes, System.Generics.Defaults, System.Generics.Collections,
   SimpleParser.Lexer.Types,
   DelphiAST, DelphiAST.Classes, DelphiAST.Consts;
 
 type
   TProjectIndexer = class
+  strict private type
+    TParsedUnitsCache = TObjectDictionary<string,TSyntaxNode>;
+    TUnitPathsCache = TDictionary<string,string>;
+  public type
+    TOption = (piUseDefinesDefinedByCompiler);
+    TOptions = set of TOption;
+    TUnitParsedEvent = procedure (Sender: TObject; const unitName: string; const fileName: string;
+      var syntaxTree: TSyntaxNode; var abort: boolean) of object;
+
+    TUnitInfo = record
+      Name: string;
+      Path: string;
+      SyntaxTree: TSyntaxNode;
+      HasError: boolean;
+      ErrorInfo: record
+        Line: integer;
+        Col: integer;
+        Error: string;
+      end;
+    end;
+
+    TParsedUnits = class
+    strict private
+      FInfo: TList<TUnitInfo>;
+    strict protected
+      function  GetInfo(idx: integer): TUnitInfo; inline;
+    protected
+      procedure Initialize(parsedUnits: TParsedUnitsCache; unitPaths: TUnitPathsCache);
+    public
+      constructor Create;
+      destructor Destroy; override;
+      function  Count: integer; inline;
+      function  GetEnumerator: TEnumerator<TUnitInfo>; inline;
+      function  ToArray: TArray<TUnitInfo>; inline;
+      property Info[idx: integer]: TUnitInfo read GetInfo; default;
+    end;
+
   strict private type
     TIncludeCache = TDictionary<string,string>;
     TIncludeHandler = class(TInterfacedObject, IIncludeHandler)
@@ -22,24 +59,26 @@ type
       constructor Create(indexer: TProjectIndexer; includeCache: TIncludeCache; const currentFile: string);
     end;
   strict private
-    FDefines      : string;
-    FDefinesList  : TStringList;
-    FIncludeCache : TIncludeCache;
-    FParsedUnits  : TObjectDictionary<string,TSyntaxNode>;
-    FProjectFolder: string;
-    FSearchPath   : string;
-    FSearchPaths  : TStringList;
-    FUnitPaths    : TDictionary<string,string>;
-    FUseDefinesDefinedByCompiler: boolean;
+    FAborting       : boolean;
+    FDefines        : string;
+    FDefinesList    : TStringList;
+    FIncludeCache   : TIncludeCache;
+    FOnUnitParsed   : TUnitParsedEvent;
+    FOptions        : TOptions;
+    FParsedUnits    : TParsedUnitsCache;
+    FParsedUnitsInfo: TParsedUnits;
+    FProjectFolder  : string;
+    FSearchPath     : string;
+    FSearchPaths    : TStringList;
+    FUnitPaths      : TUnitPathsCache;
   strict protected
     procedure AppendUnits(usesNode: TSyntaxNode; const filePath: string; unitList: TStrings);
     procedure BuildUsesList(unitNode: TSyntaxNode; const fileName: string; isProject: boolean;
       unitList: TStringList);
     function  FindType(node: TSyntaxNode; nodeType: TSyntaxNodeType): TSyntaxNode;
     procedure ParseUnit(const unitName: string; const fileName: string; isProject: boolean);
-    function  ResolveUnit(const unitName: string; var unitPath: string): boolean;
-    procedure SetDefines(const value: string);
-    procedure SetSearchPath(const value: string);
+    procedure PrepareSearchPath;
+    procedure PrepareDefines;
   protected
     function  FindFile(const fileName: string; relativeToFolder: string; var filePath: string): boolean;
     class function SafeOpenFileStream(const fileName: string; var fileStream: TStringStream;
@@ -48,10 +87,14 @@ type
     constructor Create;
     destructor  Destroy; override;
     procedure Index(const fileName: string);
-    property Defines: string read FDefines write SetDefines;
-    property SearchPath: string read FSearchPath write SetSearchPath;
-    property UseDefinesDefinedByCompiler: boolean read FUseDefinesDefinedByCompiler write
-      FUseDefinesDefinedByCompiler default true;
+    property Defines: string read FDefines write FDefines;
+    property Options: TOptions read FOptions write FOptions default [piUseDefinesDefinedByCompiler];
+    property ParsedUnits: TParsedUnits read FParsedUnitsInfo;
+//    property IncludeFiles:
+//    property Problems
+//    property NotFoundUnits
+    property SearchPath: string read FSearchPath write FSearchPath;
+    property OnUnitParsed: TUnitParsedEvent read FOnUnitParsed write FOnUnitParsed;
   end;
 
 implementation
@@ -59,6 +102,75 @@ implementation
 uses
   System.SysUtils,
   SimpleParser;
+
+{ TProjectIndexer.TParsedUnits }
+
+constructor TProjectIndexer.TParsedUnits.Create;
+begin
+  inherited Create;
+  FInfo := TList<TUnitInfo>.Create;
+end;
+
+destructor TProjectIndexer.TParsedUnits.Destroy;
+begin
+  FreeAndNil(FInfo);
+  inherited;
+end;
+
+function TProjectIndexer.TParsedUnits.Count: integer;
+begin
+  Result := FInfo.Count;
+end;
+
+function TProjectIndexer.TParsedUnits.GetEnumerator: TEnumerator<TUnitInfo>;
+begin
+  Result := FInfo.GetEnumerator;
+end;
+
+function TProjectIndexer.TParsedUnits.GetInfo(idx: integer): TUnitInfo;
+begin
+  Result := FInfo[idx];
+end;
+
+procedure TProjectIndexer.TParsedUnits.Initialize(parsedUnits: TParsedUnitsCache;
+  unitPaths: TUnitPathsCache);
+var
+  info    : TUnitInfo;
+  kv      : TPair<string,TSyntaxNode>;
+  parsed  : TArray<TPair<string,TSyntaxNode>>;
+  unitPath: string;
+begin
+  FInfo.Clear;
+  FInfo.Capacity := parsedUnits.Count;
+
+  parsed := parsedUnits.ToArray;
+  TArray.Sort<TPair<string,TSyntaxNode>>(parsed,
+    TComparer<TPair<string,TSyntaxNode>>.Construct(
+      function(const Left, Right: TPair<string,TSyntaxNode>): integer
+      begin
+        Result := TOrdinalIStringComparer(TIStringComparer.Ordinal).Compare(Left.Key, Right.Key);
+      end));
+
+  for kv in parsed do begin
+    if not assigned(kv.Value) then
+      continue; //for kv
+    info.Name := kv.Key;
+    info.SyntaxTree := kv.Value;
+    if not (unitPaths.TryGetValue(kv.Key + '.pas', unitPath)
+            or unitPaths.TryGetValue(kv.Key + '.dpr', unitPath))
+    then
+      unitPath := '';
+    info.Path := unitPath;
+    info.HasError := false; // TODO 1 -oPrimoz Gabrijelcic : fix that
+    FInfo.Add(info);
+  end;
+  FInfo.TrimExcess;
+end;
+
+function TProjectIndexer.TParsedUnits.ToArray: TArray<TUnitInfo>;
+begin
+  Result := FInfo.ToArray;
+end; { TParsedUnits.ToArray }
 
 { TProjectIndexer }
 
@@ -117,18 +229,20 @@ end;
 constructor TProjectIndexer.Create;
 begin
   inherited Create;
-  FUseDefinesDefinedByCompiler := true;
+  FOptions := [piUseDefinesDefinedByCompiler];
   FSearchPaths := TStringList.Create;
   FSearchPaths.Delimiter := ';';
   FSearchPaths.StrictDelimiter := true;
   FDefinesList := TStringList.Create;
   FDefinesList.Delimiter := ';';
   FDefinesList.StrictDelimiter := true;
-  FParsedUnits := TObjectDictionary<string,TSyntaxNode>.Create([doOwnsValues]);
+  FParsedUnits := TParsedUnitsCache.Create;
+  FParsedUnitsInfo := TParsedUnits.Create;
 end;
 
 destructor TProjectIndexer.Destroy;
 begin
+  FreeAndNil(FParsedUnitsInfo);
   FreeAndNil(FDefinesList);
   FreeAndNil(FParsedUnits);
   FreeAndNil(FSearchPaths);
@@ -140,6 +254,13 @@ function TProjectIndexer.FindFile(const fileName: string; relativeToFolder: stri
 var
   fName     : string;
   searchPath: string;
+
+  function AddToUnitPaths: boolean;
+  begin
+    FUnitPaths.Add(fName, filePath);
+    Result := true;
+  end;
+
 begin
   Result := false;
   fName := fileName.DeQuotedString;
@@ -150,17 +271,17 @@ begin
   if relativeToFolder <> '' then begin
     filePath := relativeToFolder + fName;
     if FileExists(filePath) then
-      Exit(true);
+      Exit(AddToUnitPaths);
   end;
 
   filePath := FProjectFolder + fName;
   if FileExists(filePath) then
-    Exit(true);
+    Exit(AddToUnitPaths);
 
   for searchPath in FSearchPaths do begin
     filePath := searchPath + fName;
     if FileExists(filePath) then
-      Exit(true);
+      Exit(AddToUnitPaths);
   end;
 
   if not SameText(ExtractFileExt(fileName), '.pas') then
@@ -177,22 +298,31 @@ begin
 end;
 
 procedure TProjectIndexer.Index(const fileName: string);
+var
+  projectName: string;
 begin
+  FAborting := false;
   FParsedUnits.Clear;
   FProjectFolder := IncludeTrailingPathDelimiter(ExtractFilePath(fileName));
   FIncludeCache := TIncludeCache.Create;
   try
-    FUnitPaths := TDictionary<string,string>.Create;
+    FUnitPaths := TUnitPathsCache.Create;;
     try
-      ParseUnit(ChangeFileExt(ExtractFileName(fileName), ''), fileName, true);
+      PrepareDefines;
+      PrepareSearchPath;
+      projectName := ChangeFileExt(ExtractFileName(fileName), '');
+      FUnitPaths.Add(projectName + '.dpr', fileName);
+      ParseUnit(projectName, fileName, true);
+      FParsedUnitsInfo.Initialize(FParsedUnits, FUnitPaths);
     finally FreeAndNil(FUnitPaths); end;
   finally FreeAndNil(FIncludeCache); end;
 end;
 
 procedure TProjectIndexer.ParseUnit(const unitName: string; const fileName: string; isProject: boolean);
 var
+  abort     : boolean;
   builder   : TPasSyntaxTreeBuilder;
-  define: string;
+  define    : string;
   errorMsg  : string;
   fileStream: TStringStream;
   syntaxTree: TSyntaxNode;
@@ -201,6 +331,9 @@ var
   usesName  : string;
   usesPath  : string;
 begin
+  if FAborting then
+    Exit;
+
   syntaxTree := nil;
 
   if not SafeOpenFileStream(fileName, fileStream, errorMsg) then
@@ -209,7 +342,7 @@ begin
     builder := TPasSyntaxTreeBuilder.Create;
     try
       builder.IncludeHandler := TIncludeHandler.Create(Self, FIncludeCache, fileName);
-      if UseDefinesDefinedByCompiler then
+      if piUseDefinesDefinedByCompiler in Options then
         builder.InitDefinesDefinedByCompiler;
       for define in FDefinesList do
         TmwSimplePasPar(builder).Lexer.AddDefine(define);
@@ -234,19 +367,38 @@ begin
   unitList := TStringList.Create;
   try
     BuildUsesList(unitNode, fileName, isProject, unitList);
-    for usesName in unitList do
+
+    if assigned(OnUnitParsed) then begin
+      abort := false;
+      OnUnitParsed(Self, unitName, fileName, syntaxTree, abort);
+      if abort then
+        FAborting := true;
+    end;
+
+    for usesName in unitList do begin
+      if FAborting then
+        Exit;
       if not FParsedUnits.ContainsKey(usesName) then
-        if ResolveUnit(usesName, usesPath) then
+        if FindFile(usesName + '.pas', '', usesPath) then
           ParseUnit(usesName, usesPath, false)
         else
-          FParsedUnits.Add(usesName, nil)
+          FParsedUnits.Add(usesName, nil);
+    end;
   finally FreeAndNil(unitList); end;
 end;
 
-function TProjectIndexer.ResolveUnit(const unitName: string; var unitPath: string):
-  boolean;
+procedure TProjectIndexer.PrepareSearchPath;
+var
+  iPath: integer;
+  sPath: string;
 begin
-  Result := FindFile(unitName + '.pas', '', unitPath);
+  FSearchPaths.DelimitedText := SearchPath;
+  for iPath := 0 to FSearchPaths.Count - 1 do begin
+    sPath := FSearchPaths[iPath];
+    if IsRelativePath(sPath) then
+      sPath := FProjectFolder + sPath;
+    FSearchPaths[iPath] := IncludeTrailingPathDelimiter(sPath);
+  end;
 end;
 
 class function TProjectIndexer.SafeOpenFileStream(const fileName: string; var fileStream:
@@ -280,20 +432,9 @@ begin
   finally FreeAndNil(readStream); end;
 end;
 
-procedure TProjectIndexer.SetDefines(const value: string);
+procedure TProjectIndexer.PrepareDefines;
 begin
-  FDefines := value;
-  FDefinesList.DelimitedText := value;
-end;
-
-procedure TProjectIndexer.SetSearchPath(const value: string);
-var
-  iPath: integer;
-begin
-  FSearchPath := value;
-  FSearchPaths.DelimitedText := value;
-  for iPath := 0 to FSearchPaths.Count - 1 do
-    FSearchPaths[iPath] := IncludeTrailingPathDelimiter(FSearchPaths[iPath]);
+  FDefinesList.DelimitedText := FDefines;
 end;
 
 { TProjectIndexer.TIncludeHandler }
@@ -329,7 +470,6 @@ begin
   if FIncludeCache.TryGetValue(key, Result) then
     Exit;
 
-  // TODO 1 -oPrimoz Gabrijelcic : ??? Also check in project folder?
   if not FIndexer.FindFile(fName, FUnitFileFolder, filePath) then begin
     Writeln('Include file ', fName, ' not found from unit folder ', FUnitFileFolder); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
     FIncludeCache.Add(key, '');

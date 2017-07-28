@@ -11,6 +11,7 @@ uses
   TestUnit in 'TestUnit.pas';
 
 var
+  i      : integer;
   indexer: TProjectIndexer;
 
 begin
@@ -34,7 +35,11 @@ begin
 //          'x:\ms\netapi;x:\ln\wm\source;x:\common\ribbon\lib;x:\common\ffmpeg;C:\Program Files (x86)\TestInsight\Source;x:\common\detours\src;x:\common\Spring4D\Source\Base;x:\common\Spring4D\Source\Base\Collections;' +
 //          'x:\common\Spring4D\Source\Core\Interception';
 //        indexer.Defines := 'DEBUG';
+        indexer.SearchPath := 'sub2';
         indexer.Index(ParamStr(1));
+        Writeln(indexer.ParsedUnits.Count, ' units');
+        for i := 0 to indexer.ParsedUnits.Count - 1 do
+          Writeln(indexer.ParsedUnits[i].Name, ' in ', indexer.ParsedUnits[i].Path);
         Write('>');
         Readln;
       finally FreeAndNil(indexer); end;
