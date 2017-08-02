@@ -15,8 +15,10 @@ type
   public type
     TOption = (piUseDefinesDefinedByCompiler);
     TOptions = set of TOption;
+    TGetUnitSyntaxEvent = procedure (Sender: TObject; const fileName: string;
+      var syntaxTree: TSyntaxNode; var doParseUnit, doAbort: boolean) of object;
     TUnitParsedEvent = procedure (Sender: TObject; const unitName: string; const fileName: string;
-      var syntaxTree: TSyntaxNode; var abort: boolean) of object;
+      var syntaxTree: TSyntaxNode; syntaxTreeFromParser: boolean; var doAbort: boolean) of object;
 
     TUnitInfo = record
       Name: string;
@@ -63,6 +65,7 @@ type
     FDefines        : string;
     FDefinesList    : TStringList;
     FIncludeCache   : TIncludeCache;
+    FOnGetUnitSyntax: TGetUnitSyntaxEvent;
     FOnUnitParsed   : TUnitParsedEvent;
     FOptions        : TOptions;
     FParsedUnits    : TParsedUnitsCache;
@@ -76,9 +79,16 @@ type
     procedure BuildUsesList(unitNode: TSyntaxNode; const fileName: string; isProject: boolean;
       unitList: TStringList);
     function  FindType(node: TSyntaxNode; nodeType: TSyntaxNodeType): TSyntaxNode;
+    procedure GetUnitSyntax(const fileName: string; var syntaxTree: TSyntaxNode; var
+      doParseUnit: boolean);
+    procedure NotifyUnitParsed(const unitName, fileName: string; var syntaxTree: TSyntaxNode;
+      syntaxTreeFromParser: boolean);
     procedure ParseUnit(const unitName: string; const fileName: string; isProject: boolean);
     procedure PrepareSearchPath;
     procedure PrepareDefines;
+    procedure RunParserOnUnit(const fileName: string; var syntaxTree: TSyntaxNode);
+    procedure ScanUsedUnits(const fileName: string; isProject: boolean;
+      syntaxTree: TSyntaxNode; syntaxTreeFromParser: boolean);
   protected
     function  FindFile(const fileName: string; relativeToFolder: string; var filePath: string): boolean;
     class function SafeOpenFileStream(const fileName: string; var fileStream: TStringStream;
@@ -94,6 +104,7 @@ type
 //    property Problems
 //    property NotFoundUnits
     property SearchPath: string read FSearchPath write FSearchPath;
+    property OnGetUnitSyntax: TGetUnitSyntaxEvent read FOnGetUnitSyntax write FOnGetUnitSyntax;
     property OnUnitParsed: TUnitParsedEvent read FOnUnitParsed write FOnUnitParsed;
   end;
 
@@ -297,6 +308,20 @@ begin
     Result := node.FindNode(nodeType);
 end;
 
+procedure TProjectIndexer.GetUnitSyntax(const fileName: string; var syntaxTree:
+  TSyntaxNode; var doParseUnit: boolean);
+var
+  doAbort: boolean;
+begin
+  doAbort := false;
+  doParseUnit := true;
+  if assigned(OnGetUnitSyntax) then begin
+    OnGetUnitSyntax(Self, fileName, syntaxTree, doParseUnit, doAbort);
+    if doAbort then
+      FAborting := true;
+  end;
+end;
+
 procedure TProjectIndexer.Index(const fileName: string);
 var
   projectName: string;
@@ -318,73 +343,43 @@ begin
   finally FreeAndNil(FIncludeCache); end;
 end;
 
+procedure TProjectIndexer.NotifyUnitParsed(const unitName, fileName: string; var
+  syntaxTree: TSyntaxNode; syntaxTreeFromParser: boolean);
+var
+  doAbort: boolean;
+begin
+  if assigned(OnUnitParsed) then begin
+    doAbort := false;
+    OnUnitParsed(Self, unitName, fileName, syntaxTree, syntaxTreeFromParser, doAbort);
+    if doAbort then
+      FAborting := true;
+  end;
+end;
+
 procedure TProjectIndexer.ParseUnit(const unitName: string; const fileName: string; isProject: boolean);
 var
-  abort     : boolean;
-  builder   : TPasSyntaxTreeBuilder;
-  define    : string;
-  errorMsg  : string;
-  fileStream: TStringStream;
-  syntaxTree: TSyntaxNode;
-  unitList  : TStringList;
-  unitNode  : TSyntaxNode;
-  usesName  : string;
-  usesPath  : string;
+  doParseUnit: boolean;
+  syntaxTree : TSyntaxNode;
 begin
   if FAborting then
     Exit;
 
   syntaxTree := nil;
 
-  if not SafeOpenFileStream(fileName, fileStream, errorMsg) then
-    Writeln('Failed to open ', fileName, '. ', errorMsg) // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
-  else try
-    builder := TPasSyntaxTreeBuilder.Create;
-    try
-      builder.IncludeHandler := TIncludeHandler.Create(Self, FIncludeCache, fileName);
-      if piUseDefinesDefinedByCompiler in Options then
-        builder.InitDefinesDefinedByCompiler;
-      for define in FDefinesList do
-        TmwSimplePasPar(builder).Lexer.AddDefine(define);
-      try
-        syntaxTree := builder.Run(fileStream);
-      except
-        on E: ESyntaxTreeException do begin
-          Writeln(unitName, ' @ ', E.Line, ',', E.Col, ': ', E.Message); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
-        end;
-      end;
-    finally FreeAndNil(builder); end;
-  finally FreeAndNil(fileStream); end;
+  GetUnitSyntax(fileName, syntaxTree, doParseUnit);
+
+  if FAborting then
+    Exit;
+
+  if not doParseUnit then
+    RunParserOnUnit(fileName, syntaxTree);
 
   FParsedUnits.Add(unitName, syntaxTree);
 
   if not assigned(syntaxTree) then
     Exit;
-  unitNode := FindType(syntaxTree, ntUnit);
-  if not assigned(unitNode) then
-    Exit;
 
-  unitList := TStringList.Create;
-  try
-    BuildUsesList(unitNode, fileName, isProject, unitList);
-
-    if assigned(OnUnitParsed) then begin
-      abort := false;
-      OnUnitParsed(Self, unitName, fileName, syntaxTree, abort);
-      if abort then
-        FAborting := true;
-    end;
-
-    for usesName in unitList do begin
-      if FAborting then
-        Exit;
-      if not FParsedUnits.ContainsKey(usesName) then
-        if FindFile(usesName + '.pas', '', usesPath) then
-          ParseUnit(usesName, usesPath, false)
-        else
-          FParsedUnits.Add(usesName, nil);
-    end;
-  finally FreeAndNil(unitList); end;
+  ScanUsedUnits(fileName, isProject, syntaxTree, doParseUnit);
 end;
 
 procedure TProjectIndexer.PrepareSearchPath;
@@ -435,6 +430,65 @@ end;
 procedure TProjectIndexer.PrepareDefines;
 begin
   FDefinesList.DelimitedText := FDefines;
+end;
+
+procedure TProjectIndexer.RunParserOnUnit(const fileName: string; var syntaxTree:
+  TSyntaxNode);
+var
+  builder   : TPasSyntaxTreeBuilder;
+  define    : string;
+  errorMsg  : string;
+  fileStream: TStringStream;
+begin
+  if not SafeOpenFileStream(fileName, fileStream, errorMsg) then
+    Writeln('Failed to open ', fileName, '. ', errorMsg) // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
+  else try
+    builder := TPasSyntaxTreeBuilder.Create;
+    try
+      builder.IncludeHandler := TIncludeHandler.Create(Self, FIncludeCache, fileName);
+      if piUseDefinesDefinedByCompiler in Options then
+        builder.InitDefinesDefinedByCompiler;
+      for define in FDefinesList do
+        TmwSimplePasPar(builder).Lexer.AddDefine(define);
+      try
+        syntaxTree := builder.Run(fileStream);
+      except
+        on E: ESyntaxTreeException do begin
+          Writeln(unitName, ' @ ', E.Line, ',', E.Col, ': ', E.Message); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
+        end;
+      end;
+    finally FreeAndNil(builder); end;
+  finally FreeAndNil(fileStream); end;
+end; { TProjectIndexer.RunParserOnUnit }
+
+procedure TProjectIndexer.ScanUsedUnits(const fileName: string; isProject: boolean;
+  syntaxTree: TSyntaxNode; syntaxTreeFromParser: boolean);
+var
+  unitList: TStringList;
+  unitNode: TSyntaxNode;
+  usesName: string;
+  usesPath: string;
+begin
+  unitNode := FindType(syntaxTree, ntUnit);
+  if not assigned(unitNode) then
+    Exit;
+
+  unitList := TStringList.Create;
+  try
+    BuildUsesList(unitNode, fileName, isProject, unitList);
+
+    NotifyUnitParsed(unitName, fileName, syntaxTree, syntaxTreeFromParser);
+
+    for usesName in unitList do begin
+      if FAborting then
+        Exit;
+      if not FParsedUnits.ContainsKey(usesName) then
+        if FindFile(usesName + '.pas', '', usesPath) then
+          ParseUnit(usesName, usesPath, false)
+        else
+          FParsedUnits.Add(usesName, nil);
+    end;
+  finally FreeAndNil(unitList); end;
 end;
 
 { TProjectIndexer.TIncludeHandler }
