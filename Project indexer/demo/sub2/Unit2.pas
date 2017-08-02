@@ -6,6 +6,8 @@ uses
   Unit1,
   UnitA;
 
+{$I ..\sub2inc\include.inc}
+
 function Unit1FolderIndirect: string;
 
 implementation

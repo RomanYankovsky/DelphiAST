@@ -41,6 +41,9 @@ begin
         Writeln(indexer.ParsedUnits.Count, ' units');
         for i := 0 to indexer.ParsedUnits.Count - 1 do
           Writeln(indexer.ParsedUnits[i].Name, ' in ', indexer.ParsedUnits[i].Path);
+        Writeln(indexer.IncludeFiles.Count, ' includes');
+        for i := 0 to indexer.IncludeFiles.Count - 1 do
+          Writeln(indexer.IncludeFiles[i].Name, ' @ ', indexer.IncludeFiles[i].Path);
         Write('>');
         Readln;
       finally FreeAndNil(indexer); end;

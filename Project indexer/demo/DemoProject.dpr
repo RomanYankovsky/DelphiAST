@@ -15,7 +15,9 @@ uses
 begin
   try
     Writeln(Unit1Folder);
+    Writeln(Unit1.unitfolder);
     Writeln(Unit1FolderIndirect);
+    Writeln(Unit2.unitfolder);
 //    Writeln(UnitA.ID);
     Readln;
   except

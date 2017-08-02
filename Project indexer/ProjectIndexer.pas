@@ -12,6 +12,23 @@ type
   strict private type
     TParsedUnitsCache = TObjectDictionary<string,TSyntaxNode>;
     TUnitPathsCache = TDictionary<string,string>;
+
+    TIncludeInfo = record
+      FileName: string;
+      Content : string;
+    end;
+
+    TIncludeCache = TDictionary<string,TIncludeInfo>;
+    TIncludeHandler = class(TInterfacedObject, IIncludeHandler)
+    strict private
+      [weak] FIncludeCache: TIncludeCache;
+      [weak] FIndexer     : TProjectIndexer;
+      FUnitFile           : string;
+      FUnitFileFolder     : string;
+    public
+      function  GetIncludeFileContent(const fileName: string): string;
+      constructor Create(indexer: TProjectIndexer; includeCache: TIncludeCache; const currentFile: string);
+    end;
   public type
     TOption = (piUseDefinesDefinedByCompiler);
     TOptions = set of TOption;
@@ -41,30 +58,40 @@ type
       procedure Initialize(parsedUnits: TParsedUnitsCache; unitPaths: TUnitPathsCache);
     public
       constructor Create;
-      destructor Destroy; override;
+      destructor  Destroy; override;
       function  Count: integer; inline;
       function  GetEnumerator: TEnumerator<TUnitInfo>; inline;
       function  ToArray: TArray<TUnitInfo>; inline;
       property Info[idx: integer]: TUnitInfo read GetInfo; default;
     end;
 
-  strict private type
-    TIncludeCache = TDictionary<string,string>;
-    TIncludeHandler = class(TInterfacedObject, IIncludeHandler)
-    strict private
-      [weak] FIncludeCache: TIncludeCache;
-      [weak] FIndexer     : TProjectIndexer;
-      FUnitFile           : string;
-      FUnitFileFolder     : string;
-    public
-      function  GetIncludeFileContent(const fileName: string): string;
-      constructor Create(indexer: TProjectIndexer; includeCache: TIncludeCache; const currentFile: string);
+    TIncludeFileInfo = record
+      Name: string;
+      Path: string;
     end;
+
+    TIncludeFiles = class
+    strict private
+      FInfo: TList<TIncludeFileInfo>;
+    strict protected
+      function  GetInfo(idx: integer): TIncludeFileInfo; inline;
+    protected
+      procedure Initialize(includeCache: TIncludeCache);
+    public
+      constructor Create;
+      destructor  Destroy; override;
+      function  Count: integer; inline;
+      function  GetEnumerator: TEnumerator<TIncludeFileInfo>; inline;
+      function  ToArray: TArray<TIncludeFileInfo>; inline;
+      property Info[idx: integer]: TIncludeFileInfo read GetInfo; default;
+    end;
+
   strict private
     FAborting       : boolean;
     FDefines        : string;
     FDefinesList    : TStringList;
     FIncludeCache   : TIncludeCache;
+    FIncludeFiles   : TIncludeFiles;
     FOnGetUnitSyntax: TGetUnitSyntaxEvent;
     FOnUnitParsed   : TUnitParsedEvent;
     FOptions        : TOptions;
@@ -100,7 +127,7 @@ type
     property Defines: string read FDefines write FDefines;
     property Options: TOptions read FOptions write FOptions default [piUseDefinesDefinedByCompiler];
     property ParsedUnits: TParsedUnits read FParsedUnitsInfo;
-//    property IncludeFiles:
+    property IncludeFiles: TIncludeFiles read FIncludeFiles;
 //    property Problems
 //    property NotFoundUnits
     property SearchPath: string read FSearchPath write FSearchPath;
@@ -183,6 +210,60 @@ begin
   Result := FInfo.ToArray;
 end; { TParsedUnits.ToArray }
 
+{ TProjectIndexer.TIncludeFiles }
+
+constructor TProjectIndexer.TIncludeFiles.Create;
+begin
+  inherited Create;
+  FInfo := TList<TIncludeFileInfo>.Create;
+end;
+
+destructor TProjectIndexer.TIncludeFiles.Destroy;
+begin
+  FreeAndNil(FInfo);
+  inherited;
+end;
+
+function TProjectIndexer.TIncludeFiles.Count: integer;
+begin
+  Result := FInfo.Count;
+end;
+
+function TProjectIndexer.TIncludeFiles.GetEnumerator: TEnumerator<TIncludeFileInfo>;
+begin
+  Result := FInfo.GetEnumerator;
+end;
+
+function TProjectIndexer.TIncludeFiles.GetInfo(idx: integer): TIncludeFileInfo;
+begin
+  Result := FInfo[idx];
+end;
+
+procedure TProjectIndexer.TIncludeFiles.Initialize(includeCache: TIncludeCache);
+var
+  info: TIncludeFileInfo;
+  kv  : TPair<string,TIncludeInfo>;
+  p   : integer;
+begin
+  FInfo.Clear;
+  for kv in includeCache do begin
+    p := Pos(#13, kv.Key);
+    if p = 0 then
+      continue; //for kv
+
+    info.Name := Copy(kv.Key, 1, p-1);
+    info.Path := kv.Value.FileName;
+    FInfo.Add(info);
+  end;
+
+  FInfo.Sort;
+end;
+
+function TProjectIndexer.TIncludeFiles.ToArray: TArray<TIncludeFileInfo>;
+begin
+  Result := FInfo.ToArray;
+end;
+
 { TProjectIndexer }
 
 procedure TProjectIndexer.AppendUnits(usesNode: TSyntaxNode; const filePath: string;
@@ -249,10 +330,12 @@ begin
   FDefinesList.StrictDelimiter := true;
   FParsedUnits := TParsedUnitsCache.Create;
   FParsedUnitsInfo := TParsedUnits.Create;
+  FIncludeFiles := TIncludeFiles.Create;
 end;
 
 destructor TProjectIndexer.Destroy;
 begin
+  FreeAndNil(FIncludeFiles);
   FreeAndNil(FParsedUnitsInfo);
   FreeAndNil(FDefinesList);
   FreeAndNil(FParsedUnits);
@@ -280,17 +363,17 @@ begin
     Exit(true);
 
   if relativeToFolder <> '' then begin
-    filePath := relativeToFolder + fName;
+    filePath := ExpandFileName(relativeToFolder + fName);
     if FileExists(filePath) then
       Exit(AddToUnitPaths);
   end;
 
-  filePath := FProjectFolder + fName;
+  filePath := ExpandFileName(FProjectFolder + fName);
   if FileExists(filePath) then
     Exit(AddToUnitPaths);
 
   for searchPath in FSearchPaths do begin
-    filePath := searchPath + fName;
+    filePath := ExpandFileName(searchPath + fName);
     if FileExists(filePath) then
       Exit(AddToUnitPaths);
   end;
@@ -325,6 +408,7 @@ end;
 
 procedure TProjectIndexer.Index(const fileName: string);
 var
+  filePath   : string;
   projectName: string;
 begin
   FAborting := false;
@@ -336,10 +420,12 @@ begin
     try
       PrepareDefines;
       PrepareSearchPath;
+      filePath := ExpandFileName(fileName);
       projectName := ChangeFileExt(ExtractFileName(fileName), '');
       FUnitPaths.Add(projectName + '.dpr', fileName);
-      ParseUnit(projectName, fileName, true);
+      ParseUnit(projectName, filePath, true);
       FParsedUnitsInfo.Initialize(FParsedUnits, FUnitPaths);
+      FIncludeFiles.Initialize(FIncludeCache);
     finally FreeAndNil(FUnitPaths); end;
   finally FreeAndNil(FIncludeCache); end;
 end;
@@ -370,7 +456,7 @@ begin
   if FAborting then
     Exit;
 
-  if not doParseUnit then
+  if doParseUnit then
     RunParserOnUnit(fileName, syntaxTree);
 
   FParsedUnits.Add(unitName, syntaxTree);
@@ -503,11 +589,12 @@ end;
 function TProjectIndexer.TIncludeHandler.GetIncludeFileContent(
   const fileName: string): string;
 var
-  errorMsg  : string;
-  filePath  : string;
-  fileStream: TStringStream;
-  fName: string;
-  key       : string;
+  errorMsg   : string;
+  filePath   : string;
+  fileStream : TStringStream;
+  fName      : string;
+  includeInfo: TIncludeInfo;
+  key        : string;
 begin
   if fileName.StartsWith('*.') then
     fName := FUnitFile + fileName.Remove(0 {0-based}, 1)
@@ -517,18 +604,23 @@ begin
     fName := fileName;
 
   key := fName + '#13' + FUnitFileFolder;
-
-  if FIncludeCache.TryGetValue(key, Result) then
+  if FIncludeCache.TryGetValue(key, includeInfo) then begin
+    Result := includeInfo.Content;
     Exit;
+  end;
 
   if not FIndexer.FindFile(fName, FUnitFileFolder, filePath) then begin
     Writeln('Include file ', fName, ' not found from unit folder ', FUnitFileFolder); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
-    FIncludeCache.Add(key, '');
+    includeInfo.FileName := '';
+    includeInfo.Content := '';
+    FIncludeCache.Add(key, includeInfo);
     Exit('');
   end;
 
-  if FIncludeCache.TryGetValue(filePath, Result) then
+  if FIncludeCache.TryGetValue(filePath, includeInfo) then begin
+    Result := includeInfo.Content;
     Exit;
+  end;
 
   if not TProjectIndexer.SafeOpenFileStream(filePath, fileStream, errorMsg) then begin
     Writeln('Failed to open ', filePath, '. ', errorMsg); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
@@ -538,7 +630,11 @@ begin
     Result := fileStream.DataString;
   finally FreeAndNil(fileStream); end;
 
-  FIncludeCache.Add(filePath, Result);
+  includeInfo.FileName := filePath;
+  includeInfo.Content := Result;
+  FIncludeCache.Add(fName + #13 + FUnitFileFolder, includeInfo);
+  includeInfo.FileName := '';
+  FIncludeCache.Add(filePath, includeInfo);
 end;
 
 end.
