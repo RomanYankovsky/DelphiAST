@@ -1197,9 +1197,14 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.EnumeratedType;
+var
+  TypeNode: TSyntaxNode;
 begin
-  FStack.Push(ntType).SetAttribute(anName, AttributeValues[atEnum]);
+  TypeNode := FStack.Push(ntType);
   try
+    TypeNode.SetAttribute(anName, AttributeValues[atEnum]);
+    if ScopedEnums then
+      TypeNode.SetAttribute(anVisibility, 'scoped');
     inherited;
   finally
     FStack.Pop;
