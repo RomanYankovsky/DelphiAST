@@ -44,6 +44,9 @@ begin
         Writeln(indexer.IncludeFiles.Count, ' includes');
         for i := 0 to indexer.IncludeFiles.Count - 1 do
           Writeln(indexer.IncludeFiles[i].Name, ' @ ', indexer.IncludeFiles[i].Path);
+        Writeln(indexer.NotFoundUnits.Count, ' not found');
+        for i := 0 to indexer.NotFoundUnits.Count - 1 do
+          Writeln(indexer.NotFoundUnits[i]);
         Write('>');
         Readln;
       finally FreeAndNil(indexer); end;

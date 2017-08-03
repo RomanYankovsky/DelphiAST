@@ -92,6 +92,7 @@ type
     FDefinesList    : TStringList;
     FIncludeCache   : TIncludeCache;
     FIncludeFiles   : TIncludeFiles;
+    FNotFoundUnits  : TStringList;
     FOnGetUnitSyntax: TGetUnitSyntaxEvent;
     FOnUnitParsed   : TUnitParsedEvent;
     FOptions        : TOptions;
@@ -128,8 +129,8 @@ type
     property Options: TOptions read FOptions write FOptions default [piUseDefinesDefinedByCompiler];
     property ParsedUnits: TParsedUnits read FParsedUnitsInfo;
     property IncludeFiles: TIncludeFiles read FIncludeFiles;
-//    property Problems
-//    property NotFoundUnits
+//    property Problems: TProblems;
+    property NotFoundUnits: TStringList read FNotFoundUnits;
     property SearchPath: string read FSearchPath write FSearchPath;
     property OnGetUnitSyntax: TGetUnitSyntaxEvent read FOnGetUnitSyntax write FOnGetUnitSyntax;
     property OnUnitParsed: TUnitParsedEvent read FOnUnitParsed write FOnUnitParsed;
@@ -331,10 +332,14 @@ begin
   FParsedUnits := TParsedUnitsCache.Create([doOwnsValues]);
   FParsedUnitsInfo := TParsedUnits.Create;
   FIncludeFiles := TIncludeFiles.Create;
+  FNotFoundUnits := TStringList.Create;
+  FNotFoundUnits.Sorted := true;
+  FNotFoundUnits.Duplicates := dupIgnore;
 end;
 
 destructor TProjectIndexer.Destroy;
 begin
+  FreeAndNil(FNotFoundUnits);
   FreeAndNil(FIncludeFiles);
   FreeAndNil(FParsedUnitsInfo);
   FreeAndNil(FDefinesList);
@@ -349,37 +354,40 @@ var
   fName     : string;
   searchPath: string;
 
-  function AddToUnitPaths: boolean;
+  function FilePresent(const testFile: string): boolean;
   begin
-    FUnitPaths.Add(fName, filePath);
-    Result := true;
+    Result := FileExists(testFile);
+    if Result then begin
+      filePath := ExpandFileName(testFile);
+      FUnitPaths.Add(fName, filePath);
+    end;
   end;
 
 begin
-  Result := false;
+  Result := true;
   fName := fileName.DeQuotedString;
 
   if FUnitPaths.TryGetValue(fName, filePath) then
-    Exit(true);
+    Exit;
 
-  if relativeToFolder <> '' then begin
-    filePath := ExpandFileName(relativeToFolder + fName);
-    if FileExists(filePath) then
-      Exit(AddToUnitPaths);
-  end;
+  if relativeToFolder <> '' then
+    if FilePresent(relativeToFolder + fName) then
+      Exit;
 
-  filePath := ExpandFileName(FProjectFolder + fName);
-  if FileExists(filePath) then
-    Exit(AddToUnitPaths);
+  if FilePresent(FProjectFolder + fName) then
+    Exit;
 
-  for searchPath in FSearchPaths do begin
-    filePath := ExpandFileName(searchPath + fName);
-    if FileExists(filePath) then
-      Exit(AddToUnitPaths);
-  end;
+  for searchPath in FSearchPaths do
+    if FilePresent(searchPath + fName) then
+      Exit;
 
-  if not SameText(ExtractFileExt(fileName), '.pas') then
+  if SameText(ExtractFileExt(fileName), '.pas') then
+    Result := false
+  else
     Result := FindFile(fileName + '.pas', relativeToFolder, filePath);
+
+  if (not Result) and (relativeToFolder = '') {ignore include files} then
+    FNotFoundUnits.Add(fName);
 end;
 
 function TProjectIndexer.FindType(node: TSyntaxNode; nodeType: TSyntaxNodeType):
@@ -420,6 +428,7 @@ begin
     try
       PrepareDefines;
       PrepareSearchPath;
+      FNotFoundUnits.Clear;
       filePath := ExpandFileName(fileName);
       projectName := ChangeFileExt(ExtractFileName(fileName), '');
       FUnitPaths.Add(projectName + '.dpr', fileName);
@@ -604,10 +613,8 @@ begin
     fName := fileName;
 
   key := fName + #13 + FUnitFileFolder;
-  if FIncludeCache.TryGetValue(key, includeInfo) then begin
-    Result := includeInfo.Content;
-    Exit;
-  end;
+  if FIncludeCache.TryGetValue(key, includeInfo) then
+    Exit(includeInfo.Content);
 
   if not FIndexer.FindFile(fName, FUnitFileFolder, filePath) then begin
     Writeln('Include file ', fName, ' not found from unit folder ', FUnitFileFolder); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
@@ -617,10 +624,8 @@ begin
     Exit('');
   end;
 
-  if FIncludeCache.TryGetValue(filePath, includeInfo) then begin
-    Result := includeInfo.Content;
-    Exit;
-  end;
+  if FIncludeCache.TryGetValue(filePath, includeInfo) then
+    Exit(includeInfo.Content);
 
   if not TProjectIndexer.SafeOpenFileStream(filePath, fileStream, errorMsg) then begin
     Writeln('Failed to open ', filePath, '. ', errorMsg); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
