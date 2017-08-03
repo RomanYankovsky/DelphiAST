@@ -19,6 +19,7 @@ type
     end;
 
     TIncludeCache = TDictionary<string,TIncludeInfo>;
+
     TIncludeHandler = class(TInterfacedObject, IIncludeHandler)
     strict private
       [weak] FIncludeCache: TIncludeCache;
@@ -29,6 +30,7 @@ type
       function  GetIncludeFileContent(const fileName: string): string;
       constructor Create(indexer: TProjectIndexer; includeCache: TIncludeCache; const currentFile: string);
     end;
+
   public type
     TOption = (piUseDefinesDefinedByCompiler);
     TOptions = set of TOption;
@@ -49,20 +51,9 @@ type
       end;
     end;
 
-    TParsedUnits = class
-    strict private
-      FInfo: TList<TUnitInfo>;
-    strict protected
-      function  GetInfo(idx: integer): TUnitInfo; inline;
+    TParsedUnits = class(TList<TUnitInfo>)
     protected
       procedure Initialize(parsedUnits: TParsedUnitsCache; unitPaths: TUnitPathsCache);
-    public
-      constructor Create;
-      destructor  Destroy; override;
-      function  Count: integer; inline;
-      function  GetEnumerator: TEnumerator<TUnitInfo>; inline;
-      function  ToArray: TArray<TUnitInfo>; inline;
-      property Info[idx: integer]: TUnitInfo read GetInfo; default;
     end;
 
     TIncludeFileInfo = record
@@ -70,21 +61,14 @@ type
       Path: string;
     end;
 
-    TIncludeFiles = class
-    strict private
-      FInfo: TList<TIncludeFileInfo>;
-    strict protected
-      function  GetInfo(idx: integer): TIncludeFileInfo; inline;
+    TIncludeFiles = class(TList<TIncludeFileInfo>)
     protected
       procedure Initialize(includeCache: TIncludeCache);
-    public
-      constructor Create;
-      destructor  Destroy; override;
-      function  Count: integer; inline;
-      function  GetEnumerator: TEnumerator<TIncludeFileInfo>; inline;
-      function  ToArray: TArray<TIncludeFileInfo>; inline;
-      property Info[idx: integer]: TIncludeFileInfo read GetInfo; default;
     end;
+
+    TProblemInfo = record
+    end;
+    TProblems = TList<TProblemInfo>;
 
   strict private
     FAborting       : boolean;
@@ -98,6 +82,7 @@ type
     FOptions        : TOptions;
     FParsedUnits    : TParsedUnitsCache;
     FParsedUnitsInfo: TParsedUnits;
+    FProblems       : TProblems;
     FProjectFolder  : string;
     FSearchPath     : string;
     FSearchPaths    : TStringList;
@@ -129,7 +114,7 @@ type
     property Options: TOptions read FOptions write FOptions default [piUseDefinesDefinedByCompiler];
     property ParsedUnits: TParsedUnits read FParsedUnitsInfo;
     property IncludeFiles: TIncludeFiles read FIncludeFiles;
-//    property Problems: TProblems;
+    property Problems: TProblems read FProblems;
     property NotFoundUnits: TStringList read FNotFoundUnits;
     property SearchPath: string read FSearchPath write FSearchPath;
     property OnGetUnitSyntax: TGetUnitSyntaxEvent read FOnGetUnitSyntax write FOnGetUnitSyntax;
@@ -144,53 +129,17 @@ uses
 
 { TProjectIndexer.TParsedUnits }
 
-constructor TProjectIndexer.TParsedUnits.Create;
-begin
-  inherited Create;
-  FInfo := TList<TUnitInfo>.Create;
-end;
-
-destructor TProjectIndexer.TParsedUnits.Destroy;
-begin
-  FreeAndNil(FInfo);
-  inherited;
-end;
-
-function TProjectIndexer.TParsedUnits.Count: integer;
-begin
-  Result := FInfo.Count;
-end;
-
-function TProjectIndexer.TParsedUnits.GetEnumerator: TEnumerator<TUnitInfo>;
-begin
-  Result := FInfo.GetEnumerator;
-end;
-
-function TProjectIndexer.TParsedUnits.GetInfo(idx: integer): TUnitInfo;
-begin
-  Result := FInfo[idx];
-end;
-
 procedure TProjectIndexer.TParsedUnits.Initialize(parsedUnits: TParsedUnitsCache;
   unitPaths: TUnitPathsCache);
 var
   info    : TUnitInfo;
   kv      : TPair<string,TSyntaxNode>;
-  parsed  : TArray<TPair<string,TSyntaxNode>>;
   unitPath: string;
 begin
-  FInfo.Clear;
-  FInfo.Capacity := parsedUnits.Count;
+  Clear;
+  Capacity := parsedUnits.Count;
 
-  parsed := parsedUnits.ToArray;
-  TArray.Sort<TPair<string,TSyntaxNode>>(parsed,
-    TComparer<TPair<string,TSyntaxNode>>.Construct(
-      function(const Left, Right: TPair<string,TSyntaxNode>): integer
-      begin
-        Result := TOrdinalIStringComparer(TIStringComparer.Ordinal).Compare(Left.Key, Right.Key);
-      end));
-
-  for kv in parsed do begin
+  for kv in parsedUnits do begin
     if not assigned(kv.Value) then
       continue; //for kv
     info.Name := kv.Key;
@@ -201,44 +150,19 @@ begin
       unitPath := '';
     info.Path := unitPath;
     info.HasError := false; // TODO 1 -oPrimoz Gabrijelcic : fix that
-    FInfo.Add(info);
+    Add(info);
   end;
-  FInfo.TrimExcess;
-end;
 
-function TProjectIndexer.TParsedUnits.ToArray: TArray<TUnitInfo>;
-begin
-  Result := FInfo.ToArray;
-end; { TParsedUnits.ToArray }
+  TrimExcess;
+  Sort(
+    TComparer<TUnitInfo>.Construct(
+      function(const Left, Right: TUnitInfo): integer
+      begin
+        Result := TOrdinalIStringComparer(TIStringComparer.Ordinal).Compare(Left.Name, Right.Name);
+      end));
+end;
 
 { TProjectIndexer.TIncludeFiles }
-
-constructor TProjectIndexer.TIncludeFiles.Create;
-begin
-  inherited Create;
-  FInfo := TList<TIncludeFileInfo>.Create;
-end;
-
-destructor TProjectIndexer.TIncludeFiles.Destroy;
-begin
-  FreeAndNil(FInfo);
-  inherited;
-end;
-
-function TProjectIndexer.TIncludeFiles.Count: integer;
-begin
-  Result := FInfo.Count;
-end;
-
-function TProjectIndexer.TIncludeFiles.GetEnumerator: TEnumerator<TIncludeFileInfo>;
-begin
-  Result := FInfo.GetEnumerator;
-end;
-
-function TProjectIndexer.TIncludeFiles.GetInfo(idx: integer): TIncludeFileInfo;
-begin
-  Result := FInfo[idx];
-end;
 
 procedure TProjectIndexer.TIncludeFiles.Initialize(includeCache: TIncludeCache);
 var
@@ -246,7 +170,7 @@ var
   kv  : TPair<string,TIncludeInfo>;
   p   : integer;
 begin
-  FInfo.Clear;
+  Clear;
   for kv in includeCache do begin
     p := Pos(#13, kv.Key);
     if p = 0 then
@@ -254,15 +178,15 @@ begin
 
     info.Name := Copy(kv.Key, 1, p-1);
     info.Path := kv.Value.FileName;
-    FInfo.Add(info);
+    Add(info);
   end;
 
-  FInfo.Sort;
-end;
-
-function TProjectIndexer.TIncludeFiles.ToArray: TArray<TIncludeFileInfo>;
-begin
-  Result := FInfo.ToArray;
+  Sort(
+    TComparer<TIncludeFileInfo>.Construct(
+      function(const Left, Right: TIncludeFileInfo): integer
+      begin
+        Result := TOrdinalIStringComparer(TIStringComparer.Ordinal).Compare(Left.Name, Right.Name);
+      end));
 end;
 
 { TProjectIndexer }
@@ -335,10 +259,12 @@ begin
   FNotFoundUnits := TStringList.Create;
   FNotFoundUnits.Sorted := true;
   FNotFoundUnits.Duplicates := dupIgnore;
+  FProblems := TProblems.Create;
 end;
 
 destructor TProjectIndexer.Destroy;
 begin
+  FreeAndNil(FProblems);
   FreeAndNil(FNotFoundUnits);
   FreeAndNil(FIncludeFiles);
   FreeAndNil(FParsedUnitsInfo);
@@ -429,6 +355,7 @@ begin
       PrepareDefines;
       PrepareSearchPath;
       FNotFoundUnits.Clear;
+      FProblems.Clear;
       filePath := ExpandFileName(fileName);
       projectName := ChangeFileExt(ExtractFileName(fileName), '');
       FUnitPaths.Add(projectName + '.dpr', fileName);
