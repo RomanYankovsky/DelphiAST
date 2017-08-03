@@ -279,6 +279,7 @@ type
     procedure DoProcTable(AChar: Char);
     function IsIdentifiers(AChar: Char): Boolean; inline;
     function HashValue(AChar: Char): Integer;
+    function EvaluateComparison(AValue1: Extended; const AOper: String; AValue2: Extended): Boolean;
     function EvaluateConditionalExpression(const AParams: String): Boolean;
     procedure IncludeFile;
     function GetIncludeFileNameFromToken(const IncludeToken: string): string;
@@ -1615,15 +1616,72 @@ begin
   end;
 end;
 
+function TmwBasePasLex.EvaluateComparison(AValue1: Extended; const AOper: String; AValue2: Extended): Boolean;
+begin
+  if AOper = '=' then
+    Result := AValue1 = AValue2
+  else if AOper = '<>' then
+    Result := AValue1 <> AValue2
+  else if AOper = '<' then
+    Result := AValue1 < AValue2
+  else if AOper = '<=' then
+    Result := AValue1 <= AValue2
+  else if AOper = '>' then
+    Result := AValue1 > AValue2
+  else if AOper = '>=' then
+    Result := AValue1 >= AValue2
+  else
+    Result := False;
+end;
+
 function TmwBasePasLex.EvaluateConditionalExpression(const AParams: String): Boolean;
 var
   LParams: String;
   LDefine: String;
   LEvaluation: TmwPasLexExpressionEvaluation;
+  LIsComVer: Boolean;
+  LIsRtlVer: Boolean;
+  LOper: string;
+  LValue: Integer;
+  p: Integer;
 begin
   { TODO : Expand support for <=> evaluations (complicated to do). Expand support for NESTED expressions }
   LEvaluation := leeNone;
   LParams := TrimLeft(AParams);
+  LIsComVer := Pos('COMPILERVERSION', LParams) = 1;
+  LIsRtlVer := Pos('RTLVERSION', LParams) = 1;
+  if LIsComVer or LIsRtlVer then //simple parser which covers most frequent use cases
+  begin
+    Result := False;
+    if LIsComVer then
+      Delete(LParams, 1, Length('COMPILERVERSION'));
+    if LIsRtlVer then
+      Delete(LParams, 1, Length('RTLVERSION'));
+    while (LParams <> '') and (LParams[1] = ' ') do
+      Delete(LParams, 1, 1);
+    p := Pos(' ', LParams);
+    if p > 0 then
+    begin
+      LOper := Copy(LParams, 1, p-1);
+      Delete(LParams, 1, p);
+      while (LParams <> '') and (LParams[1] = ' ') do
+        Delete(LParams, 1, 1);
+      p := Pos(' ', LParams);
+      if p = 0 then
+        p := Length(LParams) + 1;
+      if TryStrToInt(Copy(LParams, 1, p-1), LValue) then
+      begin
+        Delete(LParams, 1, p);
+        while (LParams <> '') and (LParams[1] = ' ') do
+          Delete(LParams, 1, 1);
+        if LParams = '' then
+          if LIsComVer then
+            Result := EvaluateComparison(CompilerVersion, LOper, LValue)
+          else if LIsRtlVer then
+            Result := EvaluateComparison(RTLVersion, LOper, LValue);
+      end;
+    end;
+  end else
   if (Pos('DEFINED(', LParams) = 1) or (Pos('NOT DEFINED(', LParams) = 1) then
   begin
     Result := True; // Optimistic
