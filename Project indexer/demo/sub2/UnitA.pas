@@ -7,4 +7,6 @@ const
 
 implementation
 
+{$I ..\sub2inc\include.inc}
+
 end.

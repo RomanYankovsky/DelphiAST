@@ -6,6 +6,7 @@ uses
   UnitA;
 
 {$I ..\sub1inc\include.inc}
+{$I ..\subinc\include.inc}
 
 const
   Unit1Folder = 'sub1:' + UnitA.ID;

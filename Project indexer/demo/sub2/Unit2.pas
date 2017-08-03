@@ -7,6 +7,7 @@ uses
   UnitA;
 
 {$I ..\sub2inc\include.inc}
+{$I ..\subinc\include.inc}
 
 function Unit1FolderIndirect: string;
 

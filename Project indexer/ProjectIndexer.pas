@@ -328,7 +328,7 @@ begin
   FDefinesList := TStringList.Create;
   FDefinesList.Delimiter := ';';
   FDefinesList.StrictDelimiter := true;
-  FParsedUnits := TParsedUnitsCache.Create;
+  FParsedUnits := TParsedUnitsCache.Create([doOwnsValues]);
   FParsedUnitsInfo := TParsedUnits.Create;
   FIncludeFiles := TIncludeFiles.Create;
 end;
@@ -603,7 +603,7 @@ begin
   else
     fName := fileName;
 
-  key := fName + '#13' + FUnitFileFolder;
+  key := fName + #13 + FUnitFileFolder;
   if FIncludeCache.TryGetValue(key, includeInfo) then begin
     Result := includeInfo.Content;
     Exit;
