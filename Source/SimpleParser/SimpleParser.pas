@@ -206,6 +206,7 @@ type
     procedure VariableTail;
     function GetInRound: Boolean;
     function GetUseDefines: Boolean;
+    function GetScopedEnums: Boolean;
     procedure SetUseDefines(const Value: Boolean);
     procedure SetIncludeHandler(IncludeHandler: IIncludeHandler);
     function GetOnComment: TCommentEvent;
@@ -580,6 +581,7 @@ type
     property LastNoJunkLen: Integer read FLastNoJunkLen;
 
     property UseDefines: Boolean read GetUseDefines write SetUseDefines;
+    property ScopedEnums: Boolean read GetScopedEnums;
     property IncludeHandler: IIncludeHandler write SetIncludeHandler;
   end;
 
@@ -992,6 +994,11 @@ end;
 function TmwSimplePasPar.GetUseDefines: Boolean;
 begin
   Result := FLexer.UseDefines;
+end;
+
+function TmwSimplePasPar.GetScopedEnums: Boolean;
+begin
+  Result := FLexer.ScopedEnums;
 end;
 
 procedure TmwSimplePasPar.GotoStatement;
