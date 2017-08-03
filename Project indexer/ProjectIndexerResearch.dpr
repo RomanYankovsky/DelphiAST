@@ -41,12 +41,19 @@ begin
         Writeln(indexer.ParsedUnits.Count, ' units');
         for i := 0 to indexer.ParsedUnits.Count - 1 do
           Writeln(indexer.ParsedUnits[i].Name, ' in ', indexer.ParsedUnits[i].Path);
+        Writeln;
         Writeln(indexer.IncludeFiles.Count, ' includes');
         for i := 0 to indexer.IncludeFiles.Count - 1 do
           Writeln(indexer.IncludeFiles[i].Name, ' @ ', indexer.IncludeFiles[i].Path);
+        Writeln;
         Writeln(indexer.NotFoundUnits.Count, ' not found');
         for i := 0 to indexer.NotFoundUnits.Count - 1 do
           Writeln(indexer.NotFoundUnits[i]);
+        Writeln;
+        Writeln(indexer.Problems.Count, ' problems');
+        for i := 0 to indexer.Problems.Count - 1 do
+          Writeln(Ord(indexer.Problems[i].ProblemType), ' ', indexer.Problems[i].FileName, ': ',
+            indexer.Problems[i].Description);
         Write('>');
         Readln;
       finally FreeAndNil(indexer); end;

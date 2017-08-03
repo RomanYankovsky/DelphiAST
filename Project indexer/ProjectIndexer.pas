@@ -20,17 +20,6 @@ type
 
     TIncludeCache = TDictionary<string,TIncludeInfo>;
 
-    TIncludeHandler = class(TInterfacedObject, IIncludeHandler)
-    strict private
-      [weak] FIncludeCache: TIncludeCache;
-      [weak] FIndexer     : TProjectIndexer;
-      FUnitFile           : string;
-      FUnitFileFolder     : string;
-    public
-      function  GetIncludeFileContent(const fileName: string): string;
-      constructor Create(indexer: TProjectIndexer; includeCache: TIncludeCache; const currentFile: string);
-    end;
-
   public type
     TOption = (piUseDefinesDefinedByCompiler);
     TOptions = set of TOption;
@@ -66,11 +55,33 @@ type
       procedure Initialize(includeCache: TIncludeCache);
     end;
 
+    TProblemType = (ptCantFindFile, ptCantOpenFile, ptCantParseFile);
     TProblemInfo = record
+      ProblemType: TProblemType;
+      FileName   : string;
+      Description: string;
     end;
-    TProblems = TList<TProblemInfo>;
 
-  strict private
+    TProblems = class(TList<TProblemInfo>)
+    protected
+      procedure LogProblem(problemType: TProblemType; const fileName, description: string);
+    end;
+
+  strict private type
+    TIncludeHandler = class(TInterfacedObject, IIncludeHandler)
+    strict private
+      [weak] FIncludeCache: TIncludeCache;
+      [weak] FIndexer     : TProjectIndexer;
+      [weak] FProblems    : TProblems;
+      FUnitFile           : string;
+      FUnitFileFolder     : string;
+    public
+      constructor Create(indexer: TProjectIndexer; includeCache: TIncludeCache;
+        problemList: TProblems; const currentFile: string);
+      function  GetIncludeFileContent(const fileName: string): string;
+    end;
+
+  var
     FAborting       : boolean;
     FDefines        : string;
     FDefinesList    : TStringList;
@@ -171,6 +182,8 @@ var
   p   : integer;
 begin
   Clear;
+  Capacity := includeCache.Count;
+
   for kv in includeCache do begin
     p := Pos(#13, kv.Key);
     if p = 0 then
@@ -181,12 +194,26 @@ begin
     Add(info);
   end;
 
+  TrimExcess;
   Sort(
     TComparer<TIncludeFileInfo>.Construct(
       function(const Left, Right: TIncludeFileInfo): integer
       begin
         Result := TOrdinalIStringComparer(TIStringComparer.Ordinal).Compare(Left.Name, Right.Name);
       end));
+end;
+
+{ TProjectIndexer.TProblems }
+
+procedure TProjectIndexer.TProblems.LogProblem(problemType: TProblemType; const fileName,
+  description: string);
+var
+  info: TProblemInfo;
+begin
+  info.ProblemType := problemType;
+  info.FileName := fileName;
+  info.Description := description;
+  Add(info);
 end;
 
 { TProjectIndexer }
@@ -460,11 +487,11 @@ var
   fileStream: TStringStream;
 begin
   if not SafeOpenFileStream(fileName, fileStream, errorMsg) then
-    Writeln('Failed to open ', fileName, '. ', errorMsg) // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
+    FProblems.LogProblem(ptCantOpenFile, fileName, errorMsg)
   else try
     builder := TPasSyntaxTreeBuilder.Create;
     try
-      builder.IncludeHandler := TIncludeHandler.Create(Self, FIncludeCache, fileName);
+      builder.IncludeHandler := TIncludeHandler.Create(Self, FIncludeCache, FProblems, fileName);
       if piUseDefinesDefinedByCompiler in Options then
         builder.InitDefinesDefinedByCompiler;
       for define in FDefinesList do
@@ -473,7 +500,8 @@ begin
         syntaxTree := builder.Run(fileStream);
       except
         on E: ESyntaxTreeException do begin
-          Writeln(unitName, ' @ ', E.Line, ',', E.Col, ': ', E.Message); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
+          FProblems.LogProblem(ptCantParseFile, fileName,
+            Format('Line %d, Column %d: %s', [E.Line, E.Col, E.Message]));
         end;
       end;
     finally FreeAndNil(builder); end;
@@ -513,11 +541,12 @@ end;
 { TProjectIndexer.TIncludeHandler }
 
 constructor TProjectIndexer.TIncludeHandler.Create(indexer: TProjectIndexer;
-  includeCache: TIncludeCache; const currentFile: string);
+  includeCache: TIncludeCache; problemList: TProblems; const currentFile: string);
 begin
   inherited Create;
   FIndexer := indexer;
   FIncludeCache := includeCache;
+  FProblems := problemList;
   FUnitFileFolder := IncludeTrailingPathDelimiter(ExtractFilePath(currentFile));
   FUnitFile := ChangeFileExt(ExtractFileName(currentFile), '');
 end;
@@ -544,7 +573,7 @@ begin
     Exit(includeInfo.Content);
 
   if not FIndexer.FindFile(fName, FUnitFileFolder, filePath) then begin
-    Writeln('Include file ', fName, ' not found from unit folder ', FUnitFileFolder); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
+    FProblems.LogProblem(ptCantFindFile, fName, 'Source folder: ' + FUnitFileFolder);
     includeInfo.FileName := '';
     includeInfo.Content := '';
     FIncludeCache.Add(key, includeInfo);
@@ -555,7 +584,7 @@ begin
     Exit(includeInfo.Content);
 
   if not TProjectIndexer.SafeOpenFileStream(filePath, fileStream, errorMsg) then begin
-    Writeln('Failed to open ', filePath, '. ', errorMsg); // TODO 1 -oPrimoz Gabrijelcic : Remove debugging code
+    FProblems.LogProblem(ptCantOpenFile, filePath, errorMsg);
     Result := ''
   end
   else try
