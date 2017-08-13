@@ -1461,19 +1461,28 @@ end;
 
 procedure TPasSyntaxTreeBuilder.FunctionProcedureName;
 var
-  ChildNode, NameNode, TypeParam, TypeNode, Temp: TSyntaxNode;
+  ChildNode, NameNode, TypeParamsNode, TypeParam, TypeNode, Temp: TSyntaxNode;
   FullName, TypeParams: string;
 begin
   FStack.Push(ntName);
+  TypeParamsNode := Nil;
   NameNode := FStack.Peek;
   try
     inherited;
+    TypeParams := '';
     for ChildNode in NameNode.ChildNodes do
     begin
+      if TypeParams <> '' then
+        FullName := FullName + '<' + TypeParams + '>';
+
+      TypeParams := '';
+
+      TypeParamsNode := Nil;
       if ChildNode.Typ = ntTypeParams then
       begin
+        TypeParamsNode := ChildNode;
         TypeParams := '';
-
+        
         for TypeParam in ChildNode.ChildNodes do
         begin
           TypeNode := TypeParam.FindNode(ntType);
@@ -1485,7 +1494,6 @@ begin
           end;
         end;
 
-        FullName := FullName + '<' + TypeParams + '>';
         Continue;
       end;
 
@@ -1498,6 +1506,11 @@ begin
     Temp := FStack.Peek;
     DoHandleString(FullName);
     Temp.SetAttribute(anName, FullName);
+    if Assigned(TypeParamsNode) then
+    begin
+      NameNode.ExtractChild(TypeParamsNode);
+      Temp.AddChild(TypeParamsNode);      
+    end;
     Temp.DeleteChild(NameNode);
   end;
 end;
