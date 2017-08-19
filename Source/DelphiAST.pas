@@ -70,6 +70,7 @@ type
     procedure BuildParametersList(ParametersListMethod: TTreeBuilderMethod);
     procedure ParserMessage(Sender: TObject; const Typ: TMessageEventType; const Msg: string; X, Y: Integer);
     function NodeListToString(NamesNode: TSyntaxNode): string;
+    procedure MoveMembersToVisibilityNodes(TypeNode: TSyntaxNode);
     procedure CallInheritedConstantExpression;
     procedure CallInheritedExpression;
     procedure CallInheritedFormalParameterList;
@@ -196,6 +197,7 @@ type
     procedure RaiseStatement; override;
     procedure RecordConstraint; override;
     procedure RecordFieldConstant; override;
+    procedure RecordType; override;
     procedure RelativeOperator; override;
     procedure RepeatStatement; override;
     procedure ResourceDeclaration; override;
@@ -878,33 +880,37 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.ClassType;
-var
-  classDef, child, vis: TSyntaxNode;
-  i: Integer;
-  extracted: Boolean;
 begin
   FStack.Push(ntType).SetAttribute(anType, AttributeValues[atClass]);
   try
     inherited;
   finally
-    classDef := FStack.Pop;
-    vis := nil;
-    i := 0;
-    while i < Length(classDef.ChildNodes) do
+    MoveMembersToVisibilityNodes(FStack.Pop);
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.MoveMembersToVisibilityNodes(TypeNode: TSyntaxNode);
+var
+  child, vis: TSyntaxNode;
+  i: Integer;
+  extracted: Boolean;
+begin
+  vis := nil;
+  i := 0;
+  while i < Length(TypeNode.ChildNodes) do
+  begin
+    child := TypeNode.ChildNodes[i];
+    extracted := false;
+    if child.HasAttribute(anVisibility) then
+      vis := child
+    else if Assigned(vis) then
     begin
-      child := classDef.ChildNodes[i];
-      extracted := false;
-      if child.HasAttribute(anVisibility) then
-        vis := child
-      else if Assigned(vis) then
-      begin
-        classDef.ExtractChild(child);
-        vis.AddChild(child);
-        extracted := true;
-      end;
-      if not extracted then
-        inc(i);
+      TypeNode.ExtractChild(child);
+      vis.AddChild(child);
+      extracted := true;
     end;
+    if not extracted then
+      inc(i);
   end;
 end;
 
@@ -1899,6 +1905,12 @@ begin
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.RecordType;
+begin
+  inherited RecordType;
+  MoveMembersToVisibilityNodes(FStack.Peek);
 end;
 
 procedure TPasSyntaxTreeBuilder.RelativeOperator;
