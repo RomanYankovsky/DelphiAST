@@ -111,7 +111,7 @@ type
     procedure PrepareSearchPath;
     procedure PrepareDefines;
     procedure RunParserOnUnit(const fileName: string; var syntaxTree: TSyntaxNode);
-    procedure ScanUsedUnits(const fileName: string; isProject: boolean;
+    procedure ScanUsedUnits(const unitName, fileName: string; isProject: boolean;
       syntaxTree: TSyntaxNode; syntaxTreeFromParser: boolean);
   protected
     function  FindFile(const fileName: string; relativeToFolder: string; var filePath: string): boolean;
@@ -425,7 +425,7 @@ begin
   FParsedUnits.Add(unitName, syntaxTree);
 
   if (not FAborting) and assigned(syntaxTree) then
-    ScanUsedUnits(fileName, isProject, syntaxTree, doParseUnit);
+    ScanUsedUnits(unitName, fileName, isProject, syntaxTree, doParseUnit);
 end;
 
 procedure TProjectIndexer.PrepareSearchPath;
@@ -508,7 +508,7 @@ begin
   finally FreeAndNil(fileStream); end;
 end; { TProjectIndexer.RunParserOnUnit }
 
-procedure TProjectIndexer.ScanUsedUnits(const fileName: string; isProject: boolean;
+procedure TProjectIndexer.ScanUsedUnits(const unitName, fileName: string; isProject: boolean;
   syntaxTree: TSyntaxNode; syntaxTreeFromParser: boolean);
 var
   unitList: TStringList;
