@@ -114,6 +114,7 @@ type
     procedure ClassProperty; override;
     procedure ClassReferenceType; override;
     procedure ClassType; override;
+    procedure ClassVar; override;
     procedure CompoundStatement; override;
     procedure ConstParameter; override;
     procedure ConstantDeclaration; override;
@@ -887,6 +888,17 @@ begin
   finally
     MoveMembersToVisibilityNodes(FStack.Pop);
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ClassVar;
+var
+  FieldNode: TSyntaxNode;
+begin
+  inherited;
+
+  for FieldNode in FStack.Peek.ChildNodes do
+    if FieldNode.Typ = ntField then
+      FieldNode.SetAttribute(anClass, AttributeValues[atTrue]);
 end;
 
 procedure TPasSyntaxTreeBuilder.MoveMembersToVisibilityNodes(TypeNode: TSyntaxNode);
