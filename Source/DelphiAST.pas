@@ -768,9 +768,13 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ClassField;
 var
-  Fields, Temp: TSyntaxNode;
+  Fields, Temp, Parent: TSyntaxNode;
   Field, TypeInfo, TypeArgs: TSyntaxNode;
+  IsClassVar: Boolean;
 begin
+  Parent := FStack.Peek;  
+  IsClassVar := (Parent.Typ = ntVariables) and Parent.HasAttribute(anClass);
+
   Fields := TSyntaxNode.Create(ntFields);
   try
     FStack.Push(Fields);
@@ -790,6 +794,8 @@ begin
       Temp := FStack.Push(ntField);
       try
         Temp.AssignPositionFrom(Field);
+        if IsClassVar then
+          Temp.SetAttribute(anClass, AttributeValues[atTrue]);
 
         FStack.AddChild(Field.Clone);
         TypeInfo := TypeInfo.Clone;
@@ -892,13 +898,22 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ClassVar;
 var
-  FieldNode: TSyntaxNode;
+  FieldNode, Variables: TSyntaxNode;
 begin
-  inherited;
-
-  for FieldNode in FStack.Peek.ChildNodes do
-    if FieldNode.Typ = ntField then
-      FieldNode.SetAttribute(anClass, AttributeValues[atTrue]);
+  Variables := FStack.Push(ntVariables);
+  try
+    Variables.SetAttribute(anClass, AttributeValues[atTrue]);
+    inherited;    
+  finally
+    FStack.Pop;
+  end;
+  
+  try
+    for FieldNode in Variables.ChildNodes do
+      FStack.AddChild(FieldNode.Clone);
+  finally
+    Variables.ParentNode.DeleteChild(Variables);
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.MoveMembersToVisibilityNodes(TypeNode: TSyntaxNode);
