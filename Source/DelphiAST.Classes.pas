@@ -31,12 +31,13 @@ type
     FFileName: string;
     function GetHasChildren: Boolean;
     function GetHasAttributes: Boolean;
-    function TryGetAttributeEntry(const Key: TAttributeName; var AttributeEntry: PAttributeEntry): boolean;
+    function TryGetAttributeEntry(const Key: TAttributeName; out AttributeEntry: PAttributeEntry): boolean;
   protected
     FAttributes: TArray<TAttributeEntry>;
     FChildNodes: TArray<TSyntaxNode>;
     FTyp: TSyntaxNodeType;
     FParentNode: TSyntaxNode;
+    FAttributesInUse: TAttributeNames;
   public
     constructor Create(Typ: TSyntaxNodeType);
     destructor Destroy; override;
@@ -350,6 +351,12 @@ end;
 
 { TSyntaxNode }
 
+procedure TSyntaxNode.ClearAttributes;
+begin
+  SetLength(FAttributes, 0);
+  FAttributesInUse:= [];
+end;
+
 procedure TSyntaxNode.SetAttribute(const Key: TAttributeName; const Value: string);
 var
   AttributeEntry: PAttributeEntry;
@@ -363,21 +370,27 @@ begin
     AttributeEntry^.Key := Key;
   end;
   AttributeEntry^.Value := Value;
+  if (Value = '') then Exclude(FAttributesInUse, Key)
+  else Include(FAttributesInUse, Key);
 end;
 
-function TSyntaxNode.TryGetAttributeEntry(const Key: TAttributeName; var AttributeEntry: PAttributeEntry): boolean;
+function TSyntaxNode.TryGetAttributeEntry(const Key: TAttributeName; out AttributeEntry: PAttributeEntry): boolean;
 var
   i: integer;
 begin
-  for i := 0 to High(FAttributes) do
+  Result:= false;
+  if not(Key in FAttributesInUse) then begin
+   //Do not allow the AttributeEntry to be undefined.
+    AttributeEntry:= nil;
+  end else for i := 0 to High(FAttributes) do begin
     if FAttributes[i].Key = Key then
     begin
       AttributeEntry := @FAttributes[i];
       Exit(True);
     end;
-
-  Result := False;
+  end;
 end;
+
 
 function TSyntaxNode.AddChild(Node: TSyntaxNode): TSyntaxNode;
 begin
@@ -410,6 +423,7 @@ begin
   end;
 
   Result.FAttributes := Copy(FAttributes);
+  Result.FAttributesInUse:= FAttributesInUse;
   Result.AssignPositionFrom(Self);
 end;
 
@@ -484,12 +498,8 @@ function TSyntaxNode.HasAttribute(const Key: TAttributeName): Boolean;
 var
   AttributeEntry: PAttributeEntry;
 begin
-  Result := TryGetAttributeEntry(Key, AttributeEntry);
-end;
-
-procedure TSyntaxNode.ClearAttributes;
-begin
-  SetLength(FAttributes, 0);
+  //Result := TryGetAttributeEntry(Key, AttributeEntry);
+  Result:= Key in FAttributesInUse;
 end;
 
 procedure TSyntaxNode.AssignPositionFrom(const Node: TSyntaxNode);

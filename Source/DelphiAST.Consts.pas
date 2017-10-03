@@ -157,6 +157,8 @@ type
     anInline
   );
 
+  TAttributeNames = set of TAttributeName;
+
 const
   SyntaxNodeNames: array [TSyntaxNodeType] of string = (
     'unknown',
