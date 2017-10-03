@@ -78,6 +78,7 @@ type
     procedure SetCurrentCompoundNodesEndPosition;
     procedure DoOnComment(Sender: TObject; const Text: string);
     procedure DoHandleString(var s: string); inline;
+    procedure FieldList;
   protected
     FStack: TNodeStack;
     FComments: TObjectList<TCommentNode>;
@@ -102,7 +103,7 @@ type
     procedure CaseSelector; override;
     procedure CaseStatement; override;
     procedure ClassClass; override;
-    procedure ClassConstraint; override;    
+    procedure ClassConstraint; override;
     procedure ClassField; override;
     procedure ClassForward; override;
     procedure ClassFunctionHeading; override;
@@ -127,10 +128,12 @@ type
     procedure ConstructorName; override;
     procedure ContainsClause; override;
     procedure DestructorName; override;
+    procedure DirectiveAbstract; override;
     procedure DirectiveBinding; override;
     procedure DirectiveBindingMessage; override;
     procedure DirectiveCalling; override;
     procedure DirectiveInline; override;
+    procedure DirectiveSealed; override;
     procedure DispInterfaceForward; override;
     procedure DotOp; override;
     procedure ElseStatement; override;
@@ -148,6 +151,7 @@ type
     procedure ExportsNameId; override;
     procedure Expression; override;
     procedure ExpressionList; override;
+    procedure ExternalDependency; override;
     procedure ExternalDirective; override;
     procedure FieldName; override;
     procedure FinalizationSection; override;
@@ -182,6 +186,7 @@ type
     procedure MainUsedUnitStatement; override;
     procedure MethodKind; override;
     procedure MultiplicativeOperator; override;
+    procedure NameSpecifier; override;
     procedure NotOp; override;
     procedure NilToken; override;
     procedure Number; override;
@@ -312,10 +317,10 @@ uses
 // do not use const strings here to prevent allocating new strings every time
 
 type
-  TAttributeValue = (atAsm, atTrue, atFunction, atProcedure, atClassOf, atClass,
+  TAttributeValue = (atAsm, atTrue, atFunction, atProcedure, atOperator, atClassOf, atClass,
     atConst, atConstructor, atDestructor, atEnum, atInterface, atNil, atNumeric,
     atOut, atPointer, atName, atString, atSubRange, atVar, atType, {#220+#181-explicit type}
-    atObject {#226});
+    atObject, atSealed, atAbstract);
 
 var
   AttributeValues: array[TAttributeValue] of string;
@@ -778,7 +783,9 @@ procedure TPasSyntaxTreeBuilder.ClassField;
 var
   Fields, Temp: TSyntaxNode;
   Field, TypeInfo, TypeArgs: TSyntaxNode;
+  IsClassVarSection: boolean;
 begin
+  IsClassVarSection:= FStack.Peek.HasAttribute(anClass);
   Fields := TSyntaxNode.Create(ntFields);
   try
     FStack.Push(Fields);
@@ -796,9 +803,48 @@ begin
         Continue;
 
       Temp := FStack.Push(ntField);
+      if (IsClassVarSection) then Temp.Attribute[anClass]:= AttributeValues[atTrue];
       try
         Temp.AssignPositionFrom(Field);
 
+        FStack.AddChild(Field.Clone);
+        TypeInfo := TypeInfo.Clone;
+        if Assigned(TypeArgs) then
+          TypeInfo.AddChild(TypeArgs.Clone);
+        FStack.AddChild(TypeInfo);
+      finally
+        FStack.Pop;
+      end;
+    end;
+  finally
+    Fields.Free;
+  end;
+end;
+procedure TPasSyntaxTreeBuilder.ObjectField;
+var
+  Fields, Temp: TSyntaxNode;
+  Field, TypeInfo, TypeArgs: TSyntaxNode;
+  IsClassVarSection: boolean;
+begin
+  IsClassVarSection:= FStack.Peek.HasAttribute(anClass);
+  Fields := TSyntaxNode.Create(ntFields);
+  try
+    FStack.Push(Fields);
+    try
+      inherited;
+    finally
+      FStack.Pop;
+    end;
+    TypeInfo := Fields.FindNode(ntType);
+    TypeArgs := Fields.FindNode(ntTypeArgs);
+    for Field in Fields.ChildNodes do
+    begin
+      if Field.Typ <> ntName then
+        Continue;
+      Temp := FStack.Push(ntField);
+      if (IsClassVarSection) then Temp.Attribute[anClass]:= AttributeValues[atTrue];
+      try
+        Temp.AssignPositionFrom(Field);
         FStack.AddChild(Field.Clone);
         TypeInfo := TypeInfo.Clone;
         if Assigned(TypeArgs) then
@@ -822,7 +868,8 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ClassFunctionHeading;
 begin
-  FStack.Peek.SetAttribute(anKind, AttributeValues[atFunction]);
+  if (FLexer.Token = 'operator') then FStack.Peek.SetAttribute(anKind, AttributeValues[atOperator])
+  else FStack.Peek.SetAttribute(anKind, AttributeValues[atFunction]);
   inherited;
 end;
 
@@ -843,7 +890,11 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.ClassMethodResolution;
+var
+  PrevNode: TSyntaxNode;
 begin
+  PrevNode:= FStack.Peek; //Get the ntMethod node above
+  PrevNode.Attribute[anKind]:= FLexer.Token;
   FStack.Push(ntResolutionClause);
   try
     inherited;
@@ -1138,6 +1189,12 @@ begin
   inherited;
 end;
 
+procedure TPasSyntaxTreeBuilder.DirectiveAbstract;
+begin
+  //anAbstract Attribute can contain both 'sealed' and 'abstract'
+  FStack.Peek.Attribute[anAbstract]:= Lexer.Token;
+  inherited;
+end;
 procedure TPasSyntaxTreeBuilder.DirectiveBinding;
 var
   token: string;
@@ -1153,8 +1210,8 @@ begin
     FStack.Peek.SetAttribute(anReintroduce, AttributeValues[atTrue])
   else if SameText(token, 'overload') then
     FStack.Peek.SetAttribute(anOverload, AttributeValues[atTrue])
-  else if SameText(token, 'abstract') then
-    FStack.Peek.SetAttribute(anAbstract, AttributeValues[atTrue]);
+  else if SameText(Token, 'abstract') or SameText(Token, 'final') then
+    FStack.Peek.SetAttribute(anAbstract, Token);
 
   inherited;
 end;
@@ -1178,6 +1235,13 @@ end;
 procedure TPasSyntaxTreeBuilder.DirectiveInline;
 begin
   FStack.Peek.SetAttribute(anInline, AttributeValues[atTrue]);
+  inherited;
+end;
+procedure TPasSyntaxTreeBuilder.DirectiveSealed;
+begin
+  //hack, must go to a better attributeType, however sealed, abstract cannot coexist
+  //Perhaps sealed, abstract and final should all share a attribute type called anInheritance
+  FStack.Peek.Attribute[anAbstract]:= Lexer.Token;
   inherited;
 end;
 
@@ -1272,8 +1336,8 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ExplicitType;  //#220+#181
 begin
-  inherited;
   FStack.Peek.SetAttribute(anKind, AttributeValues[atType]);
+  inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.ExportedHeading;
@@ -1370,6 +1434,15 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.ExternalDependency;
+begin
+  FStack.Push(ntDependency);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
 procedure TPasSyntaxTreeBuilder.ExternalDirective;
 begin
   FStack.Push(ntExternal);
@@ -1377,6 +1450,44 @@ begin
     inherited;
   finally
     FStack.Pop;
+  end;
+end;
+procedure TPasSyntaxTreeBuilder.FieldList;
+var
+  Fields, Temp: TSyntaxNode;
+  Field, TypeInfo, TypeArgs: TSyntaxNode;
+  IsClassVarSection: boolean;
+begin
+  IsClassVarSection:= FStack.Peek.HasAttribute(anClass);
+  Fields := TSyntaxNode.Create(ntFields);
+  try
+    FStack.Push(Fields);
+    try
+      inherited;
+    finally
+      FStack.Pop;
+    end;
+    TypeInfo := Fields.FindNode(ntType);
+    TypeArgs := Fields.FindNode(ntTypeArgs);
+    for Field in Fields.ChildNodes do
+    begin
+      if Field.Typ <> ntName then
+        Continue;
+      Temp := FStack.Push(ntField);
+      if (IsClassVarSection) then Temp.Attribute[anClass]:= AttributeValues[atTrue];
+      try
+        Temp.AssignPositionFrom(Field);
+        FStack.AddChild(Field.Clone);
+        TypeInfo := TypeInfo.Clone;
+        if Assigned(TypeArgs) then
+          TypeInfo.AddChild(TypeArgs.Clone);
+        FStack.AddChild(TypeInfo);
+      finally
+        FStack.Pop;
+      end;
+    end;
+  finally
+    Fields.Free;
   end;
 end;
 
@@ -1490,10 +1601,9 @@ end;
 procedure TPasSyntaxTreeBuilder.FunctionProcedureName;   //#221  record method type params explicitly, keep the full name as well.
 var
   ChildNode, NameNode, TypeParam, TypeNode, Temp, TypeParams: TSyntaxNode;
-  FullName, TypeParamStr, Dot, Comma: string;
-  HasTypeParams: boolean;
+  FullName, Dot, Comma: string;
 begin
-  Temp:= FStack.Peek;
+  //Temp:= FStack.Peek;
   NameNode:= FStack.Push(ntName);
   try
     inherited;
@@ -1658,8 +1768,6 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.LabeledStatement;
-var
-  Temp: TSyntaxNode;
 begin
   FStack.PushValuedNode(ntLabeledStatement, Lexer.Token);   //#227
   try
@@ -1765,6 +1873,15 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.NameSpecifier;
+begin
+  FStack.Push(ntExternalName);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
 procedure TPasSyntaxTreeBuilder.NilToken;
 begin
   FStack.AddChild(ntLiteral).SetAttribute(anType, AttributeValues[atNil]);
@@ -1784,45 +1901,6 @@ begin
   Node := FStack.AddValuedChild(ntLiteral, Lexer.Token);
   Node.SetAttribute(anType, AttributeValues[atNumeric]);
   inherited;
-end;
-
-procedure TPasSyntaxTreeBuilder.ObjectField;
-var
-  Fields, Temp: TSyntaxNode;
-  Field, TypeInfo, TypeArgs: TSyntaxNode;
-begin
-  Fields := TSyntaxNode.Create(ntFields);    //#229
-  try
-    FStack.Push(Fields);
-    try
-      inherited;
-    finally
-      FStack.Pop;
-    end;
-
-    TypeInfo := Fields.FindNode(ntType);
-    TypeArgs := Fields.FindNode(ntTypeArgs);
-    for Field in Fields.ChildNodes do
-    begin
-      if Field.Typ <> ntName then
-        Continue;
-
-      Temp := FStack.Push(ntField);
-      try
-        Temp.AssignPositionFrom(Field);
-
-        FStack.AddChild(Field.Clone);
-        TypeInfo := TypeInfo.Clone;
-        if Assigned(TypeArgs) then
-          TypeInfo.AddChild(TypeArgs.Clone);
-        FStack.AddChild(TypeInfo);
-      finally
-        FStack.Pop;
-      end;
-    end;
-  finally
-    Fields.Free;
-  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.ObjectForward;

@@ -212,6 +212,7 @@ type
     function Func141: TptTokenKind;
     function Func142: TptTokenKind;
     function Func143: TptTokenKind;
+    function Func158: TptTokenKind;
     function Func166: TptTokenKind;
     function Func167: TptTokenKind;
     function Func168: TptTokenKind;
@@ -384,7 +385,7 @@ uses
   StrUtils;
 
 type
-  TmwPasLexExpressionEvaluation = (leeNone, leeAnd, leeOr);
+  TmwPasLexExpressionEvaluation = (leeNone, leeAnd, leeOr, leeXor);
 
 procedure MakeIdentTable;
 var
@@ -392,14 +393,10 @@ var
 begin
   for I := #0 to #127 do
   begin
-    case I of
-      '_', '0'..'9', 'a'..'z', 'A'..'Z': Identifiers[I] := True;
-    else
-      Identifiers[I] := False;
-    end;
-    J := UpperCase(I)[1];
-    case I of
-      'a'..'z', 'A'..'Z', '_': mHashTable[I] := Ord(J) - 64;
+    Identifiers[I]:= I in ['_', '0'..'9', 'a'..'z', 'A'..'Z'];
+    J := UpCase(I);
+    case J of
+      'A'..'Z', '_': mHashTable[I] := Ord(J) - 64;
     else
       mHashTable[Char(I)] := 0;
     end;
@@ -922,7 +919,8 @@ end;
 function TmwBasePasLex.Func73: TptTokenKind;
 begin
   Result := ptIdentifier;
-  if KeyComp('Except') then Result := ptExcept;
+  if KeyComp('Except') then Result := ptExcept else
+  if KeyComp('AnsiChar') then FExId := ptAnsiChar;
 end;
 
 function TmwBasePasLex.Func75: TptTokenKind;
@@ -1019,8 +1017,9 @@ end;
 function TmwBasePasLex.Func95: TptTokenKind;
 begin
   Result := ptIdentifier;
-  if KeyComp('Contains') then FExID := ptContains else
-    if KeyComp('Absolute') then FExID := ptAbsolute;
+  if KeyComp('Contains') then FExID := ptContains
+  else if KeyComp('Absolute') then FExID := ptAbsolute
+  else if KeyComp('Dependency') then FExID := ptDependency; //#240
 end;
 
 function TmwBasePasLex.Func96: TptTokenKind;
@@ -1060,9 +1059,9 @@ end;
 function TmwBasePasLex.Func101: TptTokenKind;
 begin
   Result := ptIdentifier;
-  if KeyComp('Register') then FExID := ptRegister else
-    if KeyComp('Platform') then FExID := ptPlatform else
-      if KeyComp('Continue') then FExID := ptContinue;
+  if KeyComp('Register') then FExID:= ptRegister
+  else if KeyComp('Platform') then FExID:= ptPlatform
+  else if KeyComp('Continue') then FExID:= ptContinue;
 end;
 
 function TmwBasePasLex.Func102: TptTokenKind;
@@ -1117,8 +1116,8 @@ end;
 function TmwBasePasLex.Func117: TptTokenKind;
 begin
   Result := ptIdentifier;
-  if KeyComp('Exports') then Result := ptExports else
-    if KeyComp('OleVariant') then FExID := ptOleVariant;
+  if KeyComp('Exports') then Result:= ptExports
+  else if KeyComp('OleVariant') then FExID:= ptOleVariant;
 end;
 
 function TmwBasePasLex.Func123: TptTokenKind;
@@ -1154,7 +1153,10 @@ end;
 function TmwBasePasLex.Func130: TptTokenKind;
 begin
   Result := ptIdentifier;
-  if KeyComp('AnsiString') then FExID := ptAnsiString;
+  if KeyComp('AnsiString') then begin
+    Result:= ptString;
+    FExID := ptAnsiString;
+  end;
 end;
 
 function TmwBasePasLex.Func132: TptTokenKind;
@@ -1193,11 +1195,19 @@ begin
   if KeyComp('Destructor') then Result := ptDestructor;
 end;
 
+function TmwBasePasLex.Func158: TptTokenKind;
+begin
+  Result := ptIdentifier;
+  if KeyComp('Unicodestring') then begin
+    Result := ptString;
+    FExID:= ptUnicodeString;
+  end;
+end;
 function TmwBasePasLex.Func166: TptTokenKind;
 begin
   Result := ptIdentifier;
-  if KeyComp('Constructor') then Result := ptConstructor else
-    if KeyComp('Implementation') then Result := ptImplementation;
+  if KeyComp('Constructor') then Result:= ptConstructor
+  else if KeyComp('Implementation') then Result:= ptImplementation;
 end;
 
 function TmwBasePasLex.Func167: TptTokenKind;
@@ -1215,8 +1225,8 @@ end;
 function TmwBasePasLex.Func191: TptTokenKind;
 begin
   Result := ptIdentifier;
-  if KeyComp('Resourcestring') then Result := ptResourcestring else
-    if KeyComp('Stringresource') then FExID := ptStringresource;
+  if KeyComp('Resourcestring') then Result:= ptResourcestring
+  else if KeyComp('Stringresource') then FExID:= ptStringresource;
 end;
 
 function TmwBasePasLex.AltFunc: TptTokenKind;
@@ -1703,6 +1713,7 @@ begin
           leeNone: Result := IsDefined(LDefine);
           leeAnd: Result := Result and IsDefined(LDefine);
           leeOr: Result := Result or IsDefined(LDefine);
+          leeXor: Result:= Result xor IsDefined(LDefine);
         end;
       end
       else if Pos('NOT DEFINED(', LParams) = 1 then
@@ -1713,6 +1724,7 @@ begin
           leeNone: Result := (not IsDefined(LDefine));
           leeAnd: Result := Result and (not IsDefined(LDefine));
           leeOr: Result := Result or (not IsDefined(LDefine));
+          leeXor: Result:= Result xor (not IsDefined(LDefine));
         end;
       end;
       // Determine next Evaluation
@@ -1724,6 +1736,11 @@ begin
       else if Pos('OR ', LParams) = 1 then
       begin
         LEvaluation := leeOr;
+        LParams := TrimLeft(Copy(LParams, 3, Length(LParams) - 2));
+      end
+      else if Pos('XOR ', LParams) = 1 then
+      begin
+        LEvaluation := leeXor;
         LParams := TrimLeft(Copy(LParams, 3, Length(LParams) - 2));
       end;
     end;
