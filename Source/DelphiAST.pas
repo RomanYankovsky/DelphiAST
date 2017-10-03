@@ -140,6 +140,7 @@ type
     procedure ExceptionBlockElseBranch; override;
     procedure ExceptionHandler; override;
     procedure ExceptionVariable; override;
+    procedure ExplicitType; override;     //#220+#181
     procedure ExportedHeading; override;
     procedure ExportsClause; override;
     procedure ExportsElement; override;
@@ -308,7 +309,7 @@ uses
 type
   TAttributeValue = (atAsm, atTrue, atFunction, atProcedure, atClassOf, atClass,
     atConst, atConstructor, atDestructor, atEnum, atInterface, atNil, atNumeric,
-    atOut, atPointer, atName, atString, atSubRange, atVar);
+    atOut, atPointer, atName, atString, atSubRange, atVar, atType {#220+#181-explicit type});
 
 var
   AttributeValues: array[TAttributeValue] of string;
@@ -1256,6 +1257,12 @@ begin
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ExplicitType;  //#220+#181
+begin
+  inherited;
+  FStack.Peek.SetAttribute(anKind, AttributeValues[atType]);
 end;
 
 procedure TPasSyntaxTreeBuilder.ExportedHeading;
