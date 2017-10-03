@@ -4007,7 +4007,9 @@ end;
 
 procedure TmwSimplePasPar.ObjectField;
 begin
-  IdentifierList;
+  if TokenID = ptSquareOpen then  //#229
+    CustomAttribute;
+  FieldNameList;
   Expected(ptColon);
   TypeKind;
   TypeDirective;

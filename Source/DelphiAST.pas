@@ -184,8 +184,10 @@ type
     procedure NotOp; override;
     procedure NilToken; override;
     procedure Number; override;
+    procedure ObjectField; override;
     procedure ObjectForward; override;
     procedure ObjectNameOfMethod; override;
+    procedure ObjectType; override;
     procedure OutParameter; override;
     procedure ParameterFormal; override;
     procedure ParameterName; override;
@@ -1775,6 +1777,45 @@ begin
   inherited;
 end;
 
+procedure TPasSyntaxTreeBuilder.ObjectField;
+var
+  Fields, Temp: TSyntaxNode;
+  Field, TypeInfo, TypeArgs: TSyntaxNode;
+begin
+  Fields := TSyntaxNode.Create(ntFields);    //#229
+  try
+    FStack.Push(Fields);
+    try
+      inherited;
+    finally
+      FStack.Pop;
+    end;
+
+    TypeInfo := Fields.FindNode(ntType);
+    TypeArgs := Fields.FindNode(ntTypeArgs);
+    for Field in Fields.ChildNodes do
+    begin
+      if Field.Typ <> ntName then
+        Continue;
+
+      Temp := FStack.Push(ntField);
+      try
+        Temp.AssignPositionFrom(Field);
+
+        FStack.AddChild(Field.Clone);
+        TypeInfo := TypeInfo.Clone;
+        if Assigned(TypeArgs) then
+          TypeInfo.AddChild(TypeArgs.Clone);
+        FStack.AddChild(TypeInfo);
+      finally
+        FStack.Pop;
+      end;
+    end;
+  finally
+    Fields.Free;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.ObjectForward;
 begin
   FStack.Peek.SetAttribute(anForwarded, AttributeValues[atTrue]);  //#226
@@ -1787,6 +1828,16 @@ begin
   //FStack.AddValuedChild(ntName, Lexer.Token);
   FStack.AddChild(ntName).SetAttribute(anName, Lexer.Token);  //#222
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.ObjectType;
+begin
+  FStack.Push(ntType).SetAttribute(anType, AttributeValues[atObject]);  //#229
+  try
+    inherited;
+  finally
+    MoveMembersToVisibilityNodes(FStack.Pop);
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.DoOnComment(Sender: TObject; const Text: string);
