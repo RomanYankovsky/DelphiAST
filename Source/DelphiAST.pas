@@ -1233,7 +1233,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ExceptionBlockElseBranch;
 begin
-  FStack.Push(ntElse);
+  FStack.Push(ntExceptElse); //#223
   try
     inherited;
   finally
