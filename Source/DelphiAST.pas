@@ -1054,11 +1054,11 @@ var
 begin
   ConstSect := TSyntaxNode.Create(ntConstants);
   try
-    FStack.Push(ntConstants);
+    FStack.Push(ntConstants).SetAttribute(anKind, Lexer.Token);  //#228
 
     FStack.Push(ConstSect);
     try
-      inherited ConstSection;
+      inherited;
     finally
       FStack.Pop;
     end;
