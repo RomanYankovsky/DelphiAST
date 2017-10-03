@@ -183,6 +183,7 @@ type
     procedure NotOp; override;
     procedure NilToken; override;
     procedure Number; override;
+    procedure ObjectForward; override;
     procedure ObjectNameOfMethod; override;
     procedure OutParameter; override;
     procedure ParameterFormal; override;
@@ -309,7 +310,8 @@ uses
 type
   TAttributeValue = (atAsm, atTrue, atFunction, atProcedure, atClassOf, atClass,
     atConst, atConstructor, atDestructor, atEnum, atInterface, atNil, atNumeric,
-    atOut, atPointer, atName, atString, atSubRange, atVar, atType {#220+#181-explicit type});
+    atOut, atPointer, atName, atString, atSubRange, atVar, atType, {#220+#181-explicit type}
+    atObject {#226});
 
 var
   AttributeValues: array[TAttributeValue] of string;
@@ -809,8 +811,9 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ClassForward;
 begin
-  FStack.Peek.SetAttribute(anForwarded, AttributeValues[atTrue]);
-  inherited ClassForward;
+  FStack.Peek.SetAttribute(anForwarded, AttributeValues[atTrue]); //#226
+  FStack.Peek.SetAttribute(anType, AttributeValues[atClass]);
+  inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.ClassFunctionHeading;
@@ -1756,6 +1759,13 @@ var
 begin
   Node := FStack.AddValuedChild(ntLiteral, Lexer.Token);
   Node.SetAttribute(anType, AttributeValues[atNumeric]);
+  inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.ObjectForward;
+begin
+  FStack.Peek.SetAttribute(anForwarded, AttributeValues[atTrue]);  //#226
+  FStack.Peek.SetAttribute(anType, AttributeValues[atObject]);
   inherited;
 end;
 
