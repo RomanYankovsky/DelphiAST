@@ -17,6 +17,8 @@ unit CastaliaPasLexTypes;
 
 unit SimpleParser.Lexer.Types;
 
+{$IFDEF FPC}{$MODE DELPHI}{$ENDIF}
+
 interface
 
 uses
@@ -24,6 +26,11 @@ uses
   TypInfo;
 
 {$INCLUDE SimpleParser.inc}
+
+{$IFNDEF D14_NEWER}
+type
+  TArray<T> = array of T;
+{$ENDIF}
 
 var
   CompTable: array[#0..#255] of byte;
@@ -211,6 +218,7 @@ type
     ptRoundOpen,
     ptRunError,
     ptSafeCall,
+    ptScopedEnumsDirect,
     ptSealed,
     ptSemiColon,
     ptSet,
@@ -311,8 +319,8 @@ begin
     ptEndIfDirect,
     ptIfOptDirect,
     ptDefineDirect,
+    ptScopedEnumsDirect,
     ptUndefDirect];
 end;
 
 end.
-

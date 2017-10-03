@@ -6,6 +6,7 @@ uses
   {$IFDEF FPC}
      StringBuilderUnit,
   {$ENDIF}
+  Classes,
   DelphiAST.Classes, SysUtils;
 
 type
@@ -16,12 +17,14 @@ type
   public
     class function ToXML(const Root: TSyntaxNode;
       Formatted: Boolean = False): string; static;
+    class function ToBinary(const Root: TSyntaxNode; Stream: TStream): Boolean; static;
   end;
 
 implementation
 
 uses
-  Generics.Collections, DelphiAST.Consts;
+  Generics.Collections,
+  DelphiAST.Consts, DelphiAST.Serialize.Binary;
 
 {$I SimpleParser.inc}
 {$IFDEF D18_NEWER}
@@ -94,7 +97,7 @@ class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
       Builder.Append(' value="' + XMLEncode(TValuedSyntaxNode(Node).Value) + '"');
 
     for Attr in Node.Attributes do
-      Builder.Append(' ' + AttributeNameToStr(Attr.Key) + '="' + XMLEncode(Attr.Value) + '"');
+      Builder.Append(' ' + AttributeNameStrings[Attr.Key] + '="' + XMLEncode(Attr.Value) + '"');
     if HasChildren then
       Builder.Append('>')
     else
@@ -112,9 +115,20 @@ class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
         Builder.AppendLine;
     end;
   end;
-  
+
 begin
   NodeToXMLInternal(Node, '');
+end;
+
+class function TSyntaxTreeWriter.ToBinary(const Root: TSyntaxNode; Stream: TStream):
+  Boolean;
+var
+  Writer: TBinarySerializer;
+begin
+  Writer := TBinarySerializer.Create;
+  try
+    Result := Writer.Write(Stream, Root);
+  finally FreeAndNil(Writer); end;
 end;
 
 class function TSyntaxTreeWriter.ToXML(const Root: TSyntaxNode; 

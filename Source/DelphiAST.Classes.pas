@@ -42,7 +42,8 @@ type
     destructor Destroy; override;
 
     function Clone: TSyntaxNode; virtual;
-
+    procedure AssignPositionFrom(const Node: TSyntaxNode);
+    
     function GetAttribute(const Key: TAttributeName): string;
     function HasAttribute(const Key: TAttributeName): Boolean;
     procedure SetAttribute(const Key: TAttributeName; const Value: string);
@@ -57,7 +58,6 @@ type
 
     property Attributes: TArray<TAttributeEntry> read FAttributes;
     property ChildNodes: TArray<TSyntaxNode> read FChildNodes;
-    property FileName: string read FFileName write FFileName;
     property HasAttributes: Boolean read GetHasAttributes;
     property HasChildren: Boolean read GetHasChildren;
     property Typ: TSyntaxNodeType read FTyp;
@@ -65,6 +65,7 @@ type
 
     property Col: Integer read FCol write FCol;
     property Line: Integer read FLine write FLine;
+    property FileName: string read FFileName write FFileName;
   end;
 
   TCompoundSyntaxNode = class(TSyntaxNode)
@@ -121,9 +122,6 @@ type
 
   TOperators = class
   strict private
-    class var FOps: TDictionary<TSyntaxNodeType, TOperatorInfo>;
-    class constructor Create;
-    class destructor Destroy;
     class function GetItem(Typ: TSyntaxNodeType): TOperatorInfo; static;
   public
     class function IsOpName(Typ: TSyntaxNodeType): Boolean;
@@ -163,29 +161,23 @@ const
 
 { TOperators }
 
-class constructor TOperators.Create;
-var
-  I: Integer;
-begin
-  FOps := TDictionary<TSyntaxNodeType, TOperatorInfo>.Create;
-
-  for I := Low(OperatorsInfo) to High(OperatorsInfo) do
-    FOps.Add(OperatorsInfo[I].Typ, OperatorsInfo[I]);
-end;
-
-class destructor TOperators.Destroy;
-begin
-  FOps.Free;
-end;
-
 class function TOperators.GetItem(Typ: TSyntaxNodeType): TOperatorInfo;
+var
+  i: Integer;
 begin
-  Result := FOps[Typ];
+  for i := 0 to High(OperatorsInfo) do
+    if OperatorsInfo[i].Typ = Typ then
+      Exit(OperatorsInfo[i]);
 end;
 
 class function TOperators.IsOpName(Typ: TSyntaxNodeType): Boolean;
+var
+  i: Integer;
 begin
-  Result := FOps.ContainsKey(Typ);
+  for i := 0 to High(OperatorsInfo) do
+    if OperatorsInfo[i].Typ = Typ then
+      Exit(True);
+  Result := False;
 end;
 
 function IsRoundClose(Typ: TSyntaxNodeType): Boolean; inline;
@@ -329,9 +321,7 @@ end;
 class function TExpressionTools.CreateNodeWithParentsPosition(NodeType: TSyntaxNodeType; ParentNode: TSyntaxNode): TSyntaxNode;
 begin
   Result := TSyntaxNode.Create(NodeType);
-  Result.Line := ParentNode.Line;
-  Result.Col := ParentNode.Col;
-  Result.FileName := ParentNode.FileName;
+  Result.AssignPositionFrom(ParentNode);
 end;
 
 class procedure TExpressionTools.RawNodeListToTree(RawParentNode: TSyntaxNode; RawNodeList: TList<TSyntaxNode>;
@@ -362,31 +352,30 @@ end;
 procedure TSyntaxNode.SetAttribute(const Key: TAttributeName; const Value: string);
 var
   AttributeEntry: PAttributeEntry;
-  NewAttributeEntry: TAttributeEntry;
+  len: Integer;
 begin
-  if TryGetAttributeEntry(Key, AttributeEntry) then
-    AttributeEntry^.Value := Value
-  else
+  if not TryGetAttributeEntry(Key, AttributeEntry) then
   begin
-    NewAttributeEntry.Key := Key;
-    NewAttributeEntry.Value := Value;
-    SetLength(FAttributes, Length(FAttributes) + 1);
-    FAttributes[Length(FAttributes) - 1] := NewAttributeEntry;
+    len := Length(FAttributes);
+    SetLength(FAttributes, len + 1);
+    AttributeEntry := @FAttributes[len];
+    AttributeEntry^.Key := Key;
   end;
+  AttributeEntry^.Value := Value;
 end;
 
 function TSyntaxNode.TryGetAttributeEntry(const Key: TAttributeName; var AttributeEntry: PAttributeEntry): boolean;
 var
   i: integer;
 begin
-  for i := 0 to Length(FAttributes) - 1 do
+  for i := 0 to High(FAttributes) do
     if FAttributes[i].Key = Key then
     begin
       AttributeEntry := @FAttributes[i];
-      Exit(true);
+      Exit(True);
     end;
 
-  Exit(false);
+  Result := False;
 end;
 
 function TSyntaxNode.AddChild(Node: TSyntaxNode): TSyntaxNode;
@@ -408,49 +397,39 @@ end;
 
 function TSyntaxNode.Clone: TSyntaxNode;
 var
-  ChildNode: TSyntaxNode;
-  Attr: TPair<TAttributeName, string>;
+  i: Integer;
 begin
   Result := TSyntaxNodeClass(Self.ClassType).Create(FTyp);
 
-  for ChildNode in FChildNodes do
-    Result.AddChild(ChildNode.Clone);
+  SetLength(Result.FChildNodes, Length(FChildNodes));
+  for i := 0 to High(FChildNodes) do
+  begin
+    Result.FChildNodes[i] := FChildNodes[i].Clone;
+    Result.FChildNodes[i].FParentNode := Result;
+  end;
 
-  for Attr in FAttributes do
-    Result.SetAttribute(Attr.Key, Attr.Value);
-
-  Result.Col := Self.Col;
-  Result.Line := Self.Line;
-  Result.FileName := Self.FileName;
+  Result.FAttributes := Copy(FAttributes);
+  Result.AssignPositionFrom(Self);
 end;
 
 constructor TSyntaxNode.Create(Typ: TSyntaxNodeType);
 begin
   inherited Create;
   FTyp := Typ;
-  SetLength(FAttributes, 0);
-  SetLength(FChildNodes, 0);
-  FParentNode := nil;
 end;
 
 procedure TSyntaxNode.ExtractChild(Node: TSyntaxNode);
 var
-  NodeIndex, i: integer;
+  i: integer;
 begin
-  NodeIndex := -1;
-  for i := 0 to Length(FChildNodes) - 1 do
+  for i := 0 to High(FChildNodes) do
     if FChildNodes[i] = Node then
     begin
-      NodeIndex := i;
-      break;
+      if i < High(FChildNodes) then
+        Move(FChildNodes[i + 1], FChildNodes[i], SizeOf(TSyntaxNode) * (Length(FChildNodes) - i - 1));
+      SetLength(FChildNodes, High(FChildNodes));
+      Break;
     end;
-
-  if NodeIndex >= 0 then
-  begin
-    if NodeIndex < High(FChildNodes) then
-      Move(FChildNodes[NodeIndex + 1], FChildNodes[NodeIndex], SizeOf(FChildNodes[0]) * (Length(FChildNodes) - NodeIndex - 1));
-    SetLength(FChildNodes, Length(FChildNodes) - 1);
-  end;   
 end;
 
 procedure TSyntaxNode.DeleteChild(Node: TSyntaxNode);
@@ -463,25 +442,19 @@ destructor TSyntaxNode.Destroy;
 var
   i: integer;
 begin
-  for i := 0 to Length(FChildNodes) - 1 do
-    FChildNodes[i].Free;
-  SetLength(FChildNodes, 0);
-
-  SetLength(FAttributes, 0);  
+  for i := 0 to High(FChildNodes) do
+    FreeAndNil(FChildNodes[i]);
   inherited;
 end;
 
 function TSyntaxNode.FindNode(Typ: TSyntaxNodeType): TSyntaxNode;
 var
-  Node: TSyntaxNode;
+  i: Integer;
 begin
+  for i := 0 to High(FChildNodes) do
+    if FChildNodes[i].Typ = Typ then
+      Exit(FChildNodes[i]);
   Result := nil;
-  for Node in FChildNodes do
-    if Node.Typ = Typ then
-    begin
-      Result := Node;
-      Break;
-    end;
 end;
 
 function TSyntaxNode.GetAttribute(const Key: TAttributeName): string;
@@ -489,7 +462,7 @@ var
   AttributeEntry: PAttributeEntry;
 begin
   if TryGetAttributeEntry(Key, AttributeEntry) then
-    Result := AttributeEntry.Value
+    Result := AttributeEntry^.Value
   else
     Result := '';
 end;
@@ -514,6 +487,13 @@ end;
 procedure TSyntaxNode.ClearAttributes;
 begin
   SetLength(FAttributes, 0);
+end;
+
+procedure TSyntaxNode.AssignPositionFrom(const Node: TSyntaxNode);
+begin
+  FCol := Node.Col;
+  FLine := Node.Line;
+  FFileName := Node.FileName;
 end;
 
 { TCompoundSyntaxNode }
