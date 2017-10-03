@@ -613,8 +613,9 @@ end;
 
 procedure TmwSimplePasPar.ForwardDeclaration;
 begin
+  //semicolon is optional after forward directive.
   NextToken;
-  Semicolon;
+  if TokenID = ptSemiColon then NextToken;      //#166
 end;
 
 procedure TmwSimplePasPar.ObjectProperty;
