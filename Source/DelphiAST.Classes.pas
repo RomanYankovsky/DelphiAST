@@ -52,7 +52,7 @@ type
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
     function AddChild(Typ: TSyntaxNodeType): TSyntaxNode; overload;
     procedure DeleteChild(Node: TSyntaxNode);
-    procedure ExtractChild(Node: TSyntaxNode);
+    function ExtractChild(Node: TSyntaxNode): TSyntaxNode;
 
     function FindNode(Typ: TSyntaxNodeType): TSyntaxNode;
 
@@ -66,6 +66,7 @@ type
     property Col: Integer read FCol write FCol;
     property Line: Integer read FLine write FLine;
     property FileName: string read FFileName write FFileName;
+    property Attribute[const Key: TAttributeName]: string read GetAttribute write SetAttribute;
   end;
 
   TCompoundSyntaxNode = class(TSyntaxNode)
@@ -418,13 +419,15 @@ begin
   FTyp := Typ;
 end;
 
-procedure TSyntaxNode.ExtractChild(Node: TSyntaxNode);
+function TSyntaxNode.ExtractChild(Node: TSyntaxNode): TSyntaxNode;
 var
   i: integer;
 begin
+  Result:= nil;  //do not allow undefined result
   for i := 0 to High(FChildNodes) do
     if FChildNodes[i] = Node then
     begin
+      Result:= Node;
       if i < High(FChildNodes) then
         Move(FChildNodes[i + 1], FChildNodes[i], SizeOf(TSyntaxNode) * (Length(FChildNodes) - i - 1));
       SetLength(FChildNodes, High(FChildNodes));

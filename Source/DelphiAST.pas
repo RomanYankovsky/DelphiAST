@@ -1466,49 +1466,41 @@ begin
   inherited;
 end;
 
-procedure TPasSyntaxTreeBuilder.FunctionProcedureName;
+procedure TPasSyntaxTreeBuilder.FunctionProcedureName;   //#221  record method type params explicitly, keep the full name as well.
 var
-  ChildNode, NameNode, TypeParam, TypeNode, Temp: TSyntaxNode;
-  FullName, TypeParams: string;
+  ChildNode, NameNode, TypeParam, TypeNode, Temp, TypeParams: TSyntaxNode;
+  FullName, TypeParamStr, Dot, Comma: string;
+  HasTypeParams: boolean;
 begin
-  FStack.Push(ntName);
-  NameNode := FStack.Peek;
+  Temp:= FStack.Peek;
+  NameNode:= FStack.Push(ntName);
   try
     inherited;
-    for ChildNode in NameNode.ChildNodes do
-    begin
-      if ChildNode.Typ = ntTypeParams then
-      begin
-        TypeParams := '';
-
-        for TypeParam in ChildNode.ChildNodes do
-        begin
-          TypeNode := TypeParam.FindNode(ntType);
-          if Assigned(TypeNode) then
-          begin
-            if TypeParams <> '' then
-              TypeParams := TypeParams + ',';
-            TypeParams := TypeParams + TypeNode.GetAttribute(anName);
-          end;
-        end;
-
-        FullName := FullName + '<' + TypeParams + '>';
-        Continue;
-      end;
-
-      if FullName <> '' then
-        FullName := FullName + '.';
-      FullName := FullName + TValuedSyntaxNode(ChildNode).Value;
-    end;
   finally
     FStack.Pop;
-    Temp := FStack.Peek;
-    DoHandleString(FullName);
-    Temp.SetAttribute(anName, FullName);
-    Temp.DeleteChild(NameNode);
   end;
+  //Traverse the name node and reconstruct the full name
+  Assert(NameNode.HasChildren);
+  Dot:= '';
+  for ChildNode in NameNode.ChildNodes do begin
+    case ChildNode.Typ of
+      ntName: begin
+        FullName:= Fullname + Dot + ChildNode.Attribute[anName];
+        Dot:= '.';
+      end; {ntName}
+      ntTypeParams: begin
+        Comma:= '';
+        Fullname:= Fullname + '<';
+        for TypeParam in ChildNode.ChildNodes do begin
+          FullName:= FullName + Comma + TypeParam.FindNode(ntType).Attribute[anName];
+          Comma:= ',';
+        end; {for}
+        Fullname:= Fullname + '>';
+      end; {ntTypeParams:}
+    end; {case}
+  end; {for ChildNode}
+  NameNode.SetAttribute(anName, FullName);
 end;
-
 procedure TPasSyntaxTreeBuilder.GotoStatement;
 begin
   FStack.Push(ntGoto);
