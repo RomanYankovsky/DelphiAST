@@ -175,6 +175,7 @@ type
     procedure InterfaceGUID; override;
     procedure InterfaceSection; override;
     procedure InterfaceType; override;
+    procedure LabeledStatement; override;
     procedure LabelId; override;
     procedure MainUsesClause; override;
     procedure MainUsedUnitStatement; override;
@@ -1638,6 +1639,18 @@ end;
 procedure TPasSyntaxTreeBuilder.InterfaceType;
 begin
   FStack.Push(ntType).SetAttribute(anType, AttributeValues[atInterface]);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.LabeledStatement;
+var
+  Temp: TSyntaxNode;
+begin
+  FStack.PushValuedNode(ntLabeledStatement, Lexer.Token);   //#227
   try
     inherited;
   finally
