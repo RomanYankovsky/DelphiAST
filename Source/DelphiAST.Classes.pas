@@ -167,9 +167,7 @@ class function TOperators.GetItem(Typ: TSyntaxNodeType): TOperatorInfo;
 var
   i: Integer;
 begin
-  for i := 0 to High(OperatorsInfo) do
-    if OperatorsInfo[i].Typ = Typ then
-      Exit(OperatorsInfo[i]);
+  if (Typ in [ntAddr..ntIs]) then Exit(OperatorsInfo[Ord(Typ) - Ord(ntAddr)]);    //#224
 end;
 
 class function TOperators.IsOpName(Typ: TSyntaxNodeType): Boolean;
