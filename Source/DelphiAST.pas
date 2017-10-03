@@ -579,7 +579,8 @@ end;
 
 procedure TPasSyntaxTreeBuilder.AttributeArgumentName;
 begin
-  FStack.AddValuedChild(ntName, Lexer.Token);
+  //FStack.AddValuedChild(ntName, Lexer.Token);
+  FStack.AddChild(ntName).SetAttribute(anName,Lexer.Token); //#222
   inherited;
 end;
 
@@ -595,7 +596,8 @@ end;
 
 procedure TPasSyntaxTreeBuilder.AttributeName;
 begin
-  FStack.AddValuedChild(ntName, Lexer.Token);
+  //FStack.AddValuedChild(ntName, Lexer.Token);
+  FStack.AddChild(ntName).SetAttribute(anName, Lexer.Token); //#222
   inherited;
 end;
 
@@ -976,7 +978,8 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ConstantName;
 begin
-  FStack.AddValuedChild(ntName, Lexer.Token);
+  //FStack.AddValuedChild(ntName, Lexer.Token);
+  FStack.AddChild(ntName).SetAttribute(anName, Lexer.Token); //#222
   inherited;
 end;
 
@@ -1251,7 +1254,8 @@ end;
 procedure TPasSyntaxTreeBuilder.ExceptionVariable;
 begin
   FStack.Push(ntVariable);
-  FStack.AddValuedChild(ntName, Lexer.Token);
+  //FStack.AddValuedChild(ntName, Lexer.Token);
+  FStack.AddChild(ntName).SetAttribute(anName, Lexer.Token); //#222
   try
     inherited;
   finally
@@ -1371,7 +1375,8 @@ end;
 
 procedure TPasSyntaxTreeBuilder.FieldName;
 begin
-  FStack.AddValuedChild(ntName, Lexer.Token);
+  //FStack.AddValuedChild(ntName, Lexer.Token);
+  FStack.AddChild(ntName).SetAttribute(anName, Lexer.Token); //#222
   inherited;
 end;
 
@@ -1462,7 +1467,8 @@ end;
 
 procedure TPasSyntaxTreeBuilder.FunctionMethodName;
 begin
-  FStack.AddValuedChild(ntName, Lexer.Token);
+  //FStack.AddValuedChild(ntName, Lexer.Token);
+  FStack.AddChild(ntName).SetAttribute(anName, Lexer.Token); //#222
   inherited;
 end;
 
@@ -1755,7 +1761,8 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ObjectNameOfMethod;
 begin
-  FStack.AddValuedChild(ntName, Lexer.Token);
+  //FStack.AddValuedChild(ntName, Lexer.Token);
+  FStack.AddChild(ntName).SetAttribute(anName, Lexer.Token);  //#222
   inherited;
 end;
 
@@ -1806,7 +1813,8 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ParameterName;
 begin
-  FStack.AddValuedChild(ntName, Lexer.Token);
+  //FStack.AddValuedChild(ntName, Lexer.Token);
+  FStack.AddChild(ntName).SetAttribute(anName, Lexer.Token); //#222
   inherited;
 end;
 
@@ -2549,7 +2557,8 @@ end;
 
 procedure TPasSyntaxTreeBuilder.VarName;
 begin
-  FStack.AddValuedChild(ntName, Lexer.Token);
+  //FStack.AddValuedChild(ntName, Lexer.Token);
+  FStack.AddChild(ntName).SetAttribute(anName, Lexer.Token); //#222
   inherited;
 end;
 
