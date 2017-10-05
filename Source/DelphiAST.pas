@@ -78,7 +78,6 @@ type
     procedure SetCurrentCompoundNodesEndPosition;
     procedure DoOnComment(Sender: TObject; const Text: string);
     procedure DoHandleString(var s: string); inline;
-    procedure FieldList;
   protected
     FStack: TNodeStack;
     FComments: TObjectList<TCommentNode>;
@@ -90,6 +89,9 @@ type
     procedure AddressOp; override;
     procedure AlignmentParameter; override;
     procedure AnonymousMethod; override;
+    procedure AnonymousMethodType; override;
+    procedure AnonymousMethodTypeFunction; override;
+    procedure AnonymousMethodTypeProcedure; override;
     procedure ArrayBounds; override;
     procedure ArrayConstant; override;
     procedure ArrayDimension; override;
@@ -151,8 +153,9 @@ type
     procedure ExportsNameId; override;
     procedure Expression; override;
     procedure ExpressionList; override;
-    procedure ExternalDependency; override;
     procedure ExternalDirective; override;
+    procedure ExternalDependency; override;
+    procedure FieldList; override;
     procedure FieldName; override;
     procedure FinalizationSection; override;
     procedure FinallyBlock; override;
@@ -216,6 +219,7 @@ type
     procedure RequiresClause; override;
     procedure RequiresIdentifier; override;
     procedure RequiresIdentifierId; override;
+    procedure Resident; override;
     procedure ReturnType; override;
     procedure RoundClose; override;
     procedure RoundOpen; override;
@@ -497,12 +501,32 @@ end;
 
 procedure TPasSyntaxTreeBuilder.AnonymousMethod;
 begin
-  FStack.Push(ntAnonymousMethod);
+  FStack.Push(ntAnonymousMethod).Attribute[anKind]:= Lexer.Token;
   try
     inherited;
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.AnonymousMethodType;
+begin
+  FStack.Push(ntAnonymousMethodType);
+  try
+    inherited;
+  finally
+    FStack.Pop
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.AnonymousMethodTypeProcedure;
+begin
+  FStack.Peek.Attribute[anKind]:= Lexer.Token;
+end;
+
+procedure TPasSyntaxTreeBuilder.AnonymousMethodTypeFunction;
+begin
+  FStack.Peek.Attribute[anKind]:= Lexer.Token;
 end;
 
 procedure TPasSyntaxTreeBuilder.ArrayBounds;
@@ -2034,7 +2058,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ProcedureProcedureName;
 begin
-  FStack.Peek.SetAttribute(anName, Lexer.Token);
+  //FStack.Peek.SetAttribute(anName, Lexer.Token);
   inherited;
 end;
 
@@ -2152,6 +2176,16 @@ procedure TPasSyntaxTreeBuilder.RequiresIdentifierId;
 begin
   FStack.AddChild(ntUnknown).SetAttribute(anName, Lexer.Token);
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.Resident;
+begin
+  FStack.Push(ntResident);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.ResourceDeclaration;
