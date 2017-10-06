@@ -204,13 +204,13 @@ type
     FInRound: Integer;
     procedure InitAhead;
     procedure VariableTail;
-    function GetInRound: Boolean;
-    function GetUseDefines: Boolean;
-    function GetScopedEnums: Boolean;
-    procedure SetUseDefines(const Value: Boolean);
-    procedure SetIncludeHandler(IncludeHandler: IIncludeHandler);
-    function GetOnComment: TCommentEvent;
-    procedure SetOnComment(const Value: TCommentEvent);
+    function GetInRound: Boolean; inline;
+    function GetUseDefines: Boolean; inline;
+    function GetScopedEnums: Boolean; inline;
+    procedure SetUseDefines(const Value: Boolean); inline;
+    procedure SetIncludeHandler(IncludeHandler: IIncludeHandler); inline;
+    function GetOnComment: TCommentEvent; inline;
+    procedure SetOnComment(const Value: TCommentEvent); inline;
   protected
     procedure Expected(Sym: TptTokenKind); virtual;
     procedure ExpectedEx(Sym: TptTokenKind); virtual;
@@ -524,7 +524,8 @@ type
     procedure Variable; virtual;
     procedure VariableReference; virtual;
     procedure VariantIdentifier; virtual;
-    procedure VariantSection; virtual;
+    procedure RecordVariantSection; virtual;
+    procedure RecordVariantTag; virtual;
     procedure VarParameter; virtual;
     procedure VarName; virtual;
     procedure VarNameList; virtual;
@@ -545,23 +546,23 @@ type
     {This is the syntax for custom attributes, based quite strictly on the
     ECMA syntax specifications for C#, but with a Delphi expression being
     used at the bottom as opposed to a C# expression}
-    procedure GlobalAttributes;
-    procedure GlobalAttributeSections;
-    procedure GlobalAttributeSection;
-    procedure GlobalAttributeTargetSpecifier;
-    procedure GlobalAttributeTarget;
-    procedure Attributes;
+    procedure GlobalAttributes; virtual;
+    procedure GlobalAttributeSections; virtual;
+    procedure GlobalAttributeSection; virtual;
+    procedure GlobalAttributeTargetSpecifier; virtual;
+    procedure GlobalAttributeTarget; virtual;
+    procedure Attributes; virtual;
     procedure AttributeSections; virtual;
     procedure AttributeSection; virtual;
-    procedure AttributeTargetSpecifier;
-    procedure AttributeTarget;
-    procedure AttributeList;
+    procedure AttributeTargetSpecifier; virtual;
+    procedure AttributeTarget; virtual;
+    procedure AttributeList; virtual;
     procedure Attribute; virtual;
     procedure AttributeName; virtual;
     procedure AttributeArguments; virtual;
-    procedure PositionalArgumentList;
+    procedure PositionalArgumentList; virtual;
     procedure PositionalArgument; virtual;
-    procedure NamedArgumentList;
+    procedure NamedArgumentList; virtual;
     procedure NamedArgument; virtual;
     procedure AttributeArgumentName; virtual;
     procedure AttributeArgumentExpression; virtual;
@@ -576,11 +577,11 @@ type
     procedure SynError(Error: TmwParseError); virtual;
     procedure Run(const UnitName: string; SourceStream: TStream); virtual;
 
-    procedure ClearDefines;
-    procedure InitDefinesDefinedByCompiler;
-    procedure AddDefine(const ADefine: string);
-    procedure RemoveDefine(const ADefine: string);
-    function IsDefined(const ADefine: string): Boolean;
+    procedure ClearDefines; inline;
+    procedure InitDefinesDefinedByCompiler; inline;
+    procedure AddDefine(const ADefine: string); inline;
+    procedure RemoveDefine(const ADefine: string); inline;
+    function IsDefined(const ADefine: string): Boolean; inline;
 
     property InterfaceOnly: Boolean read FInterfaceOnly write FInterfaceOnly;
     property Lexer: TmwPasLex read FLexer;
@@ -2270,6 +2271,34 @@ begin
   Expected(ptEnd);
 end;
 
+procedure TmwSimplePasPar.RecordVariantTag;
+begin
+  Identifier;
+  if (TokenId = ptColon) then
+    Identifier;
+end;
+
+
+procedure TmwSimplePasPar.RecordVariantSection;
+begin
+  Expected(ptCase);
+  RecordVariantTag;
+  Expected(ptOf);
+  RecordVariant;
+  while TokenID = ptSemiColon do
+  begin
+    Semicolon;
+    case TokenID of
+      ptEnd:
+        Break;
+      ptRoundClose:
+        Break;
+    else
+      RecordVariant;
+    end;
+  end;
+end;
+
 procedure TmwSimplePasPar.CaseSelector;
 begin
   CaseLabelList;
@@ -2281,11 +2310,33 @@ begin
   end;
 end;
 
+procedure TmwSimplePasPar.RecordVariant;
+begin
+  CaseLabelList;
+  Expected(ptColon);
+  Expected(ptRoundOpen);
+  if TokenID <> ptRoundClose then
+  begin
+    FieldList;
+  end;
+  Expected(ptRoundClose);
+end;
+
 procedure TmwSimplePasPar.CaseElseStatement;
 begin
   Expected(ptElse);
   StatementList;
   Semicolon;
+end;
+
+procedure TmwSimplePasPar.CaseLabelList;
+begin
+  CaseLabel;
+  while TokenID = ptComma do
+  begin
+    NextToken;
+    CaseLabel;
+  end;
 end;
 
 procedure TmwSimplePasPar.CaseLabel;
@@ -3100,39 +3151,7 @@ begin
   end;
 end;
 
-procedure TmwSimplePasPar.RecordVariant;
-begin
-  ConstantExpression;
-  while (TokenID = ptComma) do
-  begin
-    NextToken;
-    ConstantExpression;
-  end;
-  Expected(ptColon);
-  Expected(ptRoundOpen);
-  if TokenID <> ptRoundClose then
-  begin
-    FieldList;
-  end;
-  Expected(ptRoundClose);
-end;
 
-procedure TmwSimplePasPar.VariantSection;
-begin
-  Expected(ptCase);
-  TagField;
-  Expected(ptOf);
-  RecordVariant;
-  while TokenID = ptSemiColon do
-  begin
-    Semicolon;
-    case TokenID of
-      ptEnd, ptRoundClose: Break;
-    else
-      RecordVariant;
-    end;
-  end;
-end;
 
 procedure TmwSimplePasPar.TagField;
 begin
@@ -3173,7 +3192,7 @@ begin
   end;
   if TokenID = ptCase then
   begin
-    VariantSection;
+    RecordVariantSection;
   end;
 end;
 
@@ -3781,7 +3800,7 @@ begin
       TypeSection;
     if TokenID = ptCase then
     begin
-      VariantSection;
+      RecordVariantSection;
     end;
   end;
 end;
@@ -5468,15 +5487,6 @@ begin
   Expected(ptIdentifier);
 end;
 
-procedure TmwSimplePasPar.CaseLabelList;
-begin
-  CaseLabel;
-  while TokenID = ptComma do
-  begin
-    NextToken;
-    CaseLabel;
-  end;
-end;
 
 procedure TmwSimplePasPar.ArrayBounds;
 begin

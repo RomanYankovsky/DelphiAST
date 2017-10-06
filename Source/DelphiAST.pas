@@ -27,7 +27,7 @@ type
     FOnHandleString: TStringEvent;
     function GetToken: string; inline;
     function GetPosXY: TTokenPoint; inline;
-    function GetFileName: string;
+    function GetFileName: string; inline;
   public
     constructor Create(const ALexer: TmwPasLex; AOnHandleString: TStringEvent);
 
@@ -41,7 +41,7 @@ type
     FLexer: TPasLexer;
     FStack: TStack<TSyntaxNode>;
 
-    function GetCount: Integer;
+    function GetCount: Integer; inline;
   public
     constructor Create(Lexer: TPasLexer);
     destructor Destroy; override;
@@ -50,9 +50,9 @@ type
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
     function AddValuedChild(Typ: TSyntaxNodeType; const Value: string): TSyntaxNode;
 
-    procedure Clear;
-    function Peek: TSyntaxNode;
-    function Pop: TSyntaxNode;
+    procedure Clear; inline;
+    function Peek: TSyntaxNode; inline;
+    function Pop: TSyntaxNode; inline;
 
     function Push(Typ: TSyntaxNodeType): TSyntaxNode; overload;
     function Push(Node: TSyntaxNode): TSyntaxNode; overload;
@@ -71,11 +71,11 @@ type
     procedure ParserMessage(Sender: TObject; const Typ: TMessageEventType; const Msg: string; X, Y: Integer);
     function NodeListToString(NamesNode: TSyntaxNode): string;
     procedure MoveMembersToVisibilityNodes(TypeNode: TSyntaxNode);
-    procedure CallInheritedConstantExpression;
-    procedure CallInheritedExpression;
-    procedure CallInheritedFormalParameterList;
-    procedure CallInheritedPropertyParameterList;
-    procedure SetCurrentCompoundNodesEndPosition;
+    procedure CallInheritedConstantExpression; inline;
+    procedure CallInheritedExpression; inline;
+    procedure CallInheritedFormalParameterList; inline;
+    procedure CallInheritedPropertyParameterList; inline;
+    procedure SetCurrentCompoundNodesEndPosition; inline;
     procedure DoOnComment(Sender: TObject; const Text: string);
     procedure DoHandleString(var s: string); inline;
   protected
@@ -212,6 +212,9 @@ type
     procedure RecordConstraint; override;
     procedure RecordFieldConstant; override;
     procedure RecordType; override;
+    procedure RecordVariant; override;
+    procedure RecordVariantSection; override;
+    procedure RecordVariantTag; override;
     procedure RelativeOperator; override;
     procedure RepeatStatement; override;
     procedure ResourceDeclaration; override;
@@ -790,6 +793,16 @@ end;
 procedure TPasSyntaxTreeBuilder.CaseStatement;
 begin
   FStack.Push(ntCase);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.RecordVariant;
+begin
+  FStack.Push(ntRecordVariant);
   try
     inherited;
   finally
@@ -2745,6 +2758,36 @@ begin
   FStack.Push(ntVariables);
   try
     inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.RecordVariantSection;
+begin
+  FStack.Push(ntVariantSection);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.RecordVariantTag;
+var
+  Temp: TSyntaxNode;
+begin
+  Temp:= FStack.Push(ntVariantTag);
+  try
+    inherited;
+    if Temp.ChildCount = 2 then begin
+      Temp.Attribute[anName]:= Temp.ChildNode[0].Attribute[anName];
+      Temp.Attribute[anType]:= Temp.ChildNode[1].Attribute[anName];
+      Temp.DeleteChild(Temp.ChildNode[1]);
+    end else begin
+      Temp.Attribute[anType]:= Temp.ChildNode[0].Attribute[anName];
+    end;
+    Temp.DeleteChild(Temp.ChildNode[0]);
   finally
     FStack.Pop;
   end;
