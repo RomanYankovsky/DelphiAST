@@ -1919,9 +1919,13 @@ begin
     FStack.Pop;
   end;
 end;
+
 procedure TPasSyntaxTreeBuilder.NilToken;
+var
+  Node: TSyntaxNode;
 begin
-  FStack.AddChild(ntLiteral).SetAttribute(anType, AttributeValues[atNil]);
+  Node:= FStack.AddValuedChild(ntLiteral, AttributeValues[atNil]);
+  Node.Attribute[anType]:= AttributeValues[atNil];
   inherited;
 end;
 
