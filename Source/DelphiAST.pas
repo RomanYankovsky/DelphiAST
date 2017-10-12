@@ -566,7 +566,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.AsmStatement;
 begin
-  FStack.PushCompoundSyntaxNode(ntStatements).SetAttribute(anType, AttributeValues[atAsm]);
+  FStack.PushCompoundSyntaxNode(ntStatements).Attribute[anType]:= AttributeValues[atAsm];
   try
     inherited;
     SetCurrentCompoundNodesEndPosition;
@@ -1322,7 +1322,7 @@ var
 begin
   TypeNode := FStack.Push(ntType);
   try
-    TypeNode.Attribute[anName]:= AttributeValues[atEnum];
+    TypeNode.Attribute[anType]:= AttributeValues[atEnum];
     if ScopedEnums then
       TypeNode.Attribute[anVisibility]:= 'scoped';
     inherited;
@@ -2301,13 +2301,16 @@ end;
 function TPasSyntaxTreeBuilder.NodeListToString(NamesNode: TSyntaxNode): string;
 var
   NamePartNode: TSyntaxNode;
+  Part: string;
 begin
   Result := '';
   for NamePartNode in NamesNode.ChildNodes do
   begin
-    if Result <> '' then
+    Part:= NamePartNode.Attribute[anName];
+    //do not add empty parts (in case non-name and name node are mixed.
+    if (Result <> '') and (Part <> '') then
       Result := Result + '.';
-    Result := Result + NamePartNode.Attribute[anName];
+    Result:= Result + Part;
   end;
   DoHandleString(Result);
 end;
@@ -2510,7 +2513,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.SubrangeType;
 begin
-  FStack.Push(ntType).Attribute[anName]:= AttributeValues[atSubRange];
+  FStack.Push(ntType).Attribute[anType]:= AttributeValues[atSubRange];
   try
     inherited;
   finally
@@ -2749,29 +2752,31 @@ end;
 
 procedure TPasSyntaxTreeBuilder.UsedUnitName;
 var
-  NamesNode, UnitNode: TSyntaxNode;
+  UnitNode: TSyntaxNode;
   Position: TTokenPoint;
   FileName: string;
+  i: integer;
 begin
   Position := Lexer.PosXY;
   FileName := Lexer.FileName;
 
-  NamesNode := TSyntaxNode.Create(ntUnit);
   try
-    FStack.Push(NamesNode);
+    UnitNode:= FStack.Push(ntUnit);
     try
       inherited;
     finally
       FStack.Pop;
     end;
 
-    UnitNode := FStack.AddChild(ntUnit);
-    UnitNode.Attribute[anName]:= NodeListToString(NamesNode);
+    UnitNode.Attribute[anName]:= NodeListToString(UnitNode);
     UnitNode.Col  := Position.X;
     UnitNode.Line := Position.Y;
     UnitNode.FileName := FileName;
   finally
-    NamesNode.Free;
+    for i:= UnitNode.ChildCount -1 downto 0 do begin
+      if (UnitNode.ChildNode[i].HasAttribute(anName)) then
+        UnitNode.DeleteChild(UnitNode.ChildNode[i]);
+    end;
   end;
 end;
 
