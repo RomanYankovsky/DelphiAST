@@ -136,6 +136,7 @@ type
     procedure DirectiveCalling; override;
     procedure DirectiveInline; override;
     procedure DirectiveSealed; override;
+    procedure DirectiveVarargs; override;
     procedure DispInterfaceForward; override;
     procedure DotOp; override;
     procedure ElseStatement; override;
@@ -202,6 +203,7 @@ type
     procedure ParameterName; override;
     procedure PointerSymbol; override;
     procedure PointerType; override;
+    procedure ProceduralDirectiveOf; override;
     procedure ProceduralType; override;
     procedure ProcedureHeading; override;
     procedure ProcedureDeclarationSection; override;
@@ -258,6 +260,7 @@ type
     procedure VarName; override;
     procedure VarParameter; override;
     procedure VarSection; override;
+    procedure VisibilityAutomated; override;
     procedure VisibilityPrivate; override;
     procedure VisibilityProtected; override;
     procedure VisibilityPublic; override;
@@ -329,7 +332,8 @@ type
   TAttributeValue = (atAsm, atTrue, atFunction, atProcedure, atOperator, atClassOf, atClass,
     atConst, atConstructor, atDestructor, atEnum, atInterface, atNil, atNumeric,
     atOut, atPointer, atName, atString, atSubRange, atVar, atType{ExplicitType},
-    atObject, atSealed, atAbstract, atBegin);
+    atObject, atSealed, atAbstract, atBegin, atOf_Object{procedure of object},
+    atVarargs, atExternal{Varargs and external are mutually exclusive});
 
 var
   AttributeValues: array[TAttributeValue] of string;
@@ -337,9 +341,13 @@ var
 procedure InitAttributeValues;
 var
   value: TAttributeValue;
+  AttributeStr: string;
 begin
-  for value := Low(TAttributeValue) to High(TAttributeValue) do
-    AttributeValues[value] := Copy(LowerCase(GetEnumName(TypeInfo(TAttributeValue), Ord(value))), 3);
+  for value := Low(TAttributeValue) to High(TAttributeValue) do begin
+    AttributeStr:= Copy(LowerCase(GetEnumName(TypeInfo(TAttributeValue), Ord(value))), 3);
+    AttributeStr:= StringReplace(AttributeStr, '_', ' ', [rfReplaceAll]);
+    AttributeValues[value] := AttributeStr;
+  end;
 end;
 
 procedure AssignLexerPositionToNode(const Lexer: TPasLexer; const Node: TSyntaxNode);
@@ -1284,6 +1292,16 @@ begin
   inherited;
 end;
 
+procedure TPasSyntaxTreeBuilder.DirectiveVarargs;
+begin
+  FStack.Push(ntExternal).Attribute[anKind]:= AttributeValues[atVarArgs];
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.DispInterfaceForward;
 begin
   FStack.Peek.Attribute[anForwarded]:= AttributeValues[atTrue];
@@ -1482,15 +1500,17 @@ begin
     FStack.Pop;
   end;
 end;
+
 procedure TPasSyntaxTreeBuilder.ExternalDirective;
 begin
-  FStack.Push(ntExternal);
+  FStack.Push(ntExternal).Attribute[anKind]:= AttributeValues[atExternal];
   try
     inherited;
   finally
     FStack.Pop;
   end;
 end;
+
 procedure TPasSyntaxTreeBuilder.FieldList;
 var
   Fields, Temp: TSyntaxNode;
@@ -2047,9 +2067,22 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.ProceduralDirectiveOf;
+var
+  Proc: TSyntaxNode;
+begin
+  //anType is already used for set/enum/subrange/class/record/interface/object.
+  //It could be reused for this data, but it's a directive, not a type as such.
+  //And it's to close to `object` proper.
+  //It should not be a subnode, because only 'of object' is allowed.
+  FStack.Peek.Attribute[anKind]:= AttributeValues[atOf_Object];
+  inherited;
+end;
+
 procedure TPasSyntaxTreeBuilder.ProceduralType;
 begin
-  FStack.Push(ntType).Attribute[anName]:= Lexer.Token;
+  //procedure/function is a reserved word, so it cannot be the same as an identifier.
+  FStack.Push(ntType).Attribute[anType]:= Lexer.Token;
   try
     inherited;
   finally
@@ -2961,6 +2994,19 @@ var
   Temp: TSyntaxNode;
 begin
   Temp := FStack.Push(ntPublished);
+  try
+    Temp.Attribute[anVisibility]:= AttributeValues[atTrue];
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.VisibilityAutomated;
+var
+  Temp: TSyntaxNode;
+begin
+  Temp := FStack.Push(ntAutomated);
   try
     Temp.Attribute[anVisibility]:= AttributeValues[atTrue];
     inherited;
