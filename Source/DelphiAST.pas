@@ -134,7 +134,11 @@ type
     procedure DirectiveBinding; override;
     procedure DirectiveBindingMessage; override;
     procedure DirectiveCalling; override;
+    procedure DirectiveDeprecated; override;
+    procedure DirectiveExperimental; override;
     procedure DirectiveInline; override;
+    procedure DirectiveLibrary; override;
+    procedure DirectivePlatForm; override;
     procedure DirectiveSealed; override;
     procedure DirectiveVarargs; override;
     procedure DispInterfaceForward; override;
@@ -1279,11 +1283,52 @@ begin
   inherited;
 end;
 
+procedure TPasSyntaxTreeBuilder.DirectiveDeprecated;
+begin
+  FStack.Push(ntDeprecated);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.DirectiveExperimental;
+begin
+  FStack.Push(ntExperimental);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.DirectiveInline;
 begin
   FStack.Peek.Attribute[anInline]:= AttributeValues[atTrue];
   inherited;
 end;
+
+procedure TPasSyntaxTreeBuilder.DirectiveLibrary;
+begin
+  FStack.Push(ntLibrary);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.DirectivePlatForm;
+begin
+  FStack.Push(ntPlatform);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.DirectiveSealed;
 begin
   //hack, must go to a better attributeType, however sealed, abstract cannot coexist
@@ -2514,14 +2559,14 @@ begin
   end;
 
   DoHandleString(Str);
-  Node := FStack.AddValuedChild(ntLiteral, ''''+Str+'''');
+  Node := FStack.AddValuedChild(ntLiteral, Str);
   Node.Attribute[anType]:= AttributeValues[atString];
 end;
 
 procedure TPasSyntaxTreeBuilder.StringConstSimple;
 begin
   //TODO support ptAsciiChar
-  FStack.AddValuedChild(ntLiteral, AnsiDequotedStr(Lexer.Token, ''''));
+  FStack.AddValuedChild(ntLiteral, {AnsiDequotedStr(}Lexer.Token{, '''')});
   inherited;
 end;
 

@@ -4624,7 +4624,7 @@ begin
   else
     begin
       SynError(InvalidProcedureDeclarationSection);
-    end; 
+    end;
   end;
 end;
 
@@ -5308,7 +5308,7 @@ procedure TmwSimplePasPar.DirectiveDeprecated;
 begin
   ExpectedEx(ptDeprecated);
   if TokenID = ptStringConst then
-    NextToken;
+    StringConst;
 end;
 
 procedure TmwSimplePasPar.DirectiveInline;
