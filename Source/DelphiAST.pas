@@ -1254,7 +1254,6 @@ var
 begin
   token := Lexer.Token;
   // Method bindings:
-    or SameText(token, 'dynamic')
   if SameText(Token, 'override') or SameText(token, 'virtual')
     or SameText(Token, 'dynamic') or SameText(Token, 'static')
   then
@@ -1271,6 +1270,8 @@ end;
 
 procedure TPasSyntaxTreeBuilder.DirectiveBindingMessage;
 begin
+  //message is a method binding directive, for correctness we should record this.
+  FStack.Peek.Attribute[anMethodBinding]:= 'message';
   FStack.Push(ntMessage);
   try
     inherited;
@@ -1307,7 +1308,8 @@ end;
 
 procedure TPasSyntaxTreeBuilder.DirectiveInline;
 begin
-  FStack.Peek.Attribute[anInline]:= AttributeValues[atTrue];
+  //'inline' and 'assembler' are both inline directives.
+  FStack.Peek.Attribute[anInline]:= Lexer.Token;
   inherited;
 end;
 

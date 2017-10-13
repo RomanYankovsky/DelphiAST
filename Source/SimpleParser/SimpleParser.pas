@@ -213,7 +213,8 @@ type
     procedure SetOnComment(const Value: TCommentEvent); inline;
   protected
     procedure Expected(Sym: TptTokenKind); virtual;
-    procedure ExpectedEx(Sym: TptTokenKind); virtual;
+    procedure ExpectedEx(Sym: TptTokenKind); overload; virtual;
+    procedure ExpectedEx(Syms: array of TptTokenKind); overload; virtual;
     procedure ExpectedFatal(Sym: TptTokenKind); virtual;
     procedure HandlePtCompDirect(Sender: TmwBasePasLex); virtual;
     procedure HandlePtDefineDirect(Sender: TmwBasePasLex); virtual;
@@ -779,6 +780,21 @@ begin
   end
   else
     NextToken;
+end;
+
+procedure TmwSimplePasPar.ExpectedEx(Syms: array of TptTokenKind);
+var
+  Sym, S: TptTokenKind;
+  Found: boolean;
+begin
+  Found:= false;
+  for S in Syms do begin
+    Found:= (S = Lexer.ExID);
+    if (Found) then break;
+  end;
+      FOnMessage(Self, meError, Format(rsExpected, ['EX:' + TokenName(Sym), FLexer.Token]),
+        FLexer.PosXY.X, FLexer.PosXY.Y);
+  end;
 end;
 
 procedure TmwSimplePasPar.ExpectedEx(Sym: TptTokenKind);
@@ -4670,11 +4686,7 @@ begin
       begin
         DirectiveBinding;
       end;
-    ptAssembler:
-      begin
-        DirectiveAssembler;
-      end;
-    ptInline:
+    ptInline, ptAssembler:
       begin
         DirectiveInline;
       end;
@@ -5318,7 +5330,7 @@ end;
 
 procedure TmwSimplePasPar.DirectiveInline;
 begin
-  Expected(ptInline);
+  ExpectedEx([ptInline, ptAssembler]);
 end;
 
 procedure TmwSimplePasPar.DirectiveLibrary;
