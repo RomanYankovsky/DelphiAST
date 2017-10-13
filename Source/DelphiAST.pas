@@ -2301,16 +2301,13 @@ end;
 function TPasSyntaxTreeBuilder.NodeListToString(NamesNode: TSyntaxNode): string;
 var
   NamePartNode: TSyntaxNode;
-  Part: string;
 begin
   Result := '';
   for NamePartNode in NamesNode.ChildNodes do
   begin
-    Part:= NamePartNode.Attribute[anName];
-    //do not add empty parts (in case non-name and name node are mixed.
-    if (Result <> '') and (Part <> '') then
+    if (Result <> '') then
       Result := Result + '.';
-    Result:= Result + Part;
+    Result:= Result + NamePartNode.Attribute[anName];
   end;
   DoHandleString(Result);
 end;
@@ -2752,7 +2749,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.UsedUnitName;
 var
-  UnitNode: TSyntaxNode;
+  NamesNode, UnitNode: TSyntaxNode;
   Position: TTokenPoint;
   FileName: string;
   i: integer;
@@ -2760,23 +2757,22 @@ begin
   Position := Lexer.PosXY;
   FileName := Lexer.FileName;
 
+  NamesNode:= TSyntaxNode.Create(ntUnit);
   try
-    UnitNode:= FStack.Push(ntUnit);
+    FStack.Push(NamesNode);
     try
       inherited;
     finally
       FStack.Pop;
     end;
 
-    UnitNode.Attribute[anName]:= NodeListToString(UnitNode);
+    UnitNode := FStack.AddChild(ntUnit);
+    UnitNode.Attribute[anName]:= NodeListToString(NamesNode);
     UnitNode.Col  := Position.X;
     UnitNode.Line := Position.Y;
     UnitNode.FileName := FileName;
   finally
-    for i:= UnitNode.ChildCount -1 downto 0 do begin
-      if (UnitNode.ChildNode[i].HasAttribute(anName)) then
-        UnitNode.DeleteChild(UnitNode.ChildNode[i]);
-    end;
+    NamesNode.Free;
   end;
 end;
 

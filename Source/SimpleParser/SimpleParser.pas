@@ -1190,17 +1190,6 @@ begin
   Block;
 end;
 
-procedure TmwSimplePasPar.MainUsesClause;
-begin
-  Expected(ptUses);
-  MainUsedUnitStatement;
-  while TokenID = ptComma do
-  begin
-    NextToken;
-    MainUsedUnitStatement;
-  end;
-  Semicolon;
-end;
 
 procedure TmwSimplePasPar.MethodKind;
 begin
@@ -1214,6 +1203,18 @@ begin
       SynError(InvalidProcedureMethodDeclaration);
     end;
   end;
+end;
+
+procedure TmwSimplePasPar.MainUsesClause;
+begin
+  Expected(ptUses);
+  MainUsedUnitStatement;
+  while TokenID = ptComma do
+  begin
+    NextToken;
+    MainUsedUnitStatement;
+  end;
+  Semicolon;
 end;
 
 procedure TmwSimplePasPar.MainUsedUnitStatement;
