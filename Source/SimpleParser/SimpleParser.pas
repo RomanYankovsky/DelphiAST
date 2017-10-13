@@ -299,6 +299,7 @@ type
     procedure DestructorHeading; virtual;
     procedure DestructorName; virtual;
     procedure Directive16Bit; virtual;
+    procedure DirectiveAssembler; virtual;
     procedure DirectiveAbstract; virtual;
     procedure DirectiveBinding; virtual;
     procedure DirectiveBindingMessage; virtual;
@@ -312,6 +313,7 @@ type
     procedure DirectivePlatform; virtual;
     procedure DirectiveVarargs; virtual;
     procedure DirectiveSealed; virtual;
+    procedure DirectiveStatic; virtual;
     procedure DispInterfaceForward; virtual;
     procedure DispIDSpecifier; virtual;
     procedure DotOp; virtual;
@@ -1838,11 +1840,16 @@ begin
   ExpectedEx(ptAbstract);  //abstract is an ExID.
 end;
 
+procedure TmwSimplePasPar.DirectiveAssembler;
+begin
+  ExpectedEx(ptAssembler);
+end;
+
 procedure TmwSimplePasPar.DirectiveBinding;
 begin
   case ExID of
     ptAbstract, ptVirtual, ptDynamic, ptMessage, ptOverride, ptOverload,
-    ptReintroduce, ptFinal: begin
+    ptReintroduce, ptFinal, ptStatic: begin
       NextToken;
     end
   else begin
@@ -4659,17 +4666,13 @@ begin
       begin
         ExternalDirective;
       end;
-    ptDynamic, ptMessage, ptOverload, ptOverride, ptReintroduce, ptVirtual:
+    ptDynamic, ptMessage, ptOverload, ptOverride, ptReintroduce, ptVirtual, ptStatic:
       begin
         DirectiveBinding;
       end;
     ptAssembler:
       begin
-        NextToken;
-      end;
-    ptStatic:
-      begin
-        NextToken;
+        DirectiveAssembler;
       end;
     ptInline:
       begin
@@ -4714,15 +4717,14 @@ begin
   end;
   if TokenID = ptSemiColon then Semicolon;
 
-  //TODO: Add FINAL
   while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptFar,
     ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
     ptReintroduce, ptSafeCall, ptStdCall, ptVirtual,
     ptDeprecated, ptLibrary, ptPlatform, ptLocal, ptVarargs,
-    ptStatic, ptInline, ptAssembler, ptForward, ptDelayed] do
+    ptStatic, ptInline, ptAssembler, ptForward, ptDelayed, ptFinal] do
   begin
     case ExID of
-      ptAssembler: NextToken;
+      //ptAssembler: DirectiveAssembler;
       ptForward: ForwardDeclaration;
     else
       ProceduralDirective;
@@ -5294,9 +5296,12 @@ end;
 
 procedure TmwSimplePasPar.ClassTypeEnd;
 begin
+  //should be while? because all hinting directive can occur.
   case ExID of
     ptExperimental: DirectiveExperimental;
     ptDeprecated: DirectiveDeprecated;
+	ptPlatform: DirectivePlatform;
+	ptLibrary: DirectiveLibrary;
   end;
 end;
 
@@ -5341,6 +5346,11 @@ end;
 procedure TmwSimplePasPar.DirectiveSealed;
 begin
   Expected(ptSealed);
+end;
+
+procedure TmwSimplePasPar.DirectiveStatic;
+begin
+  ExpectedEx(ptStatic);
 end;
 
 procedure TmwSimplePasPar.EnumeratedTypeItem;

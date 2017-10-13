@@ -337,7 +337,8 @@ type
     atConst, atConstructor, atDestructor, atEnum, atInterface, atNil, atNumeric,
     atOut, atPointer, atName, atString, atSubRange, atVar, atType{ExplicitType},
     atObject, atSealed, atAbstract, atBegin, atOf_Object{procedure of object},
-    atVarargs, atExternal{Varargs and external are mutually exclusive});
+    atVarargs, atExternal{Varargs and external are mutually exclusive},
+    atStatic);
 
 var
   AttributeValues: array[TAttributeValue] of string;
@@ -1242,28 +1243,29 @@ end;
 
 procedure TPasSyntaxTreeBuilder.DirectiveAbstract;
 begin
-  //anAbstract Attribute can contain both 'sealed' and 'abstract'
+  //anAbstract Attribute can contain either 'sealed' or 'abstract' or `final`
   FStack.Peek.Attribute[anAbstract]:= Lexer.Token;
   inherited;
 end;
+
 procedure TPasSyntaxTreeBuilder.DirectiveBinding;
 var
-  token: string;
+  Token: string;
 begin
   token := Lexer.Token;
   // Method bindings:
-  if SameText(token, 'override') or SameText(token, 'virtual')
     or SameText(token, 'dynamic')
+  if SameText(Token, 'override') or SameText(token, 'virtual')
+    or SameText(Token, 'dynamic') or SameText(Token, 'static')
   then
     FStack.Peek.Attribute[anMethodBinding]:= Token
   // Other directives
   else if SameText(token, 'reintroduce') then
     FStack.Peek.Attribute[anReintroduce]:= AttributeValues[atTrue]
-  else if SameText(token, 'overload') then
+  else if SameText(Token, 'overload') then
     FStack.Peek.Attribute[anOverload]:=  AttributeValues[atTrue]
   else if SameText(Token, 'abstract') or SameText(Token, 'final') then
     FStack.Peek.Attribute[anAbstract]:= Token;
-
   inherited;
 end;
 
