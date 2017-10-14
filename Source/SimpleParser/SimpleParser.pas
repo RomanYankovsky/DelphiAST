@@ -193,6 +193,7 @@ type
     property PosXY: TTokenPoint read FPosXY write FPosXY;
   end;
 
+  TptTokenKinds = set of TptTokenKind;
   TmwSimplePasPar = class(TObject)
   private
     FOnMessage: TMessageEvent;
@@ -214,7 +215,7 @@ type
   protected
     procedure Expected(Sym: TptTokenKind); virtual;
     procedure ExpectedEx(Sym: TptTokenKind); overload; virtual;
-    procedure ExpectedEx(Syms: array of TptTokenKind); overload; virtual;
+    procedure ExpectedEx(const Syms: TptTokenKinds); overload; virtual;
     procedure ExpectedFatal(Sym: TptTokenKind); virtual;
     procedure HandlePtCompDirect(Sender: TmwBasePasLex); virtual;
     procedure HandlePtDefineDirect(Sender: TmwBasePasLex); virtual;
@@ -782,18 +783,24 @@ begin
     NextToken;
 end;
 
-procedure TmwSimplePasPar.ExpectedEx(Syms: array of TptTokenKind);
+procedure TmwSimplePasPar.ExpectedEx(const Syms: TptTokenKinds);
 var
-  Sym, S: TptTokenKind;
-  Found: boolean;
+  Sym: TptTokenKind;
+  Symbols: string;
+  Optional: string;
 begin
-  Found:= false;
-  for S in Syms do begin
-    Found:= (S = Lexer.ExID);
-    if (Found) then break;
+  if (Lexer.ExID in Syms) then NextToken
+  else if (Lexer.TokenID = ptNull) or Assigned(FOnMessage) then begin
+    for Sym in Syms do begin
+      Symbols:= Symbols + Optional + TokenName(Sym);
+      Optional:= ' or ';
   end;
-      FOnMessage(Self, meError, Format(rsExpected, ['EX:' + TokenName(Sym), FLexer.Token]),
+    if (Lexer.TokenID = ptNull) then
+      raise ESyntaxError.CreatePos(Format(rsExpected, [Symbols, rsEndOfFile]), FLexer.PosXY)
+    else if Assigned(FOnMessage) then begin
+      FOnMessage(Self, meError, Format(rsExpected, ['EX:' + Symbols, FLexer.Token]),
         FLexer.PosXY.X, FLexer.PosXY.Y);
+    end;
   end;
 end;
 
