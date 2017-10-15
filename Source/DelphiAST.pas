@@ -216,6 +216,7 @@ type
     procedure PropertyParameterList; override;
     procedure RaiseStatement; override;
     procedure RecordConstraint; override;
+    procedure RecordConstant; override;
     procedure RecordFieldConstant; override;
     procedure RecordType; override;
     procedure RecordVariant; override;
@@ -333,7 +334,7 @@ uses
 // do not use const strings here to prevent allocating new strings every time
 
 type
-  TAttributeValue = (atAsm, atTrue, atFunction, atProcedure, atOperator, atClassOf, atClass,
+  TAttributeValue = (atAsm, atTrue, atFunction, atProcedure, atOperator, atClass_Of, atClass,
     atConst, atConstructor, atDestructor, atEnum, atInterface, atNil, atNumeric,
     atOut, atPointer, atName, atString, atSubRange, atVar, atType{ExplicitType},
     atObject, atSealed, atAbstract, atBegin, atOf_Object{procedure of object},
@@ -984,7 +985,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ClassReferenceType;
 begin
-  FStack.Push(ntType).Attribute[anType]:= AttributeValues[atClassof];
+  FStack.Push(ntType).Attribute[anType]:= AttributeValues[atClass_of];
   try
     inherited;
   finally
@@ -1143,6 +1144,15 @@ begin
   end;  
 end;
 
+procedure TPasSyntaxTreeBuilder.RecordConstant;
+begin
+  FStack.Push(ntRecordConstant);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
 procedure TPasSyntaxTreeBuilder.RecordConstraint;
 begin
   FStack.Push(ntRecordConstraint);
@@ -2190,9 +2200,17 @@ procedure TPasSyntaxTreeBuilder.RecordFieldConstant;
 var
   Node: TSyntaxNode;
 begin
-  Node := FStack.PushValuedNode(ntField, Lexer.Token);
+  //A field in a record constant should have exactly the same layout
+  //as a field in a class.
+  //ntField (class)
+  //+-- ntName (anName = name)
+  //+-- ntType
+  //Recordconstant
+  //ntField (recordconstant)
+  //+-- ntName
+  //+-- ntExpression.
+  FStack.Push(ntField).AddChild(ntName).Attribute[anName]:= Lexer.Token;
   try
-    Node.Attribute[anType]:= AttributeValues[atName];
     inherited;
   finally
     FStack.Pop;

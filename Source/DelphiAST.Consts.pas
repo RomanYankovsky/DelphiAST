@@ -116,6 +116,7 @@ type
     ntProperty,
     ntRaise,
     ntRead,
+    ntRecordConstant,
     ntRecordConstraint,
     ntRecordVariant,
     ntRepeat,
