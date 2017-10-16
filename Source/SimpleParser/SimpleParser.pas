@@ -917,9 +917,10 @@ end;
 
 procedure TmwSimplePasPar.HandlePtResourceDirect(Sender: TmwBasePasLex);
 begin
+  CompilerDirective;
   if Assigned(FOnMessage) then
     FOnMessage(Self, meNotSupported, 'Currently not supported ' + FLexer.Token, FLexer.PosXY.X, FLexer.PosXY.Y);
-  Sender.Next;
+  //Sender.Next;
 end;
 
 procedure TmwSimplePasPar.HandlePtUndefDirect(Sender: TmwBasePasLex);

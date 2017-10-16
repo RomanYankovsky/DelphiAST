@@ -139,7 +139,7 @@ type
     procedure DirectiveExperimental; override;
     procedure DirectiveInline; override;
     procedure DirectiveLibrary; override;
-    procedure DirectivePlatForm; override;
+    procedure DirectivePlatform; override;
     procedure DirectiveSealed; override;
     procedure DirectiveVarargs; override;
     procedure DispInterfaceForward; override;
@@ -1055,6 +1055,7 @@ end;
 procedure TPasSyntaxTreeBuilder.CompilerDirective;
 begin
   FStack.AddValuedChild(ntCompilerDirective, Lexer.Token);
+
   inherited;
 end;
 
@@ -1728,7 +1729,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.FunctionProcedureName;   //#221  record method type params explicitly, keep the full name as well.
 var
-  ChildNode, NameNode, TypeParam, TypeNode, Temp, TypeParams: TSyntaxNode;
+  ChildNode, NameNode, TypeParam: TSyntaxNode;
   FullName, Dot, Comma: string;
 begin
   //Temp:= FStack.Peek;
@@ -2155,8 +2156,6 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.ProceduralDirectiveOf;
-var
-  Proc: TSyntaxNode;
 begin
   //anType is already used for set/enum/subrange/class/record/interface/object.
   //It could be reused for this data, but it's a directive, not a type as such.
@@ -2234,8 +2233,6 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.RecordFieldConstant;
-var
-  Node: TSyntaxNode;
 begin
   //A field in a record constant should have exactly the same layout
   //as a field in a class.
@@ -2889,7 +2886,6 @@ var
   NamesNode, UnitNode: TSyntaxNode;
   Position: TTokenPoint;
   FileName: string;
-  i: integer;
 begin
   Position := Lexer.PosXY;
   FileName := Lexer.FileName;

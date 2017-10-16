@@ -169,15 +169,11 @@ const
 { TOperators }
 
 class function TOperators.GetItem(Typ: TSyntaxNodeType): TOperatorInfo;
-var
-  i: Integer;
 begin
   if (Typ in [ntAddr..ntIs]) then Exit(OperatorsInfo[Ord(Typ) - Ord(ntAddr)]);    //#224
 end;
 
 class function TOperators.IsOpName(Typ: TSyntaxNodeType): Boolean;
-var
-  i: Integer;
 begin
   Result:= (Typ in [ntAddr..ntIs]);
 end;

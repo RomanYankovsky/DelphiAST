@@ -280,9 +280,9 @@ type
     procedure CloneDefinesFrom(ALexer: TmwBasePasLex);
     procedure DoProcTable(AChar: Char);
     function IsIdentifiers(AChar: Char): Boolean; inline;
-    function HashValue(AChar: Char): Integer;
+    function HashValue(AChar: Char): Integer; inline;
     function EvaluateComparison(AValue1: Extended; const AOper: String; AValue2: Extended): Boolean;
-    function EvaluateConditionalExpression(const AParams: String): Boolean;
+    function EvaluateConditionalExpression(const AParams: String; StartResult: boolean = false): Boolean;
     procedure IncludeFile;
     function GetIncludeFileNameFromToken(const IncludeToken: string): string;
     function GetOrigin: string;
@@ -1636,117 +1636,284 @@ end;
 
 function TmwBasePasLex.EvaluateComparison(AValue1: Extended; const AOper: String; AValue2: Extended): Boolean;
 begin
-  if AOper = '=' then
-    Result := AValue1 = AValue2
-  else if AOper = '<>' then
-    Result := AValue1 <> AValue2
-  else if AOper = '<' then
-    Result := AValue1 < AValue2
-  else if AOper = '<=' then
-    Result := AValue1 <= AValue2
-  else if AOper = '>' then
-    Result := AValue1 > AValue2
-  else if AOper = '>=' then
-    Result := AValue1 >= AValue2
-  else
-    Result := False;
+  case AOper[1] of
+    '=': Result := (AValue1 = AValue2);
+    '<': begin
+      if (AOper = '<') then Result := AValue1 < AValue2
+      else if (AOper = '<>') then Result := AValue1 <> AValue2
+      else Result:= AValue1 <= AValue2;
+    end;
+    '>': begin
+      if (AOper = '>') then Result := AValue1 > AValue2
+      else Result:= AValue1 >= AValue2;
+    end;
+    else Result:= false;
+  end;
 end;
 
-function TmwBasePasLex.EvaluateConditionalExpression(const AParams: String): Boolean;
+function TmwBasePasLex.EvaluateConditionalExpression(const AParams: string; StartResult: boolean = false): Boolean;
 var
-  LParams: String;
-  LDefine: String;
-  LEvaluation: TmwPasLexExpressionEvaluation;
-  LIsComVer: Boolean;
-  LIsRtlVer: Boolean;
-  LOper: string;
-  LValue: Integer;
-  p: Integer;
+  LParams: string;
+  i: integer;
+  NextPart: string;
+
+function ExtractNextPart(StartPos: integer; BracketCount: integer = 0): string;
+var
+  i: integer;
+  BracketFound: boolean;
+  TokenFound: boolean;
+  InternalBracketCount: integer;
 begin
-  { TODO : Expand support for <=> evaluations (complicated to do). Expand support for NESTED expressions }
-  LEvaluation := leeNone;
-  LParams := TrimLeft(AParams);
-  LIsComVer := Pos('COMPILERVERSION', LParams) = 1;
-  LIsRtlVer := Pos('RTLVERSION', LParams) = 1;
-  if LIsComVer or LIsRtlVer then //simple parser which covers most frequent use cases
-  begin
-    Result := False;
-    if LIsComVer then
-      Delete(LParams, 1, Length('COMPILERVERSION'));
-    if LIsRtlVer then
-      Delete(LParams, 1, Length('RTLVERSION'));
-    while (LParams <> '') and (LParams[1] = ' ') do
-      Delete(LParams, 1, 1);
-    p := Pos(' ', LParams);
-    if p > 0 then
-    begin
-      LOper := Copy(LParams, 1, p-1);
-      Delete(LParams, 1, p);
-      while (LParams <> '') and (LParams[1] = ' ') do
-        Delete(LParams, 1, 1);
-      p := Pos(' ', LParams);
-      if p = 0 then
-        p := Length(LParams) + 1;
-      if TryStrToInt(Copy(LParams, 1, p-1), LValue) then
-      begin
-        Delete(LParams, 1, p);
-        while (LParams <> '') and (LParams[1] = ' ') do
-          Delete(LParams, 1, 1);
-        if LParams = '' then
-          if LIsComVer then
-            Result := EvaluateComparison(CompilerVersion, LOper, LValue)
-          else if LIsRtlVer then
-            Result := EvaluateComparison(RTLVersion, LOper, LValue);
+  i:= 1;
+  BracketFound:= false;
+  TokenFound:= false;
+  InternalBracketCount:= 0;//BracketCount;
+  while i < Length(LParams) do begin
+    case LParams[i] of
+      '(': begin
+        Inc(InternalBracketCount);
+        BracketFound:= true;
       end;
+      ')': begin
+        Dec(InternalBracketCount);
+      end;
+      else TokenFound:= true;
     end;
-  end else
-  if (Pos('DEFINED(', LParams) = 1) or (Pos('NOT DEFINED(', LParams) = 1) then
-  begin
-    Result := True; // Optimistic
-    while (Pos('DEFINED(', LParams) = 1) or (Pos('NOT DEFINED(', LParams) = 1) do
-    begin
-      if Pos('DEFINED(', LParams) = 1 then
-      begin
-        LDefine := Copy(LParams, 9, Pos(')', LParams) - 9);
-        LParams := TrimLeft(Copy(LParams, 10 + Length(LDefine), Length(AParams) - (9 + Length(LDefine))));
-        case LEvaluation of
-          leeNone: Result := IsDefined(LDefine);
-          leeAnd: Result := Result and IsDefined(LDefine);
-          leeOr: Result := Result or IsDefined(LDefine);
-          leeXor: Result:= Result xor IsDefined(LDefine);
-        end;
-      end
-      else if Pos('NOT DEFINED(', LParams) = 1 then
-      begin
-        LDefine := Copy(LParams, 13, Pos(')', LParams) - 13);
-        LParams := TrimLeft(Copy(LParams, 14 + Length(LDefine), Length(AParams) - (13 + Length(LDefine))));
-        case LEvaluation of
-          leeNone: Result := (not IsDefined(LDefine));
-          leeAnd: Result := Result and (not IsDefined(LDefine));
-          leeOr: Result := Result or (not IsDefined(LDefine));
-          leeXor: Result:= Result xor (not IsDefined(LDefine));
-        end;
-      end;
-      // Determine next Evaluation
-      if Pos('AND ', LParams) = 1 then
-      begin
-        LEvaluation := leeAnd;
-        LParams := TrimLeft(Copy(LParams, 4, Length(LParams) - 3));
-      end
-      else if Pos('OR ', LParams) = 1 then
-      begin
-        LEvaluation := leeOr;
-        LParams := TrimLeft(Copy(LParams, 3, Length(LParams) - 2));
-      end
-      else if Pos('XOR ', LParams) = 1 then
-      begin
-        LEvaluation := leeXor;
-        LParams := TrimLeft(Copy(LParams, 3, Length(LParams) - 2));
-      end;
+    if (InternalBracketCount = 0) and BracketFound and TokenFound then begin
+      break;
     end;
-  end else
-    Result := False;
+    Inc(i);
+  end;
+  Result:= MidStr(LParams, StartPos, i-((StartPos-1)*2));
 end;
+
+//Assumes the first char is part of a number
+function ExtractNumber: string;
+begin
+  i:= 1;
+  while i <= Length(LParams) do begin
+    if (LParams[i] in ['0'..'9','-','.']) then Inc(i)
+    else begin
+      Dec(i);
+      Break;
+    end;
+  end; {while}
+  Result:= LeftStr(LParams, i);
+end;
+
+var
+  LDefine: string;
+  IsComVer, IsRTLVer: boolean;
+  LOper: string;
+  Value: Extended;
+  MyFormatSettings: TFormatSettings;
+
+begin
+  IsComVer:= false;
+  IsRTLVer:= false;
+  LParams:= Trim(Uppercase(AParams));
+  Result:= StartResult;
+  while (Length(LParams) > 0) do begin
+    case LParams[1] of
+      '(': begin
+        while Pos('(', LParams) = 1 do begin
+          NextPart:= ExtractNextPart(2,1);
+          Result:= EvaluateConditionalExpression(NextPart, Result);
+          Delete(LParams, 1, Length(NextPart) + 2);
+          LParams:= TrimLeft(LParams);
+        end; {while}
+      end; {'('}
+      'O':if Pos('OR',LParams) = 1 then begin
+        Delete(LParams,1,2);
+        LParams:= TrimLeft(LParams);
+        NextPart:= ExtractNextPart(1);
+        if not(Result) then Result:= Result or EvaluateConditionalExpression(NextPart, Result);
+        Delete(LParams, 1, Length(NextPart));
+        LParams:= TrimLeft(LParams);
+      end;
+      'A':if Pos('AND ',LParams) = 1 then begin
+        Delete(LParams,1,3);
+        LParams:= TrimLeft(LParams);
+        NextPart:= ExtractNextPart(1);
+        if(Result) then Result:= Result and EvaluateConditionalExpression(NextPart, Result);
+        Delete(LParams, 1, Length(NextPart));
+        LParams:= TrimLeft(LParams);
+      end;
+      'X':if Pos('XOR',LParams) = 1 then begin
+        Delete(LParams,1,3);
+        LParams:= TrimLeft(LParams);
+        NextPart:= ExtractNextPart(1);
+        Result:= Result xor EvaluateConditionalExpression(NextPart, Result);
+        Delete(LParams, 1, Length(NextPart));
+        LParams:= TrimLeft(LParams);
+      end;
+      'D': if Pos('DEFINED(',LParams) = 1 then begin
+        LDefine := Copy(LParams, 9, Pos(')', LParams) - 9);
+        Result:= IsDefined(LDefine);
+        Delete(LParams, 1, Length(LDefine)+9);
+        LParams:= TrimLeft(LParams);
+      end;
+      'N': if (Pos('NOT',LParams) = 1) then begin
+        Delete(LParams,1,3);
+        LParams:= TrimLeft(LParams);
+        NextPart:= ExtractNextPart(1);
+        Result:= not EvaluateConditionalExpression(NextPart, Result);
+        Delete(LParams, 1, Length(NextPart));
+        LParams:= TrimLeft(LParams);
+      end;
+      'C': if (Pos('COMPILERVERSION',LParams) = 1) then begin
+        IsComVer := true;
+        Delete(LParams, 1, Length('COMPILERVERSION'));
+        LParams:= TrimLeft(LParams);
+
+      end;
+      'R': if (Pos('RTLVERSION',LParams) = 1) then begin
+        IsRTLVer:= true;
+        Delete(LParams, 1, Length('RTLVERSION'));
+        LParams:= TrimLeft(LParams);
+      end;
+      '<','=','>': begin
+        if (Pos('>=',LParams) = 1) then LOper:= '>='
+        else if (Pos('<=',LParams) = 1) then LOper:= '<='
+        else if (Pos('<>',LParams) = 1) then LOper:= '<>'
+        else LOper:= LParams[1];
+        Delete(LParams, 1, Length(LOper));
+        LParams:= TrimLeft(LParams);
+        NextPart:= ExtractNumber;
+        MyFormatSettings:= FormatSettings;
+        MyFormatSettings.DecimalSeparator:= '.';
+        if TryStrToFloat(NextPart, Value, MyFormatSettings) then begin
+          if IsComVer then
+            Result := EvaluateComparison(CompilerVersion, LOper, Value)
+          else if IsRtlVer then
+            Result := EvaluateComparison(RTLVersion, LOper, Value);
+          Delete(LParams, 1, Length(NextPart));
+          LParams:= Trim(LParams);
+        end else Result:= false;
+      end;
+      else Exit(false);   //Should not happen.
+    end; {case}
+  end; {while}
+end;
+
+
+//function TmwBasePasLex.EvaluateConditionalExpression(const AParams: string): Boolean;
+//var
+//  LParams: String;
+//  LDefine: String;
+//  LEvaluation: TmwPasLexExpressionEvaluation;
+//  LIsComVer: Boolean;
+//  LIsRtlVer: Boolean;
+//  LOper: string;
+//  LValue: Integer;
+//  p: Integer;
+//  BracketCount,i: integer;
+//  BracketPart: string;
+//  PartialResult: boolean;
+//begin
+//  { TODO : Expand support for <=> evaluations (complicated to do). Expand support for NESTED expressions }
+//  LEvaluation := leeNone;
+//  LParams := TrimLeft(AParams);
+//  LIsComVer := Pos('COMPILERVERSION', LParams) = 1;
+//  LIsRtlVer := Pos('RTLVERSION', LParams) = 1;
+//  if LIsComVer or LIsRtlVer then //simple parser which covers most frequent use cases
+//  begin
+//    Result := False;
+//    if LIsComVer then
+//      Delete(LParams, 1, Length('COMPILERVERSION'));
+//    if LIsRtlVer then
+//      Delete(LParams, 1, Length('RTLVERSION'));
+//    while (LParams <> '') and (LParams[1] = ' ') do
+//      Delete(LParams, 1, 1);
+//    p := Pos(' ', LParams);
+//    if p > 0 then
+//    begin
+//      LOper := Copy(LParams, 1, p-1);
+//      Delete(LParams, 1, p);
+//      while (LParams <> '') and (LParams[1] = ' ') do
+//        Delete(LParams, 1, 1);
+//      p := Pos(' ', LParams);
+//      if p = 0 then
+//        p := Length(LParams) + 1;
+//      if TryStrToInt(Copy(LParams, 1, p-1), LValue) then
+//      begin
+//        Delete(LParams, 1, p);
+//        while (LParams <> '') and (LParams[1] = ' ') do
+//          Delete(LParams, 1, 1);
+//        if LParams = '' then
+//          if LIsComVer then
+//            Result := EvaluateComparison(CompilerVersion, LOper, LValue)
+//          else if LIsRtlVer then
+//            Result := EvaluateComparison(RTLVersion, LOper, LValue);
+//      end;
+//    end;
+//  end else
+//  while Pos('(', LParams) = 1 do begin
+//    //Extract the Part between the brackets and feed this to the evaluator.
+//    BracketCount:= 1;
+//    i:= 2;
+//    while i <= Length(LParams) do begin
+//      case LParams[i] of
+//        '(': Inc(BracketCount);
+//        ')': Dec(BracketCount);
+//      end; {case}
+//      if (BracketCount = 0) then break;
+//      Inc(i);
+//    end; {while}
+//    BracketPart:= MidStr(LParams,2,i-2);
+//    PartialResult:= EvaluateConditionalExpression(BracketPart);
+//    Result:= Result or PartialResult;
+//    Delete(LParams, 1, Length(BracketPart)+2);
+//    LParams:= TrimLeft(LParams);
+//  end;
+//
+//  if (Pos('DEFINED(', LParams) = 1) or (Pos('NOT DEFINED(', LParams) = 1) then
+//  begin
+//    Result := True; // Optimistic
+//    while (Pos('DEFINED(', LParams) = 1) or (Pos('NOT DEFINED(', LParams) = 1) do
+//    begin
+//      if Pos('DEFINED(', LParams) = 1 then
+//      begin
+//        LDefine := Copy(LParams, 9, Pos(')', LParams) - 9);
+//        LParams := TrimLeft(Copy(LParams, 10 + Length(LDefine), Length(AParams) - (9 + Length(LDefine))));
+//        case LEvaluation of
+//          leeNone: Result := IsDefined(LDefine);
+//          leeAnd: Result := Result and IsDefined(LDefine);
+//          leeOr: Result := Result or IsDefined(LDefine);
+//          leeXor: Result:= Result xor IsDefined(LDefine);
+//        end;
+//      end
+//      else if Pos('NOT DEFINED(', LParams) = 1 then
+//      begin
+//        LDefine := Copy(LParams, 13, Pos(')', LParams) - 13);
+//        LParams := TrimLeft(Copy(LParams, 14 + Length(LDefine), Length(AParams) - (13 + Length(LDefine))));
+//        case LEvaluation of
+//          leeNone: Result := (not IsDefined(LDefine));
+//          leeAnd: Result := Result and (not IsDefined(LDefine));
+//          leeOr: Result := Result or (not IsDefined(LDefine));
+//          leeXor: Result:= Result xor (not IsDefined(LDefine));
+//        end;
+//      end;
+//      // Determine next Evaluation
+//      if Pos('AND ', LParams) = 1 then
+//      begin
+//        LEvaluation := leeAnd;
+//        LParams := TrimLeft(Copy(LParams, 4, Length(LParams) - 3));
+//      end
+//      else if Pos('OR ', LParams) = 1 then
+//      begin
+//        LEvaluation := leeOr;
+//        LParams := TrimLeft(Copy(LParams, 3, Length(LParams) - 2));
+//      end
+//      else if Pos('XOR ', LParams) = 1 then
+//      begin
+//        LEvaluation := leeXor;
+//        LParams := TrimLeft(Copy(LParams, 3, Length(LParams) - 2));
+//      end;
+//    end;
+//  end else
+//    Result := False;
+//end;
 
 procedure TmwBasePasLex.ColonProc;
 begin
@@ -2394,6 +2561,7 @@ begin
   FDirectiveParamOrigin := FBuffer.Buf + FTokenPos;
   TempPos := FTokenPos;
   FTokenPos := FBuffer.Run;
+  FExId:= ptCompDirect; //Always register the fact that we are in a directive.
   case KeyHash of
     9:
       if KeyComp('I') and (not CharInSet(FBuffer.Buf[FBuffer.Run], ['+', '-'])) then
