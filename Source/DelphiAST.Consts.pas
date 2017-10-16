@@ -58,6 +58,7 @@ type
     ntCaseLabels,
     ntCaseSelector,
     ntClassConstraint,
+    ntCompilerDirective,
     ntConstant,
     ntConstants,
     ntConstraints,

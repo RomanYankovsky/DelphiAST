@@ -279,6 +279,7 @@ type
     procedure ClassType; virtual;
     procedure ClassTypeEnd; virtual;
     procedure ClassVisibility; virtual;
+    procedure CompilerDirective; virtual;
     procedure CompoundStatement; virtual;
     procedure ConstantColon; virtual;
     procedure ConstantDeclaration; virtual;
@@ -840,9 +841,10 @@ end;
 
 procedure TmwSimplePasPar.HandlePtCompDirect(Sender: TmwBasePasLex);
 begin
-  if Assigned(FOnMessage) then
-    FOnMessage(Self, meNotSupported, 'Currently not supported ' + FLexer.Token, FLexer.PosXY.X, FLexer.PosXY.Y);
-  Sender.Next;
+  CompilerDirective;
+  //if Assigned(FOnMessage) then
+  //  FOnMessage(Self, meNotSupported, 'Currently not supported ' + FLexer.Token, FLexer.PosXY.X, FLexer.PosXY.Y);
+  //Sender.Next;
 end;
 
 procedure TmwSimplePasPar.HandlePtDefineDirect(Sender: TmwBasePasLex);
@@ -5044,7 +5046,10 @@ begin
   ExpectedEx(ptResident);
 end;
 
-
+procedure TmwSimplePasPar.CompilerDirective;
+begin
+  Expected(ptCompDirect);
+end;
 
 procedure TmwSimplePasPar.CompoundStatement;
 begin

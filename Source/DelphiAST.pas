@@ -117,6 +117,7 @@ type
     procedure ClassProperty; override;
     procedure ClassReferenceType; override;
     procedure ClassType; override;
+    procedure CompilerDirective; override;
     procedure CompoundStatement; override;
     procedure ConstParameter; override;
     procedure ConstantDeclaration; override;
@@ -1048,6 +1049,12 @@ begin
   Temp := FStack.Peek;
   Temp.Attribute[anKind]:= AttributeValues[atConstructor];
   Temp.Attribute[anName]:= Lexer.Token;
+  inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.CompilerDirective;
+begin
+  FStack.AddValuedChild(ntCompilerDirective, Lexer.Token);
   inherited;
 end;
 
