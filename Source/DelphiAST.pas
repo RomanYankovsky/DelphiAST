@@ -190,6 +190,7 @@ type
     procedure InterfaceType; override;
     procedure LabeledStatement; override;
     procedure LabelId; override;
+    procedure LibraryFile; override;
     procedure MainUsesClause; override;
     procedure MainUsedUnitStatement; override;
     procedure MethodKind; override;
@@ -203,6 +204,7 @@ type
     procedure ObjectNameOfMethod; override;
     procedure ObjectType; override;
     procedure OutParameter; override;
+    procedure PackageFile; override;
     procedure ParameterFormal; override;
     procedure ParameterName; override;
     procedure PointerSymbol; override;
@@ -212,6 +214,7 @@ type
     procedure ProcedureHeading; override;
     procedure ProcedureDeclarationSection; override;
     procedure ProcedureProcedureName; override;
+    procedure ProgramFile; override;
     procedure PropertyName; override;
     procedure PropertyParameterList; override;
     procedure RaiseStatement; override;
@@ -1901,6 +1904,15 @@ begin
   inherited;
 end;
 
+procedure TPasSyntaxTreeBuilder.LibraryFile;
+begin
+  //Assert(FStack.Peek.ParentNode = nil);
+  FStack.Push(TSyntaxNode.Create(ntLibrary));
+  AssignLexerPositionToNode(Lexer, FStack.Peek);
+  inherited;
+  //Stack.pop is done in `Run`
+end;
+
 procedure TPasSyntaxTreeBuilder.MainUsedUnitStatement;
 var
   NameNode, PathNode, PathLiteralNode, Temp: TSyntaxNode;
@@ -2083,6 +2095,15 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.PackageFile;
+begin
+  //Assert(FStack.Peek.ParentNode = nil);
+  FStack.Push(TSyntaxNode.Create(ntPackage));
+  AssignLexerPositionToNode(Lexer, FStack.Peek);
+  inherited;
+  //Stack.pop is done in `Run`
+end;
+
 procedure TPasSyntaxTreeBuilder.ParameterFormal;
 begin
   FStack.Push(ntParameters);
@@ -2170,6 +2191,15 @@ procedure TPasSyntaxTreeBuilder.ProcedureProcedureName;
 begin
   //FStack.Peek.SetAttribute(anName, Lexer.Token);
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.ProgramFile;
+begin
+  //Assert(FStack.Peek.ParentNode = nil);
+  FStack.Push(TSyntaxNode.Create(ntProgram));
+  AssignLexerPositionToNode(Lexer, FStack.Peek);
+  inherited;
+  //Stack.pop is done in `Run`
 end;
 
 procedure TPasSyntaxTreeBuilder.PropertyName;
@@ -2375,14 +2405,14 @@ end;
 
 function TPasSyntaxTreeBuilder.Run(SourceStream: TStream): TSyntaxNode;
 begin
-  Result := TSyntaxNode.Create(ntUnit);
+  Result:= nil;
   try
     FStack.Clear;
-    FStack.Push(Result);
     try
       self.OnMessage := ParserMessage;
       inherited Run('', SourceStream);
     finally
+      Result:= FStack.Peek;
       FStack.Pop;
     end;
   except
@@ -2814,12 +2844,12 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.UnitFile;
-var
-  Temp: TSyntaxNode;
 begin
-  Temp := FStack.Peek;
-  AssignLexerPositionToNode(Lexer, Temp);
+  //Assert(FStack.Peek.ParentNode = nil);
+  FStack.Push(TSyntaxNode.Create(ntUnit));
+  AssignLexerPositionToNode(Lexer, FStack.Peek);
   inherited;
+  //Stack.pop is done in `Run`
 end;
 
 procedure TPasSyntaxTreeBuilder.UnitId;

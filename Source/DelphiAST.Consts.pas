@@ -113,6 +113,7 @@ type
     ntPath,
     ntPlatform,
     ntPositionalArgument,
+    ntProgram,
     ntProperty,
     ntRaise,
     ntRead,
