@@ -841,7 +841,7 @@ end;
 
 procedure TmwSimplePasPar.HandlePtCompDirect(Sender: TmwBasePasLex);
 begin
-  CompilerDirective;
+  if (not Lexer.IsJunk) then CompilerDirective;
   //if Assigned(FOnMessage) then
   //  FOnMessage(Self, meNotSupported, 'Currently not supported ' + FLexer.Token, FLexer.PosXY.X, FLexer.PosXY.Y);
   //Sender.Next;
