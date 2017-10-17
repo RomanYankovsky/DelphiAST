@@ -78,6 +78,7 @@ type
     procedure SetCurrentCompoundNodesEndPosition; inline;
     procedure DoOnComment(Sender: TObject; const Text: string);
     procedure DoHandleString(var s: string); inline;
+    function GetMainSection(Node: TSyntaxNode): TSyntaxNode;
   protected
     FStack: TNodeStack;
     FComments: TObjectList<TCommentNode>;
@@ -1053,14 +1054,36 @@ begin
   inherited;
 end;
 
+function TPasSyntaxTreeBuilder.GetMainSection(Node: TSyntaxNode): TSyntaxNode;
+var
+  Temp: TSyntaxNode;
+begin
+  If Node.Typ = ntUnknown then begin
+    //Get the next item on the stack.
+    Temp:= FStack.Pop;
+    Node:= FStack.Peek;
+    FStack.Push(Temp);
+  end;
+  if not(Assigned(Node.ParentNode)) then Exit(Node); //return the root node.
+  while Assigned(Node.ParentNode.ParentNode) do Node:= Node.ParentNode;
+  if (Node.ParentNode.Typ in [ntProgram, ntLibrary, ntPackage]) then Exit(Node.ParentNode);
+  Result:= Node;
+end;
+
 procedure TPasSyntaxTreeBuilder.CompilerDirective;
 var
   Directive: string;
-  Node: TSyntaxNode;
+  Node: TValuedSyntaxNode;
   Part2: integer;
+  Root: TSyntaxNode;
 begin
   Directive:= Uppercase(Lexer.Token);
-  Node:= FStack.AddValuedChild(ntCompilerDirective, Directive);
+  //Always place the compiler directive directly under the `ntInterface` or `ntImplementation` node
+  //or in the main section in a library, program or package.
+  Root:= GetMainSection(FStack.Peek);
+  Node:= TValuedSyntaxNode.Create(ntCompilerDirective);
+  Node.Value:= Directive;
+  Root.AddChild(Node);
   //Parse the directive
   if (Directive.StartsWith('(*$')) then begin
     Delete(Directive, 1, 3);
