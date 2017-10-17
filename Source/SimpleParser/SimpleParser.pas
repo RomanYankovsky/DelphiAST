@@ -249,6 +249,8 @@ type
     procedure ArrayConstant; virtual;
     procedure ArrayBounds; virtual;
     procedure ArrayDimension; virtual;
+    procedure ArrayOfConst; virtual;
+    procedure ArraySubType; virtual;
     procedure ArrayType; virtual;
     procedure AsmStatement; virtual;
     procedure AssignOp; virtual;
@@ -795,7 +797,7 @@ begin
     for Sym in Syms do begin
       Symbols:= Symbols + Optional + TokenName(Sym);
       Optional:= ' or ';
-  end;
+    end;
     if (Lexer.TokenID = ptNull) then
       raise ESyntaxError.CreatePos(Format(rsExpected, [Symbols, rsEndOfFile]), FLexer.PosXY)
     else if Assigned(FOnMessage) then begin
@@ -1015,7 +1017,7 @@ end;
 procedure TmwSimplePasPar.Semicolon;
 begin
   case Lexer.TokenID of
-    ptElse, ptEnd, ptExcept, ptfinally, ptFinalization, ptRoundClose, ptUntil: ;
+    ptElse, ptEnd, ptExcept, ptFinally, ptFinalization, ptRoundClose, ptUntil: ;
   else
     Expected(ptSemiColon);
   end;
@@ -1438,12 +1440,12 @@ end;
 
 procedure TmwSimplePasPar.ReadAccessIdentifier;
 begin
-  variable;
+  Variable;
 end;
 
 procedure TmwSimplePasPar.WriteAccessIdentifier;
 begin
-  variable;
+  Variable;
 end;
 
 procedure TmwSimplePasPar.StorageSpecifier;
@@ -3304,7 +3306,7 @@ begin
   Expected(ptArray);
   ArrayBounds;
   Expected(ptOf);
-  TypeKind;
+  ArraySubType;
 end;
 
 procedure TmwSimplePasPar.EnumeratedType;
@@ -4261,6 +4263,19 @@ begin
   OrdinalType;
 end;
 
+procedure TmwSimplePasPar.ArrayOfConst;
+begin
+  Expected(ptConst);
+end;
+
+procedure TmwSimplePasPar.ArraySubType;
+begin
+  case TokenID of
+    ptConst: ArrayOfConst;
+    else TypeKind;
+  end;
+end;
+
 procedure TmwSimplePasPar.ClassForward;
 begin
   Expected(ptClass);
@@ -4867,16 +4882,16 @@ begin
       begin
         NextToken;
         Expected(ptOf);
-        case TokenID of
-          ptConst: (*new in ObjectPascal80*)
-            begin
-              NextToken;
-            end;
-        else
-          begin
-            TypeID;
-          end;
-        end;
+//        case TokenID of
+//          ptConst: (*new in ObjectPascal80*)
+//            begin
+//              NextToken;
+//            end;
+//        else
+ //         begin
+        TypeID;
+//          end;
+//        end;
       end;
   else
     Expected(ptIdentifier);
@@ -5465,10 +5480,12 @@ begin
       end;
   end;
 end;
+
 procedure TmwSimplePasPar.AnonymousMethodTypeProcedure;
 begin
   Expected(ptProcedure);
 end;
+
 procedure TmwSimplePasPar.AnonymousMethodTypeFunction;
 begin
   Expected(ptFunction);

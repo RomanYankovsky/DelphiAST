@@ -96,6 +96,7 @@ type
     procedure ArrayBounds; override;
     procedure ArrayConstant; override;
     procedure ArrayDimension; override;
+    procedure ArrayOfConst; override;
     procedure AsmStatement; override;
     procedure AsOp; override;
     procedure AssignOp; override;
@@ -577,6 +578,17 @@ end;
 procedure TPasSyntaxTreeBuilder.ArrayDimension;
 begin
   FStack.Push(ntDimension);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ArrayOfConst;
+begin
+  //do not fill the name attribute. const is a keyword, not a type.
+  FStack.Push(ntType).Attribute[anKind]:= AttributeValues[atConst];
   try
     inherited;
   finally
