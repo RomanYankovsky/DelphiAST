@@ -111,7 +111,7 @@ type
     ntPackage,
     ntParameter,
     ntParameters,
-    ntPath,
+    {ntPath,}
     ntPlatform,
     ntPositionalArgument,
     ntProgram,

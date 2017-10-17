@@ -265,6 +265,7 @@ type
     procedure UnitId; override;
     procedure UsesClause; override;
     procedure UsedUnitName; override;
+    procedure VarAbsolute; override;
     procedure VarDeclaration; override;
     procedure VarName; override;
     procedure VarParameter; override;
@@ -305,7 +306,7 @@ type
 implementation
 
 uses
-  TypInfo;
+  TypInfo, StrUtils;
 
 {$IFDEF FPC}
   type
@@ -343,7 +344,7 @@ type
     atOut, atPointer, atName, atString, atSubRange, atVar, atType{ExplicitType},
     atObject, atSealed, atAbstract, atBegin, atOf_Object{procedure of object},
     atVarargs, atExternal{Varargs and external are mutually exclusive},
-    atStatic);
+    atStatic, atAbsolute);
 
 var
   AttributeValues: array[TAttributeValue] of string;
@@ -1053,9 +1054,29 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.CompilerDirective;
+var
+  Directive: string;
+  Node: TSyntaxNode;
+  Part2: integer;
 begin
-  FStack.AddValuedChild(ntCompilerDirective, Lexer.Token);
-
+  Directive:= Uppercase(Lexer.Token);
+  Node:= FStack.AddValuedChild(ntCompilerDirective, Directive);
+  //Parse the directive
+  if (Directive.StartsWith('(*$')) then begin
+    Delete(Directive, 1, 3);
+    StringReplace(Directive,'*)','}',[]);
+  end else begin
+    Delete(Directive, 1, 2);
+  end;
+  Part2:= 1;
+  while not CharInSet(Directive[Part2],[' ', '+', '-', '}']) do begin
+    Inc(Part2);
+  end;
+  Node.Attribute[anType]:= LeftStr(Directive, Part2-1);
+  Delete(Directive, 1, Part2-1);
+  Delete(Directive, Length(Directive), 1);
+  Directive:= Trim(Directive);
+  Node.Attribute[anKind]:= Directive;
   inherited;
 end;
 
@@ -2917,6 +2938,24 @@ begin
     SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.VarAbsolute;
+var
+  AbsoluteNode: TSyntaxNode;
+  ValueNode: TSyntaxNode;
+begin
+  AbsoluteNode:= TSyntaxNode.Create(ntUnknown);
+  FStack.Push(AbsoluteNode);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+    ValueNode:= AbsoluteNode.ExtractChild(AbsoluteNode.ChildNode[0]);
+    ValueNode.Attribute[anKind]:= AttributeValues[atAbsolute];
+    AbsoluteNode.Free;
+    FStack.Peek.AddChild(ValueNode);
   end;
 end;
 
