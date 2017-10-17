@@ -917,10 +917,11 @@ end;
 
 procedure TmwSimplePasPar.HandlePtResourceDirect(Sender: TmwBasePasLex);
 begin
-  CompilerDirective;
-  if Assigned(FOnMessage) then
-    FOnMessage(Self, meNotSupported, 'Currently not supported ' + FLexer.Token, FLexer.PosXY.X, FLexer.PosXY.Y);
-  //Sender.Next;
+  //{$R *.dfm}
+  if (not Lexer.IsJunk) then CompilerDirective;
+//  if Assigned(FOnMessage) then
+//    FOnMessage(Self, meNotSupported, 'Currently not supported ' + FLexer.Token, FLexer.PosXY.X, FLexer.PosXY.Y);
+//  Sender.Next;
 end;
 
 procedure TmwSimplePasPar.HandlePtUndefDirect(Sender: TmwBasePasLex);
@@ -5049,7 +5050,7 @@ end;
 
 procedure TmwSimplePasPar.CompilerDirective;
 begin
-  Expected(ptCompDirect);
+  ExpectedEx(ptCompDirect);
 end;
 
 procedure TmwSimplePasPar.CompoundStatement;
@@ -5425,18 +5426,16 @@ begin
       begin
         NextToken;
         if TokenID = ptRoundOpen then begin
-          RoundOpen;
-          ExpressionList;
-          RoundClose;
+          FormalParameterList;
         end;
+        Expected(ptColon);
+        ReturnType;
       end;
     ptProcedure:
       begin
         NextToken;
-        if TokenId = ptRoundOpen then begin
-          RoundOpen;
-          ExpressionList;
-          RoundClose;
+        if TokenID = ptRoundOpen then begin
+          FormalParameterList;
         end;
       end;
   end;
