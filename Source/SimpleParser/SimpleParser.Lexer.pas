@@ -292,6 +292,7 @@ type
     procedure DisposeBuffer(Buf: PBufferRec);
     function GetFileName: string;
     procedure UpdateScopedEnums;
+    function GetIsJunkAssembly: Boolean;
   protected
     procedure SetOrigin(const NewValue: string); virtual;
   public
@@ -300,6 +301,7 @@ type
     function CharAhead: Char;
     procedure Next;
     procedure NextNoJunk;
+    procedure NextNoJunkAssembly;
     procedure NextNoSpace;
     procedure Init;
     procedure InitFrom(ALexer: TmwBasePasLex);
@@ -316,6 +318,7 @@ type
     property CompilerDirective: string read GetCompilerDirective;
     property DirectiveParam: string read GetDirectiveParam;
     property IsJunk: Boolean read GetIsJunk;
+    property IsJunkAssembly: Boolean read GetIsJunkAssembly;
     property IsSpace: Boolean read GetIsSpace;
     property Origin: string read GetOrigin write SetOrigin;
     property PosXY: TTokenPoint read GetPosXY;
@@ -2489,6 +2492,13 @@ begin
   Result := IsTokenIDJunk(FTokenID) or (FUseDefines and (FDefineStack > 0) and (TokenID <> ptNull));
 end;
 
+function TmwBasePasLex.GetIsJunkAssembly: Boolean;
+begin
+  Result := not(FTokenID in [ptCRLF]) and (
+    IsTokenIDJunk(FTokenID) or (FUseDefines and (FDefineStack > 0) and (TokenID <> ptNull))
+    );
+end;
+
 function TmwBasePasLex.GetIsSpace: Boolean;
 begin
   Result := FTokenID in [ptCRLF, ptSpace];
@@ -2509,6 +2519,13 @@ begin
   repeat
     Next;
   until not IsJunk;
+end;
+
+procedure TmwBasePasLex.NextNoJunkAssembly;
+begin
+  repeat
+    Next
+  until not IsJunkAssembly;
 end;
 
 procedure TmwBasePasLex.NextNoSpace;

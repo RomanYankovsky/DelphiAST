@@ -230,6 +230,7 @@ type
     procedure HandlePtIfEndDirect(Sender: TmwBasePasLex); virtual;
     procedure HandlePtElseIfDirect(Sender: TmwBasePasLex); virtual;
     procedure NextToken; virtual;
+    procedure NextTokenAssembly; virtual;
     procedure SkipJunk; virtual;
     procedure Semicolon; virtual;
     function GetExID: TptTokenKind; virtual;
@@ -252,7 +253,9 @@ type
     procedure ArrayOfConst; virtual;
     procedure ArraySubType; virtual;
     procedure ArrayType; virtual;
+    procedure AsmFragment; virtual;
     procedure AsmStatement; virtual;
+    procedure AsmStatements; virtual;
     procedure AssignOp; virtual;
     procedure AtExpression; virtual;
     procedure Block; virtual;
@@ -937,6 +940,11 @@ begin
   FLexer.NextNoJunk;
 end;
 
+procedure TmwSimplePasPar.NextTokenAssembly;
+begin
+  FLexer.NextNoJunkAssembly;
+end;
+
 procedure TmwSimplePasPar.NilToken;
 begin
   Expected(ptNil);
@@ -1301,7 +1309,7 @@ begin
   case TokenID of
     ptAsm:
       begin
-        AsmStatement;
+        AsmStatements;
       end;
   else
     begin
@@ -2139,7 +2147,7 @@ begin
     case TokenID of
       ptAsm:
         begin
-          AsmStatement;
+          AsmStatements;
         end;
     else
       begin
@@ -2494,35 +2502,53 @@ begin
   end;
 end;
 
-procedure TmwSimplePasPar.AsmStatement;
+procedure TmwSimplePasPar.AsmStatements;
 begin
   Lexer.AsmCode := True;
   Expected(ptAsm);
   { should be replaced with a Assembler lexer }
-  while TokenID <> ptEnd do
+  while TokenID <> ptEnd do begin
     case FLexer.TokenID of
-      ptBegin, ptCase, ptEnd, ptIf, ptFunction, ptProcedure, ptRepeat, ptwhile: Break;
+      ptBegin, ptCase, ptEnd, ptIf, ptFunction, ptProcedure, ptRepeat, ptWhile: Break;
       ptAddressOp:
         begin
-          NextToken;
-          NextToken;
+          NextTokenAssembly;
+          NextTokenAssembly;
         end;
       ptDoubleAddressOp:
         begin
-          NextToken;
-          NextToken;
+          NextTokenAssembly;
+          NextTokenAssembly;
         end;
       ptNull:
         begin
           Expected(ptEnd);
           Exit;
         end;
-    else
-      NextToken;
-    end;
+      ptCRLF: //empty line
+        NextTokenAssembly;
+      else begin
+        AsmStatement;
+        Expected(ptCRLF);
+      end;
+    end; {case}
+  end; {while}
   Lexer.AsmCode := False;
   Expected(ptEnd);
 end;
+
+procedure TmwSimplePasPar.AsmStatement;
+begin
+  while not(Lexer.TokenID in [ptCRLF]) do begin
+    AsmFragment;
+  end;
+end;
+
+procedure TmwSimplePasPar.AsmFragment;
+begin
+  NextTokenAssembly;
+end;
+
 
 procedure TmwSimplePasPar.AsOp;
 begin
@@ -2652,7 +2678,7 @@ begin
   case TokenID of
     ptAsm:
       begin
-        AsmStatement;
+        AsmStatements;
       end;
     ptBegin:
       begin

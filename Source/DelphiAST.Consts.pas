@@ -21,6 +21,8 @@ type
     ntShl,
     ntShr,
     ntAs,
+    ntAsmFragment,
+    ntAsmStatement,
     ntAdd,
     ntSub,
     ntOr,

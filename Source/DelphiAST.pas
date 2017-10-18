@@ -97,7 +97,9 @@ type
     procedure ArrayConstant; override;
     procedure ArrayDimension; override;
     procedure ArrayOfConst; override;
+    procedure AsmFragment; override;
     procedure AsmStatement; override;
+    procedure AsmStatements; override;
     procedure AsOp; override;
     procedure AssignOp; override;
     procedure AtExpression; override;
@@ -597,7 +599,39 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.AsmFragment;
+begin
+  FStack.AddValuedChild(ntAsmFragment, Lexer.Token);
+  inherited;
+
+end;
+
 procedure TPasSyntaxTreeBuilder.AsmStatement;
+var
+  Node, Child: TSyntaxNode;
+  ValuedNode: TValuedSyntaxNode absolute Node;
+  ValuedChild: TValuedSyntaxNode absolute Child;
+  Optional: string;
+  Previous: char;
+begin
+  Node:= FStack.PushValuedNode(ntAsmStatement,'');
+  try
+    inherited;
+    Optional:= '';
+    Previous:= ' ';
+    for Child in Node.ChildNodes do begin
+      //Store the whole statement as well as the parts.
+      if (ValuedChild.Value[1] in [',', '+', '*', ']', ')', ' ','-']) or (Previous in ['(','[',',','+','*','-']) then Optional:= '';
+      Previous:= ValuedChild.Value[1];
+      ValuedNode.Value:= ValuedNode.Value + Optional + ValuedChild.Value;
+      Optional:= ' ';
+    end;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.AsmStatements;
 begin
   FStack.PushCompoundSyntaxNode(ntStatements).Attribute[anType]:= AttributeValues[atAsm];
   try
