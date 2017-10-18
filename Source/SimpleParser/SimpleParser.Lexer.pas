@@ -619,8 +619,8 @@ end;
 function TmwBasePasLex.Func19: TptTokenKind;
 begin
   Result := ptIdentifier;
-  if KeyComp('Do') then Result := ptDo else
-    if KeyComp('And') then Result := ptAnd;
+  if KeyComp('Do') then Result := ptDo 
+  else if KeyComp('And') then Result := ptAnd;
 end;
 
 function TmwBasePasLex.Func20: TptTokenKind;
@@ -686,9 +686,9 @@ end;
 function TmwBasePasLex.Func33: TptTokenKind;
 begin
   Result := ptIdentifier;
-  if KeyComp('Or') then Result := ptOr else
-    if KeyComp('Name') then FExID := ptName else
-      if KeyComp('Asm') then Result := ptAsm;
+  if KeyComp('Or') then Result := ptOr 
+  else if KeyComp('Name') then FExID := ptName 
+  else if KeyComp('Asm') then Result := ptAsm;
 end;
 
 function TmwBasePasLex.Func35: TptTokenKind;
@@ -722,8 +722,8 @@ end;
 function TmwBasePasLex.Func39: TptTokenKind;
 begin
   Result := ptIdentifier;
-  if KeyComp('For') then Result := ptFor else
-    if KeyComp('Shl') then Result := ptShl;
+  if KeyComp('For') then Result := ptFor 
+  else if KeyComp('Shl') then Result := ptShl;
 end;
 
 function TmwBasePasLex.Func40: TptTokenKind;
@@ -819,9 +819,9 @@ end;
 function TmwBasePasLex.Func57: TptTokenKind;
 begin
   Result := ptIdentifier;
-  if KeyComp('While') then Result := ptWhile else
-    if KeyComp('Xor') then Result := ptXor else
-      if KeyComp('Goto') then Result := ptGoto;
+  if KeyComp('While') then Result := ptWhile 
+  else if KeyComp('Xor') then Result := ptXor 
+  else if KeyComp('Goto') then Result := ptGoto;
 end;
 
 function TmwBasePasLex.Func58: TptTokenKind;

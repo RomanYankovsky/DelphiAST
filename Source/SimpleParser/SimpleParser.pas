@@ -254,6 +254,7 @@ type
     procedure ArraySubType; virtual;
     procedure ArrayType; virtual;
     procedure AsmFragment; virtual;
+    procedure AsmLabelAt; virtual;
     procedure AsmStatement; virtual;
     procedure AsmStatements; virtual;
     procedure AssignOp; virtual;
@@ -2512,13 +2513,11 @@ begin
       ptBegin, ptCase, ptEnd, ptIf, ptFunction, ptProcedure, ptRepeat, ptWhile: Break;
       ptAddressOp:
         begin
-          NextTokenAssembly;
-          NextTokenAssembly;
+          AsmStatement;
         end;
       ptDoubleAddressOp:
         begin
-          NextTokenAssembly;
-          NextTokenAssembly;
+          AsmStatement;
         end;
       ptNull:
         begin
@@ -2540,7 +2539,10 @@ end;
 procedure TmwSimplePasPar.AsmStatement;
 begin
   while not(Lexer.TokenID in [ptCRLF]) do begin
-    AsmFragment;
+    case TokenID of
+      ptAddressOp, ptDoubleAddressOp: AsmLabelAt;
+      else AsmFragment;
+    end;
   end;
 end;
 
@@ -2549,6 +2551,10 @@ begin
   NextTokenAssembly;
 end;
 
+procedure TmwSimplePasPar.AsmLabelAt;
+begin
+  NextTokenAssembly;
+end;
 
 procedure TmwSimplePasPar.AsOp;
 begin

@@ -98,6 +98,7 @@ type
     procedure ArrayDimension; override;
     procedure ArrayOfConst; override;
     procedure AsmFragment; override;
+    procedure AsmLabelAt; override;
     procedure AsmStatement; override;
     procedure AsmStatements; override;
     procedure AsOp; override;
@@ -156,7 +157,7 @@ type
     procedure ExceptionBlockElseBranch; override;
     procedure ExceptionHandler; override;
     procedure ExceptionVariable; override;
-    procedure ExplicitType; override;     //#220+#181
+    procedure ExplicitType; override;
     procedure ExportedHeading; override;
     procedure ExportsClause; override;
     procedure ExportsElement; override;
@@ -281,7 +282,7 @@ type
     procedure VisibilityPublic; override;
     procedure VisibilityPublished; override;
     procedure VisibilityStrictPrivate; override;
-    procedure VisibilityStrictProtected; override;    
+    procedure VisibilityStrictProtected; override;
     procedure WhileStatement; override;
     procedure WithExpressionList; override;
     procedure WithStatement; override;
@@ -530,7 +531,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.AnonymousMethod;
 begin
-  FStack.Push(ntAnonymousMethod).Attribute[anKind]:= Lexer.Token;
+  FStack.Push(ntAnonymousMethod).Attribute[anKind]:= Lexer.Token;  //function or procedure
   try
     inherited;
   finally
@@ -550,12 +551,12 @@ end;
 
 procedure TPasSyntaxTreeBuilder.AnonymousMethodTypeProcedure;
 begin
-  FStack.Peek.Attribute[anKind]:= Lexer.Token;
+  FStack.Peek.Attribute[anKind]:= Lexer.Token; //procedure
 end;
 
 procedure TPasSyntaxTreeBuilder.AnonymousMethodTypeFunction;
 begin
-  FStack.Peek.Attribute[anKind]:= Lexer.Token;
+  FStack.Peek.Attribute[anKind]:= Lexer.Token; //function
 end;
 
 procedure TPasSyntaxTreeBuilder.ArrayBounds;
@@ -603,7 +604,12 @@ procedure TPasSyntaxTreeBuilder.AsmFragment;
 begin
   FStack.AddValuedChild(ntAsmFragment, Lexer.Token);
   inherited;
+end;
 
+procedure TPasSyntaxTreeBuilder.AsmLabelAt;
+begin
+  FStack.AddValuedChild(ntAsmFragment, Lexer.Token);
+  inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.AsmStatement;
@@ -621,7 +627,7 @@ begin
     Previous:= ' ';
     for Child in Node.ChildNodes do begin
       //Store the whole statement as well as the parts.
-      if (ValuedChild.Value[1] in [',', '+', '*', ']', ')', ' ','-']) or (Previous in ['(','[',',','+','*','-']) then Optional:= '';
+      if (ValuedChild.Value[1] in [',', '+', '*', ']', ')', ' ','-',':']) or (Previous in ['(','[',',','+','*','-','@']) then Optional:= '';
       Previous:= ValuedChild.Value[1];
       ValuedNode.Value:= ValuedNode.Value + Optional + ValuedChild.Value;
       Optional:= ' ';
@@ -633,7 +639,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.AsmStatements;
 begin
-  FStack.PushCompoundSyntaxNode(ntStatements).Attribute[anType]:= AttributeValues[atAsm];
+  FStack.PushCompoundSyntaxNode(ntStatements).Attribute[anKind]:= AttributeValues[atAsm];
   try
     inherited;
     SetCurrentCompoundNodesEndPosition;
@@ -2538,8 +2544,8 @@ begin
   except
     on E: EParserException do
       raise ESyntaxTreeException.Create(E.Line, E.Col, Lexer.FileName, E.Message, Result);
-    on E: ESyntaxError do 
-      raise ESyntaxTreeException.Create(E.PosXY.X, E.PosXY.Y, Lexer.FileName, E.Message, Result);      
+    on E: ESyntaxError do
+      raise ESyntaxTreeException.Create(E.PosXY.X, E.PosXY.Y, Lexer.FileName, E.Message, Result);
     else
       FreeAndNil(Result);
       raise;
@@ -2768,6 +2774,7 @@ begin
     FStack.Pop;
   end;
 end;
+
 procedure TPasSyntaxTreeBuilder.TagField;
 var
   TagNode: TSyntaxNode;
@@ -2779,7 +2786,9 @@ begin
     inherited;
     TypeNode:= FStack.Peek.FindNode(ntIdentifier);
     if (Assigned(TypeNode)) then begin
+      //move the name to the correct pos.
       TagNode.Attribute[anName]:= TagNode.Attribute[anKind];
+      //Fill in the type of te node
       TagNode.Attribute[anKind]:= TypeNode.Attribute[anKind];
       TagNode.DeleteChild(TypeNode);
     end;
@@ -2787,6 +2796,7 @@ begin
     FStack.Pop;
   end;
 end;
+
 procedure TPasSyntaxTreeBuilder.TagFieldTypeName;
 begin
   FStack.Push(ntIdentifier).Attribute[anKind]:= Lexer.Token;
