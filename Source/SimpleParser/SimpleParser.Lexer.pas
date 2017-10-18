@@ -2041,8 +2041,6 @@ begin
 end;
 
 function TmwBasePasLex.IsDeclared(const ADefine: string): Boolean;
-var
-  i: Integer;
 begin
   Result:= true;
   {TODO -oJB -cTmwBasePasLex.IsDeclared : Implement}

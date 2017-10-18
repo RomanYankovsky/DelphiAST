@@ -29,7 +29,7 @@ type
     function GetPosXY: TTokenPoint; inline;
     function GetFileName: string; inline;
   public
-    constructor Create(const ALexer: TmwPasLex; AOnHandleString: TStringEvent);
+    constructor Create(const Lexer: TmwPasLex; OnHandleString: TStringEvent);
 
     property FileName: string read GetFileName;
     property PosXY: TTokenPoint read GetPosXY;
@@ -372,11 +372,11 @@ end;
 
 { TPasLexer }
 
-constructor TPasLexer.Create(const ALexer: TmwPasLex; AOnHandleString: TStringEvent);
+constructor TPasLexer.Create(const Lexer: TmwPasLex; OnHandleString: TStringEvent);
 begin
   inherited Create;
-  FLexer := ALexer;
-  FOnHandleString := AOnHandleString;
+  FLexer := Lexer;
+  FOnHandleString := OnHandleString;
 end;
 
 function TPasLexer.GetFileName: string;
@@ -736,6 +736,7 @@ procedure TPasSyntaxTreeBuilder.BuildParametersList(
   ParametersListMethod: TTreeBuilderMethod);
 var
   Params, Temp: TSyntaxNode;
+  Attributes: TSyntaxNode;
   ParamList, Param, TypeInfo, ParamExpr: TSyntaxNode;
   ParamKind: string;
 begin
@@ -752,9 +753,10 @@ begin
 
     for ParamList in Params.ChildNodes do
     begin
-      TypeInfo := ParamList.FindNode(ntType);
+      TypeInfo := ParamList.ExtractChild(ntType);
       ParamKind := ParamList.Attribute[anKind];
-      ParamExpr := ParamList.FindNode(ntExpression);
+      ParamExpr := ParamList.ExtractChild(ntExpression);
+      Attributes:= ParamList.ExtractChild(ntAttributes);
 
       for Param in ParamList.ChildNodes do
       begin
@@ -768,12 +770,15 @@ begin
         Temp.Col := Param.Col;
         Temp.Line := Param.Line;
 
+        if Assigned(Attributes) then
+          FStack.AddChild(Attributes);
+
         FStack.AddChild(Param.Clone);
         if Assigned(TypeInfo) then
-          FStack.AddChild(TypeInfo.Clone);
+          FStack.AddChild(TypeInfo);
 
         if Assigned(ParamExpr) then
-          FStack.AddChild(ParamExpr.Clone);
+          FStack.AddChild(ParamExpr);
 
         FStack.Pop;
       end;
@@ -891,6 +896,7 @@ begin
     Fields.Free;
   end;
 end;
+
 procedure TPasSyntaxTreeBuilder.ObjectField;
 var
   Fields, Temp: TSyntaxNode;
@@ -906,16 +912,19 @@ begin
     finally
       FStack.Pop;
     end;
+
     TypeInfo := Fields.FindNode(ntType);
     TypeArgs := Fields.FindNode(ntTypeArgs);
     for Field in Fields.ChildNodes do
     begin
       if Field.Typ <> ntName then
         Continue;
+
       Temp := FStack.Push(ntField);
       if (IsClassVarSection) then Temp.Attribute[anClass]:= AttributeValues[atTrue];
       try
         Temp.AssignPositionFrom(Field);
+
         FStack.AddChild(Field.Clone);
         TypeInfo := TypeInfo.Clone;
         if Assigned(TypeArgs) then
@@ -1094,6 +1103,7 @@ begin
   //or in the main section in a library, program or package.
   Root:= GetMainSection(FStack.Peek);
   Node:= TValuedSyntaxNode.Create(ntCompilerDirective);
+  AssignLexerPositionToNode(Lexer, Node);
   Node.Value:= Directive;
   Root.AddChild(Node);
   //Parse the directive
@@ -1220,6 +1230,7 @@ begin
     FStack.Pop;
   end;
 end;
+
 procedure TPasSyntaxTreeBuilder.RecordConstraint;
 begin
   FStack.Push(ntRecordConstraint);
@@ -1342,6 +1353,7 @@ begin
     FStack.Peek.Attribute[anOverload]:=  AttributeValues[atTrue]
   else if SameText(Token, 'abstract') or SameText(Token, 'final') then
     FStack.Peek.Attribute[anAbstract]:= Token;
+
   inherited;
 end;
 
@@ -1652,16 +1664,19 @@ begin
     finally
       FStack.Pop;
     end;
+
     TypeInfo := Fields.FindNode(ntType);
     TypeArgs := Fields.FindNode(ntTypeArgs);
     for Field in Fields.ChildNodes do
     begin
       if Field.Typ <> ntName then
         Continue;
+
       Temp := FStack.Push(ntField);
       if (IsClassVarSection) then Temp.Attribute[anClass]:= AttributeValues[atTrue];
       try
         Temp.AssignPositionFrom(Field);
+
         FStack.AddChild(Field.Clone);
         TypeInfo := TypeInfo.Clone;
         if Assigned(TypeArgs) then
@@ -2251,7 +2266,7 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ProcedureProcedureName;
 begin
-  //FStack.Peek.SetAttribute(anName, Lexer.Token);
+  //FStack.Peek.Attribute[anName, Lexer.Token);
   inherited;
 end;
 
@@ -2495,6 +2510,7 @@ begin
   Result := '';
   for NamePartNode in NamesNode.ChildNodes do
   begin
+    //do not add empty parts (in case non-name and name node are mixed.
     if (Result <> '') then
       Result := Result + '.';
     Result:= Result + NamePartNode.Attribute[anName];
