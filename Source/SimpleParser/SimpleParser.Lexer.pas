@@ -308,6 +308,7 @@ type
     procedure AddDefine(const ADefine: string);
     procedure RemoveDefine(const ADefine: string);
     function IsDefined(const ADefine: string): Boolean;
+    function IsDeclared(const ADefine: string): Boolean;
     procedure ClearDefines;
     procedure InitDefinesDefinedByCompiler;
 
@@ -393,7 +394,7 @@ var
 begin
   for I := #0 to #127 do
   begin
-    Identifiers[I]:= I in ['_', '0'..'9', 'a'..'z', 'A'..'Z'];
+    Identifiers[I]:= CharInSet(I,['_', '0'..'9', 'a'..'z', 'A'..'Z']);
     J := UpCase(I);
     case J of
       'A'..'Z', '_': mHashTable[I] := Ord(J) - 64;
@@ -1203,6 +1204,7 @@ begin
     FExID:= ptUnicodeString;
   end;
 end;
+
 function TmwBasePasLex.Func166: TptTokenKind;
 begin
   Result := ptIdentifier;
@@ -1692,7 +1694,7 @@ function ExtractNumber: string;
 begin
   i:= 1;
   while i <= Length(LParams) do begin
-    if (LParams[i] in ['0'..'9','-','.']) then Inc(i)
+    if CharInSet(LParams[i], ['0'..'9','-','.']) then Inc(i)
     else begin
       Dec(i);
       Break;
@@ -1730,7 +1732,7 @@ begin
         if not(Result) then Result:= Result or EvaluateConditionalExpression(NextPart, Result);
         Delete(LParams, 1, Length(NextPart));
         LParams:= TrimLeft(LParams);
-      end;
+      end else exit(false);
       'A':if Pos('AND ',LParams) = 1 then begin
         Delete(LParams,1,3);
         LParams:= TrimLeft(LParams);
@@ -1738,7 +1740,7 @@ begin
         if(Result) then Result:= Result and EvaluateConditionalExpression(NextPart, Result);
         Delete(LParams, 1, Length(NextPart));
         LParams:= TrimLeft(LParams);
-      end;
+      end else exit(false);
       'X':if Pos('XOR',LParams) = 1 then begin
         Delete(LParams,1,3);
         LParams:= TrimLeft(LParams);
@@ -1746,13 +1748,18 @@ begin
         Result:= Result xor EvaluateConditionalExpression(NextPart, Result);
         Delete(LParams, 1, Length(NextPart));
         LParams:= TrimLeft(LParams);
-      end;
+      end else exit(false);
       'D': if Pos('DEFINED(',LParams) = 1 then begin
         LDefine := Copy(LParams, 9, Pos(')', LParams) - 9);
         Result:= IsDefined(LDefine);
         Delete(LParams, 1, Length(LDefine)+9);
         LParams:= TrimLeft(LParams);
-      end;
+      end else if Pos('DECLARED(',LParams) = 1 then begin
+        LDefine := Copy(LParams, 10, Pos(')', LParams) - 10);
+        Result:= IsDeclared(LDefine);
+        Delete(LParams, 1, Length(LDefine)+9);
+        LParams:= TrimLeft(LParams);
+      end else exit(false);
       'N': if (Pos('NOT',LParams) = 1) then begin
         Delete(LParams,1,3);
         LParams:= TrimLeft(LParams);
@@ -1760,18 +1767,17 @@ begin
         Result:= not EvaluateConditionalExpression(NextPart, Result);
         Delete(LParams, 1, Length(NextPart));
         LParams:= TrimLeft(LParams);
-      end;
+      end else exit(false);
       'C': if (Pos('COMPILERVERSION',LParams) = 1) then begin
         IsComVer := true;
         Delete(LParams, 1, Length('COMPILERVERSION'));
         LParams:= TrimLeft(LParams);
-
-      end;
+      end else exit(false);
       'R': if (Pos('RTLVERSION',LParams) = 1) then begin
         IsRTLVer:= true;
         Delete(LParams, 1, Length('RTLVERSION'));
         LParams:= TrimLeft(LParams);
-      end;
+      end else exit(false);
       '<','=','>': begin
         if (Pos('>=',LParams) = 1) then LOper:= '>='
         else if (Pos('<=',LParams) = 1) then LOper:= '<='
@@ -2032,6 +2038,14 @@ begin
     if FDefines[i] = ADefine then
       Exit(True);
   Result := False;
+end;
+
+function TmwBasePasLex.IsDeclared(const ADefine: string): Boolean;
+var
+  i: Integer;
+begin
+  Result:= true;
+  {TODO -oJB -cTmwBasePasLex.IsDeclared : Implement}
 end;
 
 function TmwBasePasLex.IsIdentifiers(AChar: Char): Boolean;
