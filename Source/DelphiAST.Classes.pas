@@ -136,8 +136,9 @@ type
   end;
 
 const
-  OperatorsInfo: array [0..27] of TOperatorInfo =
+  OperatorsInfo: array [0..28] of TOperatorInfo =
     ((Typ: ntAddr;         Priority: 1; Kind: okUnary;  AssocType: atRight),
+     (Typ: ntDoubleAddr;   Priority: 1; Kind: okUnary;  AssocType: atRight),
      (Typ: ntDeref;        Priority: 1; Kind: okUnary;  AssocType: atLeft),
      (Typ: ntGeneric;      Priority: 1; Kind: okBinary; AssocType: atRight),
      (Typ: ntIndexed;      Priority: 1; Kind: okUnary;  AssocType: atLeft),

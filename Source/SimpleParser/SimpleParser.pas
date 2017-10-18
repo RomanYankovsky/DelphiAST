@@ -274,7 +274,7 @@ type
     procedure ClassMethodResolution; virtual;
     procedure ClassProcedureHeading; virtual;
     procedure ClassClass; virtual;
-    procedure ClassConstraint; virtual; 
+    procedure ClassConstraint; virtual;
     procedure ClassMethod; virtual;
     procedure ClassProperty; virtual;
     procedure ClassReferenceType; virtual;
@@ -292,7 +292,7 @@ type
     procedure ConstantValue; virtual;
     procedure ConstantValueTyped; virtual;
     procedure ConstParameter; virtual;
-    procedure ConstructorConstraint; virtual; 
+    procedure ConstructorConstraint; virtual;
     procedure ConstructorHeading; virtual;
     procedure ConstructorName; virtual;
     procedure ConstSection; virtual;
@@ -321,6 +321,7 @@ type
     procedure DirectiveStatic; virtual;
     procedure DispInterfaceForward; virtual;
     procedure DispIDSpecifier; virtual;
+    procedure DoubleAddressOp; virtual;
     procedure DotOp; virtual;
     procedure ElseStatement; virtual;
     procedure EmptyStatement; virtual;
@@ -3469,7 +3470,7 @@ begin
       end;
     ptDoubleAddressOp:
       begin
-        NextToken;
+        DoubleAddressOp;
         VariableReference;
       end;
     ptInherited:
@@ -4289,6 +4290,11 @@ end;
 procedure TmwSimplePasPar.DotOp;
 begin
   Expected(ptPoint);
+end;
+
+procedure TmwSimplePasPar.DoubleAddressOp;
+begin
+  Expected(ptDoubleAddressOp);
 end;
 
 procedure TmwSimplePasPar.InterfaceForward;

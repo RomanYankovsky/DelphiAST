@@ -145,6 +145,7 @@ type
     procedure DirectiveSealed; override;
     procedure DirectiveVarargs; override;
     procedure DispInterfaceForward; override;
+    procedure DoubleAddressOp; override;
     procedure DotOp; override;
     procedure ElseStatement; override;
     procedure EmptyStatement; override;
@@ -1450,6 +1451,16 @@ procedure TPasSyntaxTreeBuilder.DotOp;
 begin
   FStack.AddChild(ntDot);
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.DoubleAddressOp;
+begin
+  FStack.Push(ntDoubleAddr);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.ElseStatement;

@@ -5,6 +5,7 @@ interface
 type
   TSyntaxNodeType = (
     ntAddr,
+    ntDoubleAddr,
     ntDeref,
     ntGeneric,
     ntIndexed,
