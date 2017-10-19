@@ -129,7 +129,7 @@ type
 
   TOperators = class
   strict private
-    class function GetItem(Typ: TSyntaxNodeType): TOperatorInfo; static;
+    class function GetItem(Typ: TSyntaxNodeType): TOperatorInfo; inline; static;
   public
     class function IsOpName(Typ: TSyntaxNodeType): Boolean;
     class property Items[Typ: TSyntaxNodeType]: TOperatorInfo read GetItem; default;
@@ -172,8 +172,8 @@ const
 class function TOperators.GetItem(Typ: TSyntaxNodeType): TOperatorInfo;
 begin
   Assert(Typ = OperatorsInfo[Typ].Typ);
-  if (Typ in [ntAddr..ntIs]) then Exit(OperatorsInfo[Typ])
-  else Assert(false);
+  Assert(Typ in [ntAddr..ntIs]);
+  Result:= OperatorsInfo[Typ]; //don't use exit in inline routines.
 end;
 
 class function TOperators.IsOpName(Typ: TSyntaxNodeType): Boolean;
