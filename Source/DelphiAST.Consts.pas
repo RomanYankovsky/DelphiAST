@@ -21,8 +21,6 @@ type
     ntShl,
     ntShr,
     ntAs,
-    ntAsmFragment,
-    ntAsmStatement,
     ntAdd,
     ntSub,
     ntOr,
@@ -50,6 +48,8 @@ type
     ntAnonymousMethod,
     ntAnonymousMethodType,
     ntArguments,
+    ntAsmFragment,
+    ntAsmStatement,
     ntAssign,
     ntAt,
     ntAttribute,
@@ -183,17 +183,15 @@ type
   TAttributeNames = set of TAttributeName;
 
 type
-  TSyntaxNodeNames = record
+  SyntaxNodeNames = class
   strict private
     class var FData: array[TSyntaxNodeType] of string;
-    function GetItem(const index: TSyntaxNodeType): string; inline;
+    class function GetItem(const index: TSyntaxNodeType): string; static; inline;
     class constructor Init;
   public
-    property Items[const index: TSyntaxNodeType]: string read GetItem; default;
+    class property Items[const index: TSyntaxNodeType]: string read GetItem; default;
   end;
 
-var
-  SyntaxNodeNames: TSyntaxNodeNames; //for some reason default does not work on class properties.
 
 
 //const
@@ -361,12 +359,12 @@ uses
 
 { TSyntaxNodeNames }
 
-function TSyntaxNodeNames.GetItem(const index: TSyntaxNodeType): string;
+class function SyntaxNodeNames.GetItem(const index: TSyntaxNodeType): string;
 begin
   Result:= FData[index];
 end;
 
-class constructor TSyntaxNodeNames.Init;
+class constructor SyntaxNodeNames.Init;
 var
   value: TSyntaxNodeType;
 begin

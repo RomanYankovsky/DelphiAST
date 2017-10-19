@@ -773,11 +773,68 @@ begin
   end;
 end;
 
+//ExtractChild causes corruption of the childlist. need to investigate why.
+//procedure TPasSyntaxTreeBuilder.BuildParametersList(
+//  ParametersListMethod: TTreeBuilderMethod);
+//var
+//  Params, Temp: TSyntaxNode;
+//  Attributes: TSyntaxNode;
+//  ParamList, Param, TypeInfo, ParamExpr: TSyntaxNode;
+//  ParamKind: string;
+//begin
+//  Params := TSyntaxNode.Create(ntUnknown);
+//  try
+//    FStack.Push(ntParameters);
+//
+//    FStack.Push(Params);
+//    try
+//      ParametersListMethod;
+//    finally
+//      FStack.Pop;
+//    end;
+//
+//    for ParamList in Params.ChildNodes do
+//    begin
+//      TypeInfo := ParamList.ExtractChild(ntType);
+//      ParamKind := ParamList.Attribute[anKind];
+//      ParamExpr := ParamList.ExtractChild(ntExpression);
+//      Attributes:= ParamList.ExtractChild(ntAttributes);
+//
+//      for Param in ParamList.ChildNodes do
+//      begin
+//        if Param.Typ <> ntName then
+//          Continue;
+//
+//        Temp := FStack.Push(ntParameter);
+//        if ParamKind <> '' then
+//          Temp.Attribute[anKind] := ParamKind;
+//
+//        Temp.Col := Param.Col;
+//        Temp.Line := Param.Line;
+//
+//        if Assigned(Attributes) then
+//          FStack.AddChild(Attributes);
+//
+//        FStack.AddChild(Param.Clone);
+//        if Assigned(TypeInfo) then
+//          FStack.AddChild(TypeInfo);
+//
+//        if Assigned(ParamExpr) then
+//          FStack.AddChild(ParamExpr);
+//
+//        FStack.Pop;
+//      end;
+//    end;
+//    FStack.Pop;
+//  finally
+//    Params.Free;
+//  end;
+//end;
+
 procedure TPasSyntaxTreeBuilder.BuildParametersList(
   ParametersListMethod: TTreeBuilderMethod);
 var
-  Params, Temp: TSyntaxNode;
-  Attributes: TSyntaxNode;
+  Params, Temp, Attributes: TSyntaxNode;
   ParamList, Param, TypeInfo, ParamExpr: TSyntaxNode;
   ParamKind: string;
 begin
@@ -794,10 +851,10 @@ begin
 
     for ParamList in Params.ChildNodes do
     begin
-      TypeInfo := ParamList.ExtractChild(ntType);
+      TypeInfo := ParamList.FindNode(ntType);
       ParamKind := ParamList.Attribute[anKind];
-      ParamExpr := ParamList.ExtractChild(ntExpression);
-      Attributes:= ParamList.ExtractChild(ntAttributes);
+      ParamExpr := ParamList.FindNode(ntExpression);
+      Attributes:= ParamList.FindNode(ntAttributes);
 
       for Param in ParamList.ChildNodes do
       begin
@@ -806,20 +863,20 @@ begin
 
         Temp := FStack.Push(ntParameter);
         if ParamKind <> '' then
-          Temp.Attribute[anKind] := ParamKind;
+          Temp.Attribute[anKind]:= ParamKind;
 
         Temp.Col := Param.Col;
         Temp.Line := Param.Line;
 
         if Assigned(Attributes) then
-          FStack.AddChild(Attributes);
+          FStack.AddChild(Attributes.Clone);
 
         FStack.AddChild(Param.Clone);
         if Assigned(TypeInfo) then
-          FStack.AddChild(TypeInfo);
+          FStack.AddChild(TypeInfo.Clone);
 
         if Assigned(ParamExpr) then
-          FStack.AddChild(ParamExpr);
+          FStack.AddChild(ParamExpr.Clone);
 
         FStack.Pop;
       end;

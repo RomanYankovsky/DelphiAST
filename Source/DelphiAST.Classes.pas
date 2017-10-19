@@ -19,7 +19,7 @@ type
     property Line: Integer read FLine;
     property Col: Integer read FCol;
   end;
-  
+
   TAttributeEntry = TPair<TAttributeName, string>;
   PAttributeEntry = ^TAttributeEntry;
 
@@ -136,7 +136,7 @@ type
   end;
 
 const
-  OperatorsInfo: array [0..28] of TOperatorInfo =
+  OperatorsInfo: array [ntAddr..ntIs] of TOperatorInfo =
     ((Typ: ntAddr;         Priority: 1; Kind: okUnary;  AssocType: atRight),
      (Typ: ntDoubleAddr;   Priority: 1; Kind: okUnary;  AssocType: atRight),
      (Typ: ntDeref;        Priority: 1; Kind: okUnary;  AssocType: atLeft),
@@ -171,7 +171,9 @@ const
 
 class function TOperators.GetItem(Typ: TSyntaxNodeType): TOperatorInfo;
 begin
-  if (Typ in [ntAddr..ntIs]) then Exit(OperatorsInfo[Ord(Typ) - Ord(ntAddr)]);    //#224
+  Assert(Typ = OperatorsInfo[Typ].Typ);
+  if (Typ in [ntAddr..ntIs]) then Exit(OperatorsInfo[Typ])
+  else Assert(false);
 end;
 
 class function TOperators.IsOpName(Typ: TSyntaxNodeType): Boolean;
@@ -397,11 +399,9 @@ begin
   end;
 end;
 
-
 function TSyntaxNode.AddChild(Node: TSyntaxNode): TSyntaxNode;
 begin
   Assert(Assigned(Node));
-
   SetLength(FChildNodes, Length(FChildNodes) + 1);
   FChildNodes[Length(FChildNodes) - 1] := Node;
 
@@ -592,5 +592,6 @@ begin
   FLine := Line;
   FCol := Col;
 end;
+
 
 end.
