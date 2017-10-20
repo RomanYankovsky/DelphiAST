@@ -195,6 +195,7 @@ type
     procedure InterfaceGUID; override;
     procedure InterfaceSection; override;
     procedure InterfaceType; override;
+    procedure LabelDeclarationSection; override;
     procedure LabeledStatement; override;
     procedure LabelId; override;
     procedure LibraryFile; override;
@@ -802,27 +803,23 @@ end;
 //
 //      for Param in ParamList.ChildNodes do
 //      begin
-//        if Param.Typ <> ntName then
-//          Continue;
+//        if Param.Typ = ntName then begin
 //
-//        Temp := FStack.Push(ntParameter);
-//        if ParamKind <> '' then
-//          Temp.Attribute[anKind] := ParamKind;
+//          Temp:= FStack.Push(ntParameter);
+//          if ParamKind <> '' then Temp.Attribute[anKind]:= ParamKind;
 //
-//        Temp.Col := Param.Col;
-//        Temp.Line := Param.Line;
+//          Temp.Col:= Param.Col;
+//          Temp.Line:= Param.Line;
 //
-//        if Assigned(Attributes) then
-//          FStack.AddChild(Attributes);
+//          if Assigned(Attributes) then FStack.AddChild(Attributes);
 //
-//        FStack.AddChild(Param.Clone);
-//        if Assigned(TypeInfo) then
-//          FStack.AddChild(TypeInfo);
+//          FStack.AddChild(Param.Clone);
+//          if Assigned(TypeInfo) then FStack.AddChild(TypeInfo);
 //
-//        if Assigned(ParamExpr) then
-//          FStack.AddChild(ParamExpr);
+//          if Assigned(ParamExpr) then FStack.AddChild(ParamExpr);
 //
-//        FStack.Pop;
+//          FStack.Pop;
+//        end;
 //      end;
 //    end;
 //    FStack.Pop;
@@ -1306,7 +1303,7 @@ begin
     inherited;
   finally
     FStack.Pop;
-  end;  
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.ConstructorConstraint;
@@ -1316,7 +1313,7 @@ begin
     inherited;
   finally
     FStack.Pop;
-  end;  
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.RecordConstant;
@@ -1336,7 +1333,7 @@ begin
     inherited;
   finally
     FStack.Pop;
-  end;  
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.ConstSection;
@@ -1814,7 +1811,7 @@ begin
     SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
-  end;    
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.FinallyBlock;
@@ -2035,7 +2032,7 @@ begin
     SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
-  end;  
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.InterfaceForward;
@@ -2076,8 +2073,22 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.LabeledStatement;
+var
+  Node, Name: TSyntaxNode;
 begin
-  FStack.PushValuedNode(ntLabeledStatement, Lexer.Token);   //#227
+  Node:= FStack.Push(ntLabeledStatement);
+  Name:= Node.AddChild(ntName).AssignPositionFrom(Node);
+  Name.Attribute[anName]:= Lexer.Token;
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.LabelDeclarationSection;
+begin
+  FStack.Push(ntLabel);
   try
     inherited;
   finally
@@ -2086,9 +2097,15 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.LabelId;
+var
+  Node, Name: TSyntaxNode;
 begin
-  FStack.AddValuedChild(ntLabel, Lexer.Token);
-  inherited;
+  FStack.Push(ntName).Attribute[anName]:= Lexer.Token;
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.LibraryFile;
@@ -2902,7 +2919,7 @@ begin
     SetCurrentCompoundNodesEndPosition;
   finally
     FStack.Pop;
-  end;  
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.TypeId;
@@ -2913,19 +2930,19 @@ var
 begin
   TypeNode := FStack.Push(ntType);
   try
-    inherited;         
-    
+    inherited;
+
     InnerTypeName := '';
-    InnerTypeNode := TypeNode.FindNode(ntType);    
+    InnerTypeNode := TypeNode.FindNode(ntType);
     if Assigned(InnerTypeNode) then
     begin
       InnerTypeName := InnerTypeNode.Attribute[anName];
-      for SubNode in InnerTypeNode.ChildNodes do 
+      for SubNode in InnerTypeNode.ChildNodes do
         TypeNode.AddChild(SubNode.Clone);
-        
+
       TypeNode.DeleteChild(InnerTypeNode);
-    end;       
-    
+    end;
+
     TypeName := '';
     for i := Length(TypeNode.ChildNodes) - 1 downto 0 do
     begin
@@ -2934,16 +2951,16 @@ begin
       begin
         if TypeName <> '' then
           TypeName := '.' + TypeName;
-          
+
         TypeName := SubNode.Attribute[anName] + TypeName;
         TypeNode.DeleteChild(SubNode);
-      end;       
+      end;
     end;
-    
+
     if TypeName <> '' then
-      TypeName := '.' + TypeName;   
-    TypeName := InnerTypeName + TypeName;  
-      
+      TypeName := '.' + TypeName;
+    TypeName := InnerTypeName + TypeName;
+
     DoHandleString(TypeName);
     TypeNode.Attribute[anName]:= TypeName;
   finally
