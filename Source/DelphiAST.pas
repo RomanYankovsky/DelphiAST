@@ -2077,7 +2077,7 @@ var
   Node, Name: TSyntaxNode;
 begin
   Node:= FStack.Push(ntLabeledStatement);
-  Name:= Node.AddChild(ntName).AssignPositionFrom(Node);
+  Name:= Node.AddChild(ntName);
   Name.Attribute[anName]:= Lexer.Token;
   try
     inherited;
