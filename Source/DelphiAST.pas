@@ -308,7 +308,7 @@ uses
 type
   TAttributeValue = (atAsm, atTrue, atFunction, atProcedure, atClassOf, atClass,
     atConst, atConstructor, atDestructor, atEnum, atInterface, atNil, atNumeric,
-    atOut, atPointer, atName, atString, atSubRange, atVar);
+    atOut, atPointer, atName, atString, atSubRange, atVar, atDispInterface);
 
 var
   AttributeValues: array[TAttributeValue] of string;
@@ -1629,7 +1629,12 @@ end;
 
 procedure TPasSyntaxTreeBuilder.InterfaceType;
 begin
-  FStack.Push(ntType).SetAttribute(anType, AttributeValues[atInterface]);
+  case TokenID of
+    ptInterface:
+      FStack.Push(ntType).SetAttribute(anType, AttributeValues[atInterface]);
+    ptDispInterface:
+      FStack.Push(ntType).SetAttribute(anType, AttributeValues[atDispInterface]);
+  end;
   try
     inherited;
   finally
