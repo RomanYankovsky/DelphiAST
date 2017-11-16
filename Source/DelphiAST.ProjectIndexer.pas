@@ -245,16 +245,22 @@ end;
 procedure TProjectIndexer.BuildUsesList(unitNode: TSyntaxNode; const fileName: string;
   isProject: boolean; unitList: TStringList);
 var
-  fileFolder: string;
-  implNode  : TSyntaxNode;
-  intfNode  : TSyntaxNode;
-  usesNode  : TSyntaxNode;
+  fileFolder  : string;
+  containsNode: TSyntaxNode;
+  implNode    : TSyntaxNode;
+  intfNode    : TSyntaxNode;
+  usesNode    : TSyntaxNode;
 begin
   fileFolder := IncludeTrailingPathDelimiter(ExtractFilePath(fileName));
   if isProject then begin
     usesNode := FindType(unitNode, ntUses);
     if assigned(usesNode) then
-      AppendUnits(usesNode, fileFolder, unitList);
+      AppendUnits(usesNode, fileFolder, unitList)
+    else begin
+      containsNode := FindType(unitNode, ntContains);
+      if assigned(containsNode) then
+        AppendUnits(containsNode, fileFolder, unitList);
+    end;
   end
   else begin
     intfNode := FindType(unitNode, ntInterface);
