@@ -218,6 +218,7 @@ type
     ptRoundOpen,
     ptRunError,
     ptSafeCall,
+    ptScopedEnumsDirect,
     ptSealed,
     ptSemiColon,
     ptSet,
@@ -318,6 +319,7 @@ begin
     ptEndIfDirect,
     ptIfOptDirect,
     ptDefineDirect,
+    ptScopedEnumsDirect,
     ptUndefDirect];
 end;
 
