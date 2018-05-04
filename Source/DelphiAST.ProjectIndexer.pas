@@ -255,6 +255,9 @@ begin
     usesNode := FindType(unitNode, ntUses);
     if assigned(usesNode) then
       AppendUnits(usesNode, fileFolder, unitList);
+    usesNode := FindType(unitNode, ntContains);
+    if assigned(usesNode) then
+      AppendUnits(usesNode, fileFolder, unitList);
   end
   else begin
     intfNode := FindType(unitNode, ntInterface);
