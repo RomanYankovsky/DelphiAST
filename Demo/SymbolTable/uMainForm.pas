@@ -15,20 +15,28 @@ type
     OpenDialog: TOpenDialog;
     StatusBar: TStatusBar;
     OpenDelphiProject1: TMenuItem;
-    PageControl1: TPageControl;
-    TabSheet2: TTabSheet;
+    GroupBox1: TGroupBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    ScopeEdt: TEdit;
+    SymbolNameEdt: TEdit;
+    Lookup: TButton;
     SymbolsBox: TListBox;
-    DeclarationMemo: TMemo;
     Splitter1: TSplitter;
+    DeclarationMemo: TMemo;
     procedure OpenDelphiProject1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure SymbolsBoxClick(Sender: TObject);
+    procedure LookupClick(Sender: TObject);
   private
     FParsedXml: TDictionary<string, IXMLDOMDocument2>;
     FSymbolTable: TSymbolTable;
     procedure ClearUI;
     procedure ParseProject(const FileName: string);
+    procedure ShowSymbol(const SymbolName: string);
   end;
 
 var
@@ -59,6 +67,18 @@ procedure TMainForm.FormDestroy(Sender: TObject);
 begin
   FSymbolTable.Free;
   FParsedXml.Free;
+end;
+
+procedure TMainForm.LookupClick(Sender: TObject);
+var
+  Symbol: TSymbol;
+begin
+  Symbol := FSymbolTable.LookupSymbol([ScopeEdt.Text], SymbolNameEdt.Text);
+
+  if Assigned(Symbol) then
+    ShowSymbol(Symbol.FullyQualifiedName)
+  else
+    DeclarationMemo.Clear;
 end;
 
 procedure TMainForm.ParseProject(const FileName: string);
@@ -110,17 +130,22 @@ begin
   end
 end;
 
-procedure TMainForm.SymbolsBoxClick(Sender: TObject);
+procedure TMainForm.ShowSymbol(const SymbolName: string);
 var
   Symbol: TSymbol;
+begin
+  if FSymbolTable.Symbols.TryGetValue(SymbolName, Symbol) then
+    DeclarationMemo.Text := FormatXMLData(Symbol.XmlNode.xml)
+  else
+    DeclarationMemo.Clear;
+end;
+
+procedure TMainForm.SymbolsBoxClick(Sender: TObject);
 begin
   if SymbolsBox.ItemIndex = -1 then
     Exit;
 
-  if FSymbolTable.Symbols.TryGetValue(SymbolsBox.Items[SymbolsBox.ItemIndex], Symbol) then
-    DeclarationMemo.Text := FormatXMLData(Symbol.XmlNode.xml)
-  else
-    DeclarationMemo.Clear;
+  ShowSymbol(SymbolsBox.Items[SymbolsBox.ItemIndex]);
 end;
 
 end.
