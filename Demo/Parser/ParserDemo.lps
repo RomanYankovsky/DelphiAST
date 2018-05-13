@@ -6,7 +6,7 @@
     <BuildModes Active="Default"/>
     <Units Count="9">
       <Unit0>
-        <Filename Value="DelphiASTDemo.lpr"/>
+        <Filename Value="ParserDemo.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
         <CursorPos X="53" Y="16"/>
@@ -171,7 +171,7 @@
         <Caret Line="239" Column="8" TopLine="201"/>
       </Position21>
       <Position22>
-        <Filename Value="DelphiASTDemo.lpr"/>
+        <Filename Value="ParserDemo.lpr"/>
       </Position22>
     </JumpHistory>
   </ProjectSession>

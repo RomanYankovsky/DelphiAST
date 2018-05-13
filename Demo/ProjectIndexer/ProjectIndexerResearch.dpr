@@ -8,7 +8,7 @@ uses
   FastMM4,
   System.SysUtils,
   System.Generics.Collections,
-  ProjectIndexer in 'ProjectIndexer.pas',
+  DelphiAST.ProjectIndexer,
   TestUnit in 'TestUnit.pas';
 
 var
