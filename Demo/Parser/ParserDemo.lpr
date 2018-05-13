@@ -1,4 +1,4 @@
-program DelphiASTDemo;
+program ParserDemo;
 
 {$MODE Delphi}
 

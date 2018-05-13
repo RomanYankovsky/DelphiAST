@@ -285,7 +285,7 @@ begin
   FDefinesList := TStringList.Create;
   FDefinesList.Delimiter := ';';
   FDefinesList.StrictDelimiter := true;
-  FParsedUnits := TParsedUnitsCache.Create([doOwnsValues]);
+  FParsedUnits := TParsedUnitsCache.Create([doOwnsValues], TIStringComparer.Ordinal);
   FParsedUnitsInfo := TParsedUnits.Create;
   FIncludeFiles := TIncludeFiles.Create;
   FNotFoundUnits := TStringList.Create;
@@ -382,7 +382,7 @@ begin
   FProjectFolder := IncludeTrailingPathDelimiter(ExtractFilePath(fileName));
   FIncludeCache := TIncludeCache.Create;
   try
-    FUnitPaths := TUnitPathsCache.Create;;
+    FUnitPaths := TUnitPathsCache.Create(TIStringComparer.Ordinal);
     try
       PrepareDefines;
       PrepareSearchPath;
@@ -534,11 +534,12 @@ begin
     for usesName in unitList do begin
       if FAborting then
         Exit;
-      if not FParsedUnits.ContainsKey(usesName) then
+      if not FParsedUnits.ContainsKey(usesName) then begin
         if FindFile(usesName + '.pas', '', usesPath) then
           ParseUnit(usesName, usesPath, false)
         else
           FParsedUnits.Add(usesName, nil);
+      end;
     end;
   finally FreeAndNil(unitList); end;
 end;
