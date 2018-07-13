@@ -1459,12 +1459,15 @@ begin
 
   if Assigned(FOnComment) then
   begin
-    SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun);
+    SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun - 1);
     FOnComment(Self, CommentText);
   end;
 end;
 
 procedure TmwBasePasLex.BraceOpenProc;
+var
+  BeginRun: Integer;
+  CommentText: string;
 begin
   case FBuffer.Buf[FBuffer.Run + 1] of
     '$': FTokenID := GetDirectiveKind;
@@ -1474,7 +1477,9 @@ begin
       FCommentState := csBor;
     end;
   end;
+
   Inc(FBuffer.Run);
+  BeginRun := FBuffer.Run;
   while FBuffer.Buf[FBuffer.Run] <> #0 do
     case FBuffer.Buf[FBuffer.Run] of
       '}':
@@ -1500,6 +1505,14 @@ begin
       Inc(FBuffer.Run);
     end;
   case FTokenID of
+    PtBorComment:
+      begin
+        if Assigned(FOnComment) then
+        begin
+          SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun - 1);
+          FOnComment(Self, CommentText);
+        end;
+      end;
     PtCompDirect:
       begin
         if Assigned(FOnCompDirect) then
@@ -1957,7 +1970,7 @@ begin
       end;
   end;
 
-  BeginRun := FBuffer.Run;
+  BeginRun := FBuffer.Run + 1;
 
   while FBuffer.Buf[FBuffer.Run] <> #0 do
     case FBuffer.Buf[FBuffer.Run] of
@@ -1988,13 +2001,17 @@ begin
 
   if Assigned(FOnComment) then
   begin
-    SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun);
+    SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun - 2);
     FOnComment(Self, CommentText);
   end;
 end;
 
 procedure TmwBasePasLex.RoundOpenProc;
+var
+  BeginRun: Integer;
+  CommentText: string;
 begin
+  BeginRun := FBuffer.Run + 2;
   Inc(FBuffer.Run);
   case FBuffer.Buf[FBuffer.Run] of
     '*':
@@ -2042,6 +2059,14 @@ begin
     FTokenID := ptRoundOpen;
   end;
   case FTokenID of
+    PtAnsiComment:
+      begin
+        if Assigned(FOnComment) then
+        begin
+          SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun - 2);
+          FOnComment(Self, CommentText);
+        end;
+      end;
     PtCompDirect:
       begin
         if Assigned(FOnCompDirect) then
