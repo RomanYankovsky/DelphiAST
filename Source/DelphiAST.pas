@@ -70,6 +70,7 @@ type
     procedure BuildParametersList(ParametersListMethod: TTreeBuilderMethod);
     procedure ParserMessage(Sender: TObject; const Typ: TMessageEventType; const Msg: string; X, Y: Integer);
     function NodeListToString(NamesNode: TSyntaxNode): string;
+    procedure MoveMembersToVisibilityNodes(TypeNode: TSyntaxNode);
     procedure CallInheritedConstantExpression;
     procedure CallInheritedExpression;
     procedure CallInheritedFormalParameterList;
@@ -196,6 +197,7 @@ type
     procedure RaiseStatement; override;
     procedure RecordConstraint; override;
     procedure RecordFieldConstant; override;
+    procedure RecordType; override;
     procedure RelativeOperator; override;
     procedure RepeatStatement; override;
     procedure ResourceDeclaration; override;
@@ -306,7 +308,7 @@ uses
 type
   TAttributeValue = (atAsm, atTrue, atFunction, atProcedure, atClassOf, atClass,
     atConst, atConstructor, atDestructor, atEnum, atInterface, atNil, atNumeric,
-    atOut, atPointer, atName, atString, atSubRange, atVar);
+    atOut, atPointer, atName, atString, atSubRange, atVar, atDispInterface);
 
 var
   AttributeValues: array[TAttributeValue] of string;
@@ -317,6 +319,13 @@ var
 begin
   for value := Low(TAttributeValue) to High(TAttributeValue) do
     AttributeValues[value] := Copy(LowerCase(GetEnumName(TypeInfo(TAttributeValue), Ord(value))), 3);
+end;
+
+procedure AssignLexerPositionToNode(const Lexer: TPasLexer; const Node: TSyntaxNode);
+begin
+  Node.Col := Lexer.PosXY.X;
+  Node.Line := Lexer.PosXY.Y;
+  Node.FileName := Lexer.FileName;
 end;
 
 { TPasLexer }
@@ -349,9 +358,7 @@ end;
 function TNodeStack.AddChild(Typ: TSyntaxNodeType): TSyntaxNode;
 begin
   Result := FStack.Peek.AddChild(TSyntaxNode.Create(Typ));
-  Result.Col := FLexer.PosXY.X;
-  Result.Line := FLexer.PosXY.Y;
-  Result.FileName := FLexer.FileName;
+  AssignLexerPositionToNode(FLexer, Result);
 end;
 
 function TNodeStack.AddChild(Node: TSyntaxNode): TSyntaxNode;
@@ -363,9 +370,7 @@ function TNodeStack.AddValuedChild(Typ: TSyntaxNodeType;
   const Value: string): TSyntaxNode;
 begin
   Result := FStack.Peek.AddChild(TValuedSyntaxNode.Create(Typ));
-  Result.Col := FLexer.PosXY.X;
-  Result.Line := FLexer.PosXY.Y;
-  Result.FileName := FLexer.FileName;
+  AssignLexerPositionToNode(FLexer, Result);
 
   TValuedSyntaxNode(Result).Value := Value;
 end;
@@ -406,9 +411,7 @@ function TNodeStack.Push(Node: TSyntaxNode): TSyntaxNode;
 begin
   FStack.Push(Node);
   Result := Node;
-  Result.Col := FLexer.PosXY.X;
-  Result.Line := FLexer.PosXY.Y;
-  Result.FileName := FLexer.FileName;
+  AssignLexerPositionToNode(FLexer, Result);
 end;
 
 function TNodeStack.PushCompoundSyntaxNode(Typ: TSyntaxNodeType): TSyntaxNode;
@@ -785,8 +788,7 @@ begin
 
       Temp := FStack.Push(ntField);
       try
-        Temp.Col := Field.Col;
-        Temp.Line := Field.Line;
+        Temp.AssignPositionFrom(Field);
 
         FStack.AddChild(Field.Clone);
         TypeInfo := TypeInfo.Clone;
@@ -878,33 +880,37 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.ClassType;
-var
-  classDef, child, vis: TSyntaxNode;
-  i: Integer;
-  extracted: Boolean;
 begin
   FStack.Push(ntType).SetAttribute(anType, AttributeValues[atClass]);
   try
     inherited;
   finally
-    classDef := FStack.Pop;
-    vis := nil;
-    i := 0;
-    while i < Length(classDef.ChildNodes) do
+    MoveMembersToVisibilityNodes(FStack.Pop);
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.MoveMembersToVisibilityNodes(TypeNode: TSyntaxNode);
+var
+  child, vis: TSyntaxNode;
+  i: Integer;
+  extracted: Boolean;
+begin
+  vis := nil;
+  i := 0;
+  while i < Length(TypeNode.ChildNodes) do
+  begin
+    child := TypeNode.ChildNodes[i];
+    extracted := false;
+    if child.HasAttribute(anVisibility) then
+      vis := child
+    else if Assigned(vis) then
     begin
-      child := classDef.ChildNodes[i];
-      extracted := false;
-      if child.HasAttribute(anVisibility) then
-        vis := child
-      else if Assigned(vis) then
-      begin
-        classDef.ExtractChild(child);
-        vis.AddChild(child);
-        extracted := true;
-      end;
-      if not extracted then
-        inc(i);
+      TypeNode.ExtractChild(child);
+      vis.AddChild(child);
+      extracted := true;
     end;
+    if not extracted then
+      inc(i);
   end;
 end;
 
@@ -1060,8 +1066,7 @@ begin
 
         Temp := FStack.Push(ConstList.Typ);
         try
-          Temp.Col := Constant.Col;
-          Temp.Line := Constant.Line;
+          Temp.AssignPositionFrom(Constant);
 
           FStack.AddChild(Constant.Clone);
           if Assigned(TypeInfo) then
@@ -1198,9 +1203,14 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.EnumeratedType;
+var
+  TypeNode: TSyntaxNode;
 begin
-  FStack.Push(ntType).SetAttribute(anName, AttributeValues[atEnum]);
+  TypeNode := FStack.Push(ntType);
   try
+    TypeNode.SetAttribute(anName, AttributeValues[atEnum]);
+    if ScopedEnums then
+      TypeNode.SetAttribute(anVisibility, 'scoped');
     inherited;
   finally
     FStack.Pop;
@@ -1619,7 +1629,12 @@ end;
 
 procedure TPasSyntaxTreeBuilder.InterfaceType;
 begin
-  FStack.Push(ntType).SetAttribute(anType, AttributeValues[atInterface]);
+  case TokenID of
+    ptInterface:
+      FStack.Push(ntType).SetAttribute(anType, AttributeValues[atInterface]);
+    ptDispInterface:
+      FStack.Push(ntType).SetAttribute(anType, AttributeValues[atDispInterface]);
+  end;
   try
     inherited;
   finally
@@ -1762,9 +1777,7 @@ begin
     raise EParserException.Create(Lexer.PosXY.Y, Lexer.PosXY.X, Lexer.FileName, 'Invalid comment type');
   end;
 
-  Node.Col := Lexer.PosXY.X;
-  Node.Line := Lexer.PosXY.Y;
-  Node.FileName := Lexer.FileName;
+  AssignLexerPositionToNode(Lexer, Node);
   Node.Text := Text;
 
   FComments.Add(Node);
@@ -1897,6 +1910,12 @@ begin
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.RecordType;
+begin
+  inherited RecordType;
+  MoveMembersToVisibilityNodes(FStack.Peek);
 end;
 
 procedure TPasSyntaxTreeBuilder.RelativeOperator;
@@ -2147,9 +2166,8 @@ begin
             raise EParserException.Create(Position.Y, Position.X, Lexer.FileName, 'Illegal expression');
 
           LHS := FStack.AddChild(ntLHS);
-          LHS.Col := NodeList[0].Col;
-          LHS.Line := NodeList[0].Line;
-          LHS.FileName := NodeList[0].FileName;
+          LHS.AssignPositionFrom(NodeList[0]);
+
           TExpressionTools.RawNodeListToTree(RawStatement, NodeList, LHS);
 
           NodeList.Clear;
@@ -2161,9 +2179,8 @@ begin
             raise EParserException.Create(Position.Y, Position.X, Lexer.FileName, 'Illegal expression');
 
           RHS := FStack.AddChild(ntRHS);
-          RHS.Col := NodeList[0].Col;
-          RHS.Line := NodeList[0].Line;
-          RHS.FileName := NodeList[0].FileName;
+          RHS.AssignPositionFrom(NodeList[0]);
+
           TExpressionTools.RawNodeListToTree(RawStatement, NodeList, RHS);
         finally
           NodeList.Free;
@@ -2458,8 +2475,7 @@ var
   Temp: TSyntaxNode;
 begin
   Temp := FStack.Peek;
-  Temp.Col := Lexer.PosXY.X;
-  Temp.Line := Lexer.PosXY.Y;
+  AssignLexerPositionToNode(Lexer, Temp);
   inherited;
 end;
 
@@ -2580,8 +2596,7 @@ begin
 
         Temp := FStack.Push(ntVariable);
         try
-          Temp.Col := Variable.Col;
-          Temp.Line := Variable.Line;
+          Temp.AssignPositionFrom(Variable);
 
           FStack.AddChild(Variable.Clone);
           if Assigned(TypeInfo) then

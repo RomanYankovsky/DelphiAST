@@ -119,9 +119,10 @@ type
     FDefineStack: Integer;
     FTopDefineRec: PDefineRec;
     FUseDefines: Boolean;
+    FScopedEnums: Boolean;
     FIncludeHandler: IIncludeHandler;
     FOnComment: TCommentEvent;
-
+    
     function KeyHash: Integer;
     function KeyComp(const aKey: string): Boolean;
     function Func9: tptTokenKind;
@@ -279,6 +280,7 @@ type
     procedure DoProcTable(AChar: Char);
     function IsIdentifiers(AChar: Char): Boolean; inline;
     function HashValue(AChar: Char): Integer;
+    function EvaluateComparison(AValue1: Extended; const AOper: String; AValue2: Extended): Boolean;
     function EvaluateConditionalExpression(const AParams: String): Boolean;
     procedure IncludeFile;
     function GetIncludeFileNameFromToken(const IncludeToken: string): string;
@@ -288,6 +290,7 @@ type
     procedure SetSharedBuffer(SharedBuffer: PBufferRec);
     procedure DisposeBuffer(Buf: PBufferRec);
     function GetFileName: string;
+    procedure UpdateScopedEnums;
   protected
     procedure SetOrigin(const NewValue: string); virtual;
   public
@@ -349,6 +352,7 @@ type
     property AsmCode: Boolean read FAsmCode write FAsmCode;
     property DirectiveParamOrigin: PChar read FDirectiveParamOrigin;
     property UseDefines: Boolean read FUseDefines write FUseDefines;
+    property ScopedEnums: Boolean read FScopedEnums;
     property IncludeHandler: IIncludeHandler read FIncludeHandler write FIncludeHandler;
     property FileName: string read GetFileName;
   end;
@@ -1287,6 +1291,7 @@ begin
   FExID := ptUnKnown;
 
   FUseDefines := True;
+  FScopedEnums := False;
   FTopDefineRec := nil;
   ClearDefines;
 
@@ -1608,7 +1613,7 @@ begin
       begin
 //        if Assigned(FOnIncludeDirect) then
 //          FOnIncludeDirect(Self);
-        if Assigned(FIncludeHandler) then
+        if Assigned(FIncludeHandler) and (FDefineStack = 0) then
           IncludeFile
         else
           Next;
@@ -1618,6 +1623,10 @@ begin
         if Assigned(FOnResourceDirect) then
           FOnResourceDirect(Self);
       end;
+    PtScopedEnumsDirect:
+      begin
+        UpdateScopedEnums;
+      end;      
     PtUndefDirect:
       begin
         if FUseDefines and (FDefineStack = 0) then
@@ -1628,15 +1637,72 @@ begin
   end;
 end;
 
+function TmwBasePasLex.EvaluateComparison(AValue1: Extended; const AOper: String; AValue2: Extended): Boolean;
+begin
+  if AOper = '=' then
+    Result := AValue1 = AValue2
+  else if AOper = '<>' then
+    Result := AValue1 <> AValue2
+  else if AOper = '<' then
+    Result := AValue1 < AValue2
+  else if AOper = '<=' then
+    Result := AValue1 <= AValue2
+  else if AOper = '>' then
+    Result := AValue1 > AValue2
+  else if AOper = '>=' then
+    Result := AValue1 >= AValue2
+  else
+    Result := False;
+end;
+
 function TmwBasePasLex.EvaluateConditionalExpression(const AParams: String): Boolean;
 var
   LParams: String;
   LDefine: String;
   LEvaluation: TmwPasLexExpressionEvaluation;
+  LIsComVer: Boolean;
+  LIsRtlVer: Boolean;
+  LOper: string;
+  LValue: Integer;
+  p: Integer;
 begin
   { TODO : Expand support for <=> evaluations (complicated to do). Expand support for NESTED expressions }
   LEvaluation := leeNone;
   LParams := TrimLeft(AParams);
+  LIsComVer := Pos('COMPILERVERSION', LParams) = 1;
+  LIsRtlVer := Pos('RTLVERSION', LParams) = 1;
+  if LIsComVer or LIsRtlVer then //simple parser which covers most frequent use cases
+  begin
+    Result := False;
+    if LIsComVer then
+      Delete(LParams, 1, Length('COMPILERVERSION'));
+    if LIsRtlVer then
+      Delete(LParams, 1, Length('RTLVERSION'));
+    while (LParams <> '') and (LParams[1] = ' ') do
+      Delete(LParams, 1, 1);
+    p := Pos(' ', LParams);
+    if p > 0 then
+    begin
+      LOper := Copy(LParams, 1, p-1);
+      Delete(LParams, 1, p);
+      while (LParams <> '') and (LParams[1] = ' ') do
+        Delete(LParams, 1, 1);
+      p := Pos(' ', LParams);
+      if p = 0 then
+        p := Length(LParams) + 1;
+      if TryStrToInt(Copy(LParams, 1, p-1), LValue) then
+      begin
+        Delete(LParams, 1, p);
+        while (LParams <> '') and (LParams[1] = ' ') do
+          Delete(LParams, 1, 1);
+        if LParams = '' then
+          if LIsComVer then
+            Result := EvaluateComparison(CompilerVersion, LOper, LValue)
+          else if LIsRtlVer then
+            Result := EvaluateComparison(RTLVersion, LOper, LValue);
+      end;
+    end;
+  end else
   if (Pos('DEFINED(', LParams) = 1) or (Pos('NOT DEFINED(', LParams) = 1) then
   begin
     Result := True; // Optimistic
@@ -2104,8 +2170,6 @@ begin
       end;
     PtIncludeDirect:
       begin
-//        if Assigned(FOnIncludeDirect) then
-//          FOnIncludeDirect(Self);
         if Assigned(FIncludeHandler) then
           IncludeFile;
       end;
@@ -2114,6 +2178,10 @@ begin
         if Assigned(FOnResourceDirect) then
           FOnResourceDirect(Self);
       end;
+    PtScopedEnumsDirect:
+      begin
+        UpdateScopedEnums;
+      end;      
     PtUndefDirect:
       begin
         if Assigned(FOnUnDefDirect) then
@@ -2391,6 +2459,10 @@ begin
       if KeyComp('Resource') then
         Result := ptResourceDirect else
         Result := ptCompDirect;
+    134:
+      if KeyComp('SCOPEDENUMS') then
+        Result := ptScopedEnumsDirect else
+        Result := ptCompDirect;        
   else Result := ptCompDirect;
   end;
   FTokenPos := TempPos;
@@ -2491,6 +2563,7 @@ procedure TmwBasePasLex.InitFrom(ALexer: TmwBasePasLex);
 begin
   SetSharedBuffer(ALexer.FBuffer);
   FCommentState := ALexer.FCommentState;
+  FScopedEnums := ALexer.ScopedEnums;
   FBuffer.Run := ALexer.RunPos;
   FTokenID := ALexer.TokenID;
   FExID := ALexer.ExID;
@@ -2569,6 +2642,9 @@ begin
   {$IFDEF VER310} // Berlin
   AddDefine('VER310');
   {$ENDIF}
+  {$IFDEF VER320} // Tokyo
+  AddDefine('VER320');
+  {$ENDIF}
   {$IFDEF WIN32}
   AddDefine('WIN32');
   {$ENDIF}
@@ -2580,6 +2656,9 @@ begin
   {$ENDIF}
   {$IFDEF LINUX32}
   AddDefine('LINUX32');
+  {$ENDIF}
+  {$IFDEF LINUX64}
+  AddDefine('LINUX64');
   {$ENDIF}
   {$IFDEF POSIX}
   AddDefine('POSIX');
@@ -2765,7 +2844,7 @@ function TmwBasePasLex.GetIsCompilerDirective: Boolean;
 begin
   Result := FTokenID in [ptCompDirect, ptDefineDirect, ptElseDirect,
     ptEndIfDirect, ptIfDefDirect, ptIfNDefDirect, ptIfOptDirect,
-    ptIncludeDirect, ptResourceDirect, ptUndefDirect];
+    ptIncludeDirect, ptResourceDirect, ptScopedEnumsDirect, ptUndefDirect];
 end;
 
 function TmwBasePasLex.GetGenID: TptTokenKind;
@@ -2872,6 +2951,11 @@ begin
   while CharInSet(FBuffer.Buf[FBuffer.Run], ['a'..'z', 'A'..'Z','0'..'9', '_', '&']) do
     Inc(FBuffer.Run);
   FTokenID := ptIdentifier;
+end;
+
+procedure TmwBasePasLex.UpdateScopedEnums;
+begin
+  FScopedEnums := SameText(DirectiveParam, 'ON');
 end;
 
 initialization

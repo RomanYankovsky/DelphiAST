@@ -17,6 +17,8 @@ unit CastaliaPasLexTypes;
 
 unit SimpleParser.Lexer.Types;
 
+{$IFDEF FPC}{$MODE DELPHI}{$ENDIF}
+
 interface
 
 uses
@@ -216,6 +218,7 @@ type
     ptRoundOpen,
     ptRunError,
     ptSafeCall,
+    ptScopedEnumsDirect,
     ptSealed,
     ptSemiColon,
     ptSet,
@@ -316,8 +319,8 @@ begin
     ptEndIfDirect,
     ptIfOptDirect,
     ptDefineDirect,
+    ptScopedEnumsDirect,
     ptUndefDirect];
 end;
 
 end.
-
