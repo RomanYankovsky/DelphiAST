@@ -1845,7 +1845,7 @@ var
   i: Integer;
 begin
   for i := 0 to High(FDefines) do
-    if FDefines[i] = ADefine then
+    if SameText(FDefines[i], ADefine) then
       Exit(True);
   Result := False;
 end;
@@ -1997,7 +1997,7 @@ var
   i: Integer;
 begin
   for i := High(FDefines) downto 0 do
-    if FDefines[i] = ADefine then
+    if SameText(FDefines[i], ADefine) then
       Delete(FDefines, i);
 end;
 
