@@ -291,6 +291,7 @@ type
     procedure DisposeBuffer(Buf: PBufferRec);
     function GetFileName: string;
     procedure UpdateScopedEnums;
+    procedure DoOnComment(const CommentText: string);
   protected
     procedure SetOrigin(const NewValue: string); virtual;
   public
@@ -1317,6 +1318,12 @@ begin
   Dispose(Buf);
 end;
 
+procedure TmwBasePasLex.DoOnComment(const CommentText: string);
+begin
+  if not FUseDefines or (FDefineStack = 0) then
+    FOnComment(Self, CommentText);
+end;
+
 procedure TmwBasePasLex.DoProcTable(AChar: Char);
 begin
   if Ord(AChar) <= 127 then
@@ -1465,7 +1472,7 @@ begin
   if Assigned(FOnComment) then
   begin
     SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun - 1);
-    FOnComment(Self, CommentText);
+    DoOnComment(CommentText);
   end;
 end;
 
@@ -1515,7 +1522,7 @@ begin
         if Assigned(FOnComment) then
         begin
           SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun - 1);
-          FOnComment(Self, CommentText);
+          DoOnComment(CommentText);
         end;
       end;
     PtCompDirect:
@@ -2068,7 +2075,7 @@ begin
   if Assigned(FOnComment) then
   begin
     SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun - 2);
-    FOnComment(Self, CommentText);
+    DoOnComment(CommentText);
   end;
 end;
 
@@ -2130,7 +2137,7 @@ begin
         if Assigned(FOnComment) then
         begin
           SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun - 2);
-          FOnComment(Self, CommentText);
+          DoOnComment(CommentText);
         end;
       end;
     PtCompDirect:
@@ -2220,7 +2227,7 @@ begin
         if Assigned(FOnComment) then
         begin
           SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun);
-          FOnComment(Self, CommentText);
+          DoOnComment(CommentText);
         end;
       end;
   else
