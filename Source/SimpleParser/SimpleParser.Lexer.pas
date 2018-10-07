@@ -54,9 +54,9 @@ unit SimpleParser.Lexer;
 interface
 
 uses
-  SysUtils, Classes, Character, 
+  SysUtils, Classes, Character,
   {$IFDEF FPC}
-    Generics.Collections, 
+    Generics.Collections,
   {$ENDIF}
   SimpleParser.Lexer.Types;
 
@@ -122,7 +122,7 @@ type
     FScopedEnums: Boolean;
     FIncludeHandler: IIncludeHandler;
     FOnComment: TCommentEvent;
-    
+
     function KeyHash: Integer;
     function KeyComp(const aKey: string): Boolean;
     function Func9: tptTokenKind;
@@ -1633,7 +1633,7 @@ begin
     PtScopedEnumsDirect:
       begin
         UpdateScopedEnums;
-      end;      
+      end;
     PtUndefDirect:
       begin
         if FUseDefines and (FDefineStack = 0) then
@@ -1944,8 +1944,11 @@ begin
       '.':
         if FBuffer.Buf[FBuffer.Run + 1] = '.' then
           Break
-        else
+        else if CharInSet(FBuffer.Buf[FBuffer.Run + 1], ['0'..'9']) then
           FTokenID := ptFloat
+        else
+          Break;
+
     end;
     Inc(FBuffer.Run);
   end;
@@ -2188,7 +2191,7 @@ begin
     PtScopedEnumsDirect:
       begin
         UpdateScopedEnums;
-      end;      
+      end;
     PtUndefDirect:
       begin
         if Assigned(FOnUnDefDirect) then
@@ -2469,7 +2472,7 @@ begin
     134:
       if KeyComp('SCOPEDENUMS') then
         Result := ptScopedEnumsDirect else
-        Result := ptCompDirect;        
+        Result := ptCompDirect;
   else Result := ptCompDirect;
   end;
   FTokenPos := TempPos;

@@ -141,7 +141,7 @@ Known Issues:
 -----------------------------------------------------------------------------}
 unit SimpleParser;
 
-{$IFDEF FPC}{$MODE DELPHI}{$ENDIF}  
+{$IFDEF FPC}{$MODE DELPHI}{$ENDIF}
 
 interface
 
@@ -268,7 +268,7 @@ type
     procedure ClassMethodResolution; virtual;
     procedure ClassProcedureHeading; virtual;
     procedure ClassClass; virtual;
-    procedure ClassConstraint; virtual; 
+    procedure ClassConstraint; virtual;
     procedure ClassMethod; virtual;
     procedure ClassProperty; virtual;
     procedure ClassReferenceType; virtual;
@@ -285,7 +285,7 @@ type
     procedure ConstantValue; virtual;
     procedure ConstantValueTyped; virtual;
     procedure ConstParameter; virtual;
-    procedure ConstructorConstraint; virtual; 
+    procedure ConstructorConstraint; virtual;
     procedure ConstructorHeading; virtual;
     procedure ConstructorName; virtual;
     procedure ConstSection; virtual;
@@ -434,7 +434,7 @@ type
     procedure RealIdentifier; virtual;
     procedure RealType; virtual;
     procedure RecordConstant; virtual;
-    procedure RecordConstraint; virtual; 
+    procedure RecordConstraint; virtual;
     procedure RecordFieldConstant; virtual;
     procedure RecordType; virtual;
     procedure RecordVariant; virtual;
@@ -1840,7 +1840,7 @@ begin
     ptAbstract:
       begin
         NextToken;
-      end;  
+      end;
     ptVirtual:
       begin
         NextToken;
@@ -2024,7 +2024,7 @@ end;
 
 procedure TmwSimplePasPar.FormalParameterType;
 begin
-  if TokenID = ptArray then 
+  if TokenID = ptArray then
     StructuredType
   else
     TypeID;
@@ -2048,7 +2048,7 @@ begin
   else
     begin
       Expected(ptColon);
-      ReturnType; 
+      ReturnType;
       FunctionProcedureBlock;
     end;
   end;
@@ -2119,7 +2119,7 @@ begin
   end;
 
   if HasBlock then
-  begin 
+  begin
     case TokenID of
       ptAsm:
         begin
@@ -2542,7 +2542,7 @@ begin {removed ptIntegerConst jdj-Put back in for labels}
   while TokenID in [ptAddressOp, ptAsm, ptBegin, ptCase, ptDoubleAddressOp,
     ptFor, ptGoTo, ptIdentifier, ptIf, ptInherited, ptInline, ptIntegerConst,
     ptPointerSymbol, ptRaise, ptRoundOpen, ptRepeat, ptSemiColon, ptString,
-    ptTry, ptWhile, ptWith] do
+    ptStringConst, ptTry, ptWhile, ptWith] do
   begin
     Statement;
     Semicolon;
@@ -2621,6 +2621,10 @@ begin
             begin
               LabeledStatement;
             end;
+          ptPoint:
+            begin
+              Expression;
+            end
         else
           begin
             SynError(InvalidLabeledStatement);
@@ -2639,6 +2643,11 @@ begin
     ptSemiColon:
       begin
         EmptyStatement;
+      end;
+    ptStringConst:
+      begin
+        FLexer.InitAhead;
+        Expression;
       end;
     ptTry:
       begin
@@ -3703,7 +3712,7 @@ begin
   IsStrict := ExID = ptStrict;
   if IsStrict then
     ExpectedEx(ptStrict);
-      
+
   while ExID in [ptAutomated, ptPrivate, ptProtected, ptPublic, ptPublished] do
   begin
     Lexer.InitAhead;
@@ -4412,7 +4421,7 @@ begin
 end;
 
 procedure TmwSimplePasPar.TypeKind;
-begin 
+begin
   case TokenID of
     ptAsciiChar, ptFloat, ptIntegerConst, ptMinus, ptNil, ptPlus, ptStringConst, ptConst:
       begin
@@ -4678,7 +4687,7 @@ begin
   else
     begin
       SynError(InvalidProcedureDeclarationSection);
-    end; 
+    end;
   end;
 end;
 
