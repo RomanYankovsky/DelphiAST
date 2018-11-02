@@ -348,11 +348,10 @@ uses
 type
   TAttributeValue = (atAsm, atTrue, atFunction, atProcedure, atOperator, atClass_Of, atClass,
     atConst, atConstructor, atDestructor, atEnum, atInterface, atNil, atNumeric,
-    atOut, atPointer, atName, atString, atSubRange, atVar, atType{ExplicitType},
+    atOut, atPointer, atName, atString, atSubRange, atVar, atDispInterface, atType{ExplicitType},
     atObject, atSealed, atAbstract, atBegin, atOf_Object{procedure of object},
     atVarargs, atExternal{Varargs and external are mutually exclusive},
     atStatic, atAbsolute);
-
 var
   AttributeValues: array[TAttributeValue] of string;
 
@@ -2064,7 +2063,10 @@ end;
 
 procedure TPasSyntaxTreeBuilder.InterfaceType;
 begin
-  FStack.Push(ntType).Attribute[anType]:= AttributeValues[atInterface];
+  case TokenID of
+    ptInterface: FStack.Push(ntType).SetAttribute(anType, AttributeValues[atInterface]);
+    ptDispInterface: FStack.Push(ntType).SetAttribute(anType, AttributeValues[atDispInterface]);
+  end; {case}
   try
     inherited;
   finally
@@ -2095,6 +2097,7 @@ begin
     FStack.Pop;
   end;
 end;
+  
 
 procedure TPasSyntaxTreeBuilder.LabelId;
 var

@@ -325,7 +325,7 @@ begin
     if not WriteNumber(i) then
       Exit;
     if i > 0 then
-      if FStream.Write(@(u8[1]), i) <> i then
+      if FStream.Write(u8[1], i) <> i then
         Exit;
   end;
 
