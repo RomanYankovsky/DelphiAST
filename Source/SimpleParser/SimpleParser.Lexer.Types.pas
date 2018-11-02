@@ -56,6 +56,7 @@ type
     ptAddressOp,
     ptAmpersand,
     ptAnd,
+    ptAnsiChar,
     ptAnsiComment,
     ptAnsiString,
     ptArray,
@@ -96,6 +97,7 @@ type
     ptDefault,
     ptDefineDirect,
     ptDeprecated,
+    ptDependency,  //for external declarations
     ptDestructor,
     ptDispid,
     ptDispinterface,
@@ -248,7 +250,9 @@ type
     ptTo,
     ptTry,
     ptType,
+    ptUInt64,
     ptUndefDirect,
+    ptUnicodeString,
     ptUnit,
     ptUnknown,
     ptUnsafe,
@@ -284,6 +288,14 @@ type
     ['{C5F20740-41D2-43E9-8321-7FE5E3AA83B6}']
     function GetIncludeFileContent(const FileName: string): string;
   end;
+
+  const
+    ReservedWords = [ptAnd, ptEnd, ptInterface, ptrecord, ptvar,ptarray,ptexcept,ptis,ptrepeat,ptwhile,ptas,ptexports,
+                     ptlabel,ptresourcestring, ptwith,ptasm,ptfile,ptlibrary,ptset,ptxor,ptbegin,ptfinalization,
+                     ptmod,ptshl,ptcase,ptfinally,ptnil,ptshr,ptclass,ptfor,ptnot,ptstring,ptconst,ptfunction,ptobject,
+                     ptthen,ptconstructor,ptgoto,ptof,ptthreadvar,ptdestructor,ptif,ptor,ptto,ptdispinterface,
+                     ptimplementation,ptpacked,pttry,ptdiv,ptin,ptprocedure,pttype,ptdo,ptinherited,ptprogram,
+                     ptunit,ptdownto,ptinitialization,ptproperty,ptuntil,ptelse,ptinline,ptraise,ptuses];
 
 function TokenName(Value: TptTokenKind): string;
 function ptTokenName(Value: TptTokenKind): string;

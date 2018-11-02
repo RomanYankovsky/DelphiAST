@@ -19,46 +19,52 @@ type
     property Line: Integer read FLine;
     property Col: Integer read FCol;
   end;
-  
+
   TAttributeEntry = TPair<TAttributeName, string>;
   PAttributeEntry = ^TAttributeEntry;
 
   TSyntaxNodeClass = class of TSyntaxNode;
   TSyntaxNode = class
+  public
+    function HasAttribute(const Key: TAttributeName): Boolean; inline;
   private
     FCol: Integer;
     FLine: Integer;
     FFileName: string;
-    function GetHasChildren: Boolean;
-    function GetHasAttributes: Boolean;
-    function TryGetAttributeEntry(const Key: TAttributeName; var AttributeEntry: PAttributeEntry): boolean;
+    function GetHasChildren: Boolean; inline;
+    function TryGetAttributeEntry(const Key: TAttributeName; out AttributeEntry: PAttributeEntry): boolean;
+    function GetChildCount: cardinal; inline;
+    function GetChildNode(index: cardinal): TSyntaxNode; inline;
+    procedure RemoveAttribute(const Key: TAttributeName);
   protected
     FAttributes: TArray<TAttributeEntry>;
     FChildNodes: TArray<TSyntaxNode>;
     FTyp: TSyntaxNodeType;
     FParentNode: TSyntaxNode;
+    FAttributesInUse: TAttributeNames;
   public
     constructor Create(Typ: TSyntaxNodeType);
     destructor Destroy; override;
 
     function Clone: TSyntaxNode; virtual;
     procedure AssignPositionFrom(const Node: TSyntaxNode);
-    
+
     function GetAttribute(const Key: TAttributeName): string;
-    function HasAttribute(const Key: TAttributeName): Boolean;
     procedure SetAttribute(const Key: TAttributeName; const Value: string);
     procedure ClearAttributes;
 
+    function AddChild(Typ: TSyntaxNodeType): TSyntaxNode; overload; inline;
+    procedure AddChildren(Nodes: TArray<TSyntaxNode>);
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
-    function AddChild(Typ: TSyntaxNodeType): TSyntaxNode; overload;
-    procedure DeleteChild(Node: TSyntaxNode);
-    procedure ExtractChild(Node: TSyntaxNode);
+    procedure DeleteChild(Node: TSyntaxNode); inline;
+    function ExtractChild(Node: TSyntaxNode): TSyntaxNode; overload;
+    function ExtractChild(Typ: TSyntaxNodeType): TSyntaxNode; overload;
 
-    function FindNode(Typ: TSyntaxNodeType): TSyntaxNode;
+    function FindNode(Typ: TSyntaxNodeType): TSyntaxNode; overload;
+    function FindNode(const Types: TSyntaxNodeTypes): TSyntaxNode; overload;
 
     property Attributes: TArray<TAttributeEntry> read FAttributes;
     property ChildNodes: TArray<TSyntaxNode> read FChildNodes;
-    property HasAttributes: Boolean read GetHasAttributes;
     property HasChildren: Boolean read GetHasChildren;
     property Typ: TSyntaxNodeType read FTyp;
     property ParentNode: TSyntaxNode read FParentNode;
@@ -66,6 +72,9 @@ type
     property Col: Integer read FCol write FCol;
     property Line: Integer read FLine write FLine;
     property FileName: string read FFileName write FFileName;
+    property ChildNode[index: cardinal]:TSyntaxNode read GetChildNode;
+    property ChildCount: cardinal read GetChildCount;
+    property Attribute[const Key: TAttributeName]: string read GetAttribute write SetAttribute;
   end;
 
   TCompoundSyntaxNode = class(TSyntaxNode)
@@ -122,15 +131,16 @@ type
 
   TOperators = class
   strict private
-    class function GetItem(Typ: TSyntaxNodeType): TOperatorInfo; static;
+    class function GetItem(Typ: TSyntaxNodeType): TOperatorInfo; inline; static;
   public
     class function IsOpName(Typ: TSyntaxNodeType): Boolean;
     class property Items[Typ: TSyntaxNodeType]: TOperatorInfo read GetItem; default;
   end;
 
 const
-  OperatorsInfo: array [0..27] of TOperatorInfo =
+  OperatorsInfo: array [ntAddr..ntIs] of TOperatorInfo =
     ((Typ: ntAddr;         Priority: 1; Kind: okUnary;  AssocType: atRight),
+     (Typ: ntDoubleAddr;   Priority: 1; Kind: okUnary;  AssocType: atRight),
      (Typ: ntDeref;        Priority: 1; Kind: okUnary;  AssocType: atLeft),
      (Typ: ntGeneric;      Priority: 1; Kind: okBinary; AssocType: atRight),
      (Typ: ntIndexed;      Priority: 1; Kind: okUnary;  AssocType: atLeft),
@@ -162,22 +172,15 @@ const
 { TOperators }
 
 class function TOperators.GetItem(Typ: TSyntaxNodeType): TOperatorInfo;
-var
-  i: Integer;
 begin
-  for i := 0 to High(OperatorsInfo) do
-    if OperatorsInfo[i].Typ = Typ then
-      Exit(OperatorsInfo[i]);
+  Assert(Typ = OperatorsInfo[Typ].Typ);
+  Assert(Typ in [ntAddr..ntIs]);
+  Result:= OperatorsInfo[Typ]; //don't use exit in inline routines.
 end;
 
 class function TOperators.IsOpName(Typ: TSyntaxNodeType): Boolean;
-var
-  i: Integer;
 begin
-  for i := 0 to High(OperatorsInfo) do
-    if OperatorsInfo[i].Typ = Typ then
-      Exit(True);
-  Result := False;
+  Result:= (Typ in [ntAddr..ntIs]);
 end;
 
 function IsRoundClose(Typ: TSyntaxNodeType): Boolean; inline;
@@ -349,39 +352,108 @@ end;
 
 { TSyntaxNode }
 
+
+function TSyntaxNode.HasAttribute(const Key: TAttributeName): Boolean;
+begin
+  Result := Key in FAttributesInUse;
+end;
+
+procedure TSyntaxNode.ClearAttributes;
+begin
+  SetLength(FAttributes, 0);
+  FAttributesInUse:= [];
+end;
+
+function TSyntaxNode.GetHasChildren: Boolean;
+begin
+  Result := Length(FChildNodes) > 0;
+end;
+
+function TSyntaxNode.GetChildCount: cardinal;
+begin
+  Result:= Length(FChildNodes);
+end;
+
+function TSyntaxNode.AddChild(Typ: TSyntaxNodeType): TSyntaxNode;
+begin
+  Result := AddChild(TSyntaxNode.Create(Typ));
+end;
+
+function TSyntaxNode.GetChildNode(index: cardinal): TSyntaxNode;
+begin
+  Assert(index < ChildCount);
+  Result:= FChildNodes[index];
+end;
+
+procedure TSyntaxNode.DeleteChild(Node: TSyntaxNode);
+begin
+  ExtractChild(Node);
+  Node.Free;
+end;
+
 procedure TSyntaxNode.SetAttribute(const Key: TAttributeName; const Value: string);
 var
   AttributeEntry: PAttributeEntry;
   len: Integer;
 begin
-  if not TryGetAttributeEntry(Key, AttributeEntry) then
+  if not HasAttribute(Key) then
   begin
+    if (Value = '') then Exit;  //no action needed
     len := Length(FAttributes);
     SetLength(FAttributes, len + 1);
     AttributeEntry := @FAttributes[len];
     AttributeEntry^.Key := Key;
+    Include(FAttributesInUse, Key);
   end;
+  if (Value = '') then RemoveAttribute(Key);
   AttributeEntry^.Value := Value;
 end;
 
-function TSyntaxNode.TryGetAttributeEntry(const Key: TAttributeName; var AttributeEntry: PAttributeEntry): boolean;
+procedure TSyntaxNode.RemoveAttribute(const Key: TAttributeName);
+const
+  Size = SizeOf(TAttributeEntry);
+var
+  Entry: PAttributeEntry;
+  Index: integer;
+begin
+  if HasAttribute(Key) then begin
+    TryGetAttributeEntry(Key, Entry);
+    Index:= (NativeUInt(Entry) - NativeUInt(@FAttributes[0])) + Size;
+    Move(Entry^, Pointer(NativeUInt(Entry)+Size)^, (High(FAttributes) * Size) - Index);
+    Exclude(FAttributesInUse, Key);
+  end;
+end;
+
+function SameText(const Needle: string; const HayStack: array of string): boolean; overload;
+var
+  S: string;
+begin
+  for S in HayStack do begin
+    if (SameText(Needle, S)) then exit(true);
+  end;
+  Result:= false;
+end;
+
+function TSyntaxNode.TryGetAttributeEntry(const Key: TAttributeName; out AttributeEntry: PAttributeEntry): boolean;
 var
   i: integer;
 begin
-  for i := 0 to High(FAttributes) do
+  Result:= false;
+  if not(Key in FAttributesInUse) then begin
+   //Do not allow the AttributeEntry to be undefined.
+    AttributeEntry:= nil;
+  end else for i := 0 to High(FAttributes) do begin
     if FAttributes[i].Key = Key then
     begin
       AttributeEntry := @FAttributes[i];
       Exit(True);
     end;
-
-  Result := False;
+  end;
 end;
 
 function TSyntaxNode.AddChild(Node: TSyntaxNode): TSyntaxNode;
 begin
   Assert(Assigned(Node));
-
   SetLength(FChildNodes, Length(FChildNodes) + 1);
   FChildNodes[Length(FChildNodes) - 1] := Node;
 
@@ -390,9 +462,18 @@ begin
   Result := Node;
 end;
 
-function TSyntaxNode.AddChild(Typ: TSyntaxNodeType): TSyntaxNode;
+procedure TSyntaxNode.AddChildren(Nodes: TArray<TSyntaxNode>);
+var
+  Node: TSyntaxNode;
+  OldLength: integer;
 begin
-  Result := AddChild(TSyntaxNode.Create(Typ));
+  OldLength:= Length(FChildNodes);
+  SetLength(FChildNodes, OldLength + Length(Nodes));
+  for Node in Nodes do begin
+    FChildNodes[OldLength]:= Node;
+    Inc(OldLength);
+    Node.FParentNode:= Self;
+  end;
 end;
 
 function TSyntaxNode.Clone: TSyntaxNode;
@@ -409,6 +490,7 @@ begin
   end;
 
   Result.FAttributes := Copy(FAttributes);
+  Result.FAttributesInUse:= FAttributesInUse;
   Result.AssignPositionFrom(Self);
 end;
 
@@ -418,24 +500,21 @@ begin
   FTyp := Typ;
 end;
 
-procedure TSyntaxNode.ExtractChild(Node: TSyntaxNode);
+
+function TSyntaxNode.ExtractChild(Node: TSyntaxNode): TSyntaxNode;
 var
   i: integer;
 begin
+  Result:= nil;  //do not allow undefined result
   for i := 0 to High(FChildNodes) do
     if FChildNodes[i] = Node then
     begin
+      Result:= Node;
       if i < High(FChildNodes) then
         Move(FChildNodes[i + 1], FChildNodes[i], SizeOf(TSyntaxNode) * (Length(FChildNodes) - i - 1));
       SetLength(FChildNodes, High(FChildNodes));
       Break;
     end;
-end;
-
-procedure TSyntaxNode.DeleteChild(Node: TSyntaxNode);
-begin
-  ExtractChild(Node);
-  Node.Free;
 end;
 
 destructor TSyntaxNode.Destroy;
@@ -445,6 +524,19 @@ begin
   for i := 0 to High(FChildNodes) do
     FreeAndNil(FChildNodes[i]);
   inherited;
+end;
+
+function TSyntaxNode.ExtractChild(Typ: TSyntaxNodeType): TSyntaxNode;
+var
+  Child: TSyntaxNode;
+begin
+  for Child in FChildNodes do begin
+    if (Child.Typ = Typ) then begin
+      ExtractChild(Child);
+      Exit(Child);
+    end;
+  end;
+  Result:= nil;
 end;
 
 function TSyntaxNode.FindNode(Typ: TSyntaxNodeType): TSyntaxNode;
@@ -457,6 +549,16 @@ begin
   Result := nil;
 end;
 
+function TSyntaxNode.FindNode(const Types: TSyntaxNodeTypes): TSyntaxNode;
+var
+  i: integer;
+begin
+  for i:= 0 to High(FChildNodes) do begin
+    if (FChildNodes[i].Typ in Types) then Exit(FChildNodes[i]);
+  end;
+  Result:= nil;
+end;
+
 function TSyntaxNode.GetAttribute(const Key: TAttributeName): string;
 var
   AttributeEntry: PAttributeEntry;
@@ -465,28 +567,6 @@ begin
     Result := AttributeEntry^.Value
   else
     Result := '';
-end;
-
-function TSyntaxNode.GetHasAttributes: Boolean;
-begin
-  Result := Length(FAttributes) > 0;
-end;
-
-function TSyntaxNode.GetHasChildren: Boolean;
-begin
-  Result := Length(FChildNodes) > 0;
-end;
-
-function TSyntaxNode.HasAttribute(const Key: TAttributeName): Boolean;
-var
-  AttributeEntry: PAttributeEntry;
-begin
-  Result := TryGetAttributeEntry(Key, AttributeEntry);
-end;
-
-procedure TSyntaxNode.ClearAttributes;
-begin
-  SetLength(FAttributes, 0);
 end;
 
 procedure TSyntaxNode.AssignPositionFrom(const Node: TSyntaxNode);
@@ -533,5 +613,6 @@ begin
   FLine := Line;
   FCol := Col;
 end;
+
 
 end.
