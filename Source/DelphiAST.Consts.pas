@@ -99,6 +99,7 @@ type
     ntRecordConstraint,
     ntRepeat,
     ntRequires,
+    ntResolutionClause,
     ntResourceString,
     ntReturnType,
     ntRHS,
@@ -150,7 +151,8 @@ type
     anMethodBinding,
     anReintroduce,
     anOverload,
-    anAbstract
+    anAbstract,
+    anInline
   );
 
 const
@@ -250,6 +252,7 @@ const
     'recordconstraint',
     'repeat',
     'requires',
+    'resolutionclause',
     'resourcestring',
     'returntype',
     'rhs',
@@ -289,17 +292,7 @@ const
     'slashescomment'
   );
 
-const
-  sENUM              = 'enum';
-  sSUBRANGE          = 'subrange';
-
-  function AttributeNameToStr(const AttributeName : TAttributeName) : string;
-
-implementation
-
-function AttributeNameToStr(const AttributeName : TAttributeName) : string;
-const
-  AttributeNameStrings : array[TAttributeName] of string = (
+  AttributeNameStrings: array[TAttributeName] of string = (
     'type',
     'class',
     'forwarded',
@@ -311,10 +304,10 @@ const
     'methodbinding',
     'reintroduce',
     'overload',
-    'abstract'
+    'abstract',
+    'inline'
   );
-begin
-  Exit(AttributeNameStrings[AttributeName]);
-end;
+
+implementation
 
 end.
