@@ -1,89 +1,23 @@
-### Abstract Syntax Tree Builder for Delphi 
-With DelphiAST you can take real Delphi code and get an abstract syntax tree. One unit at time and without a symbol table though. 
+### Abstract Syntax Tree Builder for Delphi
+With DelphiAST you can take real Delphi code and get an abstract syntax tree.
 
-FreePascal and Lazarus compatible.
+### This fork 
 
-#### Sample input
-```delphi
-unit Unit1;
+This is a fork of https://github.com/RomanYankovsky/DelphiAST which adds:
 
-interface
+* Nodes are not repeatedly allocated and freed, instead using an object cache when a new one is created or destroyed (see `TSyntaxNode` in DelphiAST.Classes.pas. The interesting bit is:
 
-uses
-  Unit2;
-
-function Sum(A, B: Integer): Integer;
-
-implementation
-
-function Sum(A, B: Integer): Integer;
-begin
-  Result := A + B;
-end;
-
-end.
+```
+   class function NewInstance: TObject {$IFDEF AUTOREFCOUNT} unsafe {$ENDIF}; override;
+   procedure FreeInstance; override;
 ```
 
-#### Sample outcome
-```xml
-<UNIT line="1" col="1" name="Unit1">
-  <INTERFACE begin_line="3" begin_col="1" end_line="10" end_col="1">
-    <USES begin_line="5" begin_col="1" end_line="8" end_col="1">
-      <UNIT line="6" col="3" name="Unit2"/>
-    </USES>
-    <METHOD begin_line="8" begin_col="1" end_line="10" end_col="1" kind="function" name="Sum">
-      <PARAMETERS line="8" col="13">
-        <PARAMETER line="8" col="14">
-          <NAME line="8" col="14" value="A"/>
-          <TYPE line="8" col="20" name="Integer"/>
-        </PARAMETER>
-        <PARAMETER line="8" col="17">
-          <NAME line="8" col="17" value="B"/>
-          <TYPE line="8" col="20" name="Integer"/>
-        </PARAMETER>
-      </PARAMETERS>
-      <RETURNTYPE line="8" col="30">
-        <TYPE line="8" col="30" name="Integer"/>
-      </RETURNTYPE>
-    </METHOD>
-  </INTERFACE>
-  <IMPLEMENTATION begin_line="10" begin_col="1" end_line="17" end_col="1">
-    <METHOD begin_line="12" begin_col="1" end_line="17" end_col="1" kind="function" name="Sum">
-      <PARAMETERS line="12" col="13">
-        <PARAMETER line="12" col="14">
-          <NAME line="12" col="14" value="A"/>
-          <TYPE line="12" col="20" name="Integer"/>
-        </PARAMETER>
-        <PARAMETER line="12" col="17">
-          <NAME line="12" col="17" value="B"/>
-          <TYPE line="12" col="20" name="Integer"/>
-        </PARAMETER>
-      </PARAMETERS>
-      <RETURNTYPE line="12" col="30">
-        <TYPE line="12" col="30" name="Integer"/>
-      </RETURNTYPE>
-      <STATEMENTS begin_line="13" begin_col="1" end_line="15" end_col="4">
-        <ASSIGN line="14" col="3">
-          <LHS line="14" col="3">
-            <IDENTIFIER line="14" col="3" name="Result"/>
-          </LHS>
-          <RHS line="14" col="13">
-            <EXPRESSION line="14" col="13">
-              <ADD line="14" col="15">
-                <IDENTIFIER line="14" col="13" name="A"/>
-                <IDENTIFIER line="14" col="17" name="B"/>
-              </ADD>
-            </EXPRESSION>
-          </RHS>
-        </ASSIGN>
-      </STATEMENTS>
-    </METHOD>
-  </IMPLEMENTATION>
-</UNIT>
-```
+* String interning, using a different technique to the one currently in DelphiAST (written afterwards? The code in this fork dates from 2016.) This is disabled by default.
+
+The general idea is to try to prevent memory fragmentation or many allocations and de-allocations when DelphiAST is used constantly. This code is used in the Parnassus Bookmarks and Navigator plugins, which regularly parse the current unit when the user types. That can be many times an hour, even many times a minute. Early versions had users reporting the IDE gave out of memory errors where there was still a lot of free memory, a classic indication of fragmentation. Releases using this code, especially the string interning, solved those bug reports.
 
 #### Copyright
-Copyright (c) 2014-2017 Roman Yankovsky (roman@yankovsky.me) et al
+Copyright (c) 2014-2017 Roman Yankovsky (roman@yankovsky.me) et al (these changes are copyright David Millington 2016-2018.)
 
 DelphiAST is released under the Mozilla Public License, v. 2.0
 
