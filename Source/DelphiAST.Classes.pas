@@ -3,7 +3,7 @@ unit DelphiAST.Classes;
 {$IFDEF FPC}{$MODE DELPHI}{$ENDIF}
 
 // Define this to use a memory pool for node instances
-{.$define USEBULKALLOCATOR}
+{$define USEBULKALLOCATOR}
 
 interface
 
@@ -493,8 +493,6 @@ end;
 
 function TSyntaxNode.Clone: TSyntaxNode;
 var
-  ChildNode: TSyntaxNode;
-  Attr: TPair<TAttributeName, TAttributeEntryValue>;
   i: Integer;
 begin
   Result := TSyntaxNodeClass(Self.ClassType).Create(FTyp);
