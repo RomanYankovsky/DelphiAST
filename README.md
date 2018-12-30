@@ -7,7 +7,7 @@ This is a fork of https://github.com/RomanYankovsky/DelphiAST which adds:
 
 * Nodes are not repeatedly allocated and freed, instead using an object cache when a new one is created or destroyed (see `TSyntaxNode` in DelphiAST.Classes.pas. The interesting bit is:
 
-```
+```delphi
    class function NewInstance: TObject {$IFDEF AUTOREFCOUNT} unsafe {$ENDIF}; override;
    procedure FreeInstance; override;
 ```
