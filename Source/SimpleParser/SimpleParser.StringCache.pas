@@ -1,5 +1,16 @@
 unit SimpleParser.StringCache;
 
+{
+  String cache: provides a global class to keep unique string instances, which
+  are then referred to by an ID. There are methods to then get a string given
+  an ID. This can greatly reduce the number of strings in memory, since all
+  strings with the same content will be the same actual string, stored in the
+  cache.
+
+  Originally written by David Millington: vintagedave@gmail.com or dave@parnassus.co
+  Code donated to the DelphiAST project, April 2016.
+}
+
 interface
 
 uses
