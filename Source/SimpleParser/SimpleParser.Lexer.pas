@@ -291,6 +291,7 @@ type
     procedure DisposeBuffer(Buf: PBufferRec);
     function GetFileName: string;
     procedure UpdateScopedEnums;
+    procedure DoOnComment(const CommentText: string);
   protected
     procedure SetOrigin(const NewValue: string); virtual;
   public
@@ -1317,6 +1318,12 @@ begin
   Dispose(Buf);
 end;
 
+procedure TmwBasePasLex.DoOnComment(const CommentText: string);
+begin
+  if not FUseDefines or (FDefineStack = 0) then
+    FOnComment(Self, CommentText);
+end;
+
 procedure TmwBasePasLex.DoProcTable(AChar: Char);
 begin
   if Ord(AChar) <= 127 then
@@ -1464,12 +1471,15 @@ begin
 
   if Assigned(FOnComment) then
   begin
-    SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun);
-    FOnComment(Self, CommentText);
+    SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun - 1);
+    DoOnComment(CommentText);
   end;
 end;
 
 procedure TmwBasePasLex.BraceOpenProc;
+var
+  BeginRun: Integer;
+  CommentText: string;
 begin
   case FBuffer.Buf[FBuffer.Run + 1] of
     '$': FTokenID := GetDirectiveKind;
@@ -1479,7 +1489,9 @@ begin
       FCommentState := csBor;
     end;
   end;
+
   Inc(FBuffer.Run);
+  BeginRun := FBuffer.Run;
   while FBuffer.Buf[FBuffer.Run] <> #0 do
     case FBuffer.Buf[FBuffer.Run] of
       '}':
@@ -1505,6 +1517,14 @@ begin
       Inc(FBuffer.Run);
     end;
   case FTokenID of
+    PtBorComment:
+      begin
+        if Assigned(FOnComment) then
+        begin
+          SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun - 1);
+          DoOnComment(CommentText);
+        end;
+      end;
     PtCompDirect:
       begin
         if Assigned(FOnCompDirect) then
@@ -1845,7 +1865,7 @@ var
   i: Integer;
 begin
   for i := 0 to High(FDefines) do
-    if FDefines[i] = ADefine then
+    if SameText(FDefines[i], ADefine) then
       Exit(True);
   Result := False;
 end;
@@ -1997,7 +2017,7 @@ var
   i: Integer;
 begin
   for i := High(FDefines) downto 0 do
-    if FDefines[i] = ADefine then
+    if SameText(FDefines[i], ADefine) then
       Delete(FDefines, i);
 end;
 
@@ -2023,7 +2043,7 @@ begin
       end;
   end;
 
-  BeginRun := FBuffer.Run;
+  BeginRun := FBuffer.Run + 1;
 
   while FBuffer.Buf[FBuffer.Run] <> #0 do
     case FBuffer.Buf[FBuffer.Run] of
@@ -2054,13 +2074,17 @@ begin
 
   if Assigned(FOnComment) then
   begin
-    SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun);
-    FOnComment(Self, CommentText);
+    SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun - 2);
+    DoOnComment(CommentText);
   end;
 end;
 
 procedure TmwBasePasLex.RoundOpenProc;
+var
+  BeginRun: Integer;
+  CommentText: string;
 begin
+  BeginRun := FBuffer.Run + 2;
   Inc(FBuffer.Run);
   case FBuffer.Buf[FBuffer.Run] of
     '*':
@@ -2108,6 +2132,14 @@ begin
     FTokenID := ptRoundOpen;
   end;
   case FTokenID of
+    PtAnsiComment:
+      begin
+        if Assigned(FOnComment) then
+        begin
+          SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun - 2);
+          DoOnComment(CommentText);
+        end;
+      end;
     PtCompDirect:
       begin
         if Assigned(FOnCompDirect) then
@@ -2195,7 +2227,7 @@ begin
         if Assigned(FOnComment) then
         begin
           SetString(CommentText, PChar(@FBuffer.Buf[BeginRun]), FBuffer.Run - BeginRun);
-          FOnComment(Self, CommentText);
+          DoOnComment(CommentText);
         end;
       end;
   else

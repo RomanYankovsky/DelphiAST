@@ -1,7 +1,7 @@
 object MainForm: TMainForm
   Left = 0
   Top = 0
-  Caption = 'DelphiAST Demo'
+  Caption = 'DelphiAST Parser Demo'
   ClientHeight = 389
   ClientWidth = 666
   Color = clBtnFace

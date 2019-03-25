@@ -83,7 +83,7 @@ end.
 ```
 
 #### Copyright
-Copyright (c) 2014-2017 Roman Yankovsky (roman@yankovsky.me) et al
+Copyright (c) 2014-2019 Roman Yankovsky (roman@yankovsky.me) et al
 
 DelphiAST is released under the Mozilla Public License, v. 2.0
 
