@@ -9,13 +9,13 @@ uses
   SimpleParser.Lexer.Types, DelphiAST.Classes, DelphiAST.Consts;
 
 type
+
   ESyntaxTreeException = class(EParserException)
   strict private
     FSyntaxTree: TSyntaxNode;
   public
     constructor Create(Line, Col: Integer; const FileName, Msg: string; SyntaxTree: TSyntaxNode); reintroduce;
     destructor Destroy; override;
-
     property SyntaxTree: TSyntaxNode read FSyntaxTree;
   end;
 
@@ -30,39 +30,96 @@ type
     function GetFileName: string;
   public
     constructor Create(const ALexer: TmwPasLex; AOnHandleString: TStringEvent);
-
     property FileName: string read GetFileName;
     property PosXY: TTokenPoint read GetPosXY;
     property Token: string read GetToken;
+    property Lexer: TmwPasLex read FLexer;
+  end;
+
+  TPasNamesBuilder = class(TmwSimplePasPar)
+  strict private type
+    TNameListStack = class;
+    TNameList = class
+    strict private type
+      TNamePosition = record
+        TokenPos, NextTokenPos: Integer;
+        procedure SetTokenPos(const ATokenPos: Integer); inline;
+        procedure SetNextTokenPos(const ATokenPos: Integer); inline;
+        function TokenLen: Integer; inline;
+      end;
+    strict private
+      FNamesBuilder: TPasNamesBuilder;
+      FNamePositions: TList<TNamePosition>;
+      function GetNames(const Index: Integer): string;
+      function GetLastName: string;
+      function GetCount: Integer; inline;
+      function GetLexer: TmwPasLex; inline;
+      property Lexer: TmwPasLex read GetLexer;
+    public
+      constructor Create(const ANamesBuilder: TPasNamesBuilder);
+      destructor Destroy; override;
+      procedure BeginName;
+      procedure EndName;
+      property Names[const Index: Integer]: string read GetNames; default;
+      property LastName: string read GetLastName;
+      property Count: Integer read GetCount;
+    end;
+    TNameListStack = class
+    strict private
+      FNamesBuilder: TPasNamesBuilder;
+      FNameListStack: TObjectStack<TNameList>;
+    public
+      constructor Create(const ANamesBuilder: TPasNamesBuilder);
+      destructor Destroy; override;
+      procedure PushNames; inline;
+      procedure PopNames; inline;
+      function ExtractNames: TNameList; inline;
+      function PeekNames: TNameList; inline;
+    end;
+  strict private
+    FNameListStack: TNameListStack;
+    FPreviousNames: TNameList;
+    FLexer: TPasLexer;
+    FOnHandleString: TStringEvent;
+    function GetCurrentNames: TNameList; inline;
+  strict protected
+    procedure DoHandleString(var AString: string); inline;
+    procedure PushNames; inline;
+    procedure PopNames; inline;
+    function PeekNames: TNameList; inline;
+    procedure BeginName; inline;
+    procedure EndName; inline;
+    property CurrentNames: TNameList read GetCurrentNames;
+    property PreviousNames: TNameList read FPreviousNames;
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+    property Lexer: TPasLexer read FLexer;
+    property OnHandleString: TStringEvent read FOnHandleString write FOnHandleString;
   end;
 
   TNodeStack = class
   strict private
     FLexer: TPasLexer;
     FStack: TStack<TSyntaxNode>;
-
     function GetCount: Integer;
   public
     constructor Create(Lexer: TPasLexer);
     destructor Destroy; override;
-
     function AddChild(Typ: TSyntaxNodeType): TSyntaxNode; overload;
     function AddChild(Node: TSyntaxNode): TSyntaxNode; overload;
     function AddValuedChild(Typ: TSyntaxNodeType; const Value: string): TSyntaxNode;
-
     procedure Clear;
     function Peek: TSyntaxNode;
     function Pop: TSyntaxNode;
-
     function Push(Typ: TSyntaxNodeType): TSyntaxNode; overload;
     function Push(Node: TSyntaxNode): TSyntaxNode; overload;
     function PushCompoundSyntaxNode(Typ: TSyntaxNodeType): TSyntaxNode;
     function PushValuedNode(Typ: TSyntaxNodeType; const Value: string): TSyntaxNode;
-
     property Count: Integer read GetCount;
   end;
 
-  TPasSyntaxTreeBuilder = class(TmwSimplePasPar)
+  TPasSyntaxTreeBuilder = class(TPasNamesBuilder)
   private type
     TTreeBuilderMethod = procedure of object;
   private
@@ -78,13 +135,9 @@ type
     procedure CallInheritedPropertyParameterList;
     procedure SetCurrentCompoundNodesEndPosition;
     procedure DoOnComment(Sender: TObject; const Text: string);
-    procedure DoHandleString(var s: string); inline;
   protected
     FStack: TNodeStack;
     FComments: TObjectList<TCommentNode>;
-    FLexer: TPasLexer;
-    FOnHandleString: TStringEvent;
-
     procedure AccessSpecifier; override;
     procedure AdditiveOperator; override;
     procedure AddressOp; override;
@@ -262,15 +315,11 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
-
     function Run(SourceStream: TStream): TSyntaxNode; reintroduce; overload; virtual;
     class function Run(const FileName: string; InterfaceOnly: Boolean = False;
       IncludeHandler: IIncludeHandler = nil;
       OnHandleString: TStringEvent = nil): TSyntaxNode; reintroduce; overload; static;
-
     property Comments: TObjectList<TCommentNode> read FComments;
-    property Lexer: TPasLexer read FLexer;
-    property OnHandleString: TStringEvent read FOnHandleString write FOnHandleString;
   end;
 
 implementation
@@ -279,31 +328,33 @@ uses
   TypInfo;
 
 {$IFDEF FPC}
-  type
-    TStringStreamHelper = class helper for TStringStream
-      class function Create: TStringStream; overload;
-      procedure LoadFromFile(const FileName: string);
-    end;
 
-  { TStringStreamHelper }
-
-  class function TStringStreamHelper.Create: TStringStream;
-  begin
-    Result := TStringStream.Create('');
+type
+  TStringStreamHelper = class helper for TStringStream
+    class function Create: TStringStream; overload;
+    procedure LoadFromFile(const FileName: string);
   end;
 
-  procedure TStringStreamHelper.LoadFromFile(const FileName: string);
-  var
-    Strings: TStringList;
-  begin
-    Strings := TStringList.Create;
-    try
-      Strings.LoadFromFile(FileName);
-      Strings.SaveToStream(Self);
-    finally
-      FreeAndNil(Strings);
-    end;
+{ TStringStreamHelper }
+
+class function TStringStreamHelper.Create: TStringStream;
+begin
+  Result := TStringStream.Create('');
+end;
+
+procedure TStringStreamHelper.LoadFromFile(const FileName: string);
+var
+  Strings: TStringList;
+begin
+  Strings := TStringList.Create;
+  try
+    Strings.LoadFromFile(FileName);
+    Strings.SaveToStream(Self);
+  finally
+    FreeAndNil(Strings);
   end;
+end;
+
 {$ENDIF}
 
 // do not use const strings here to prevent allocating new strings every time
@@ -318,10 +369,11 @@ var
 
 procedure InitAttributeValues;
 var
-  value: TAttributeValue;
+  Value: TAttributeValue;
 begin
-  for value := Low(TAttributeValue) to High(TAttributeValue) do
-    AttributeValues[value] := Copy(LowerCase(GetEnumName(TypeInfo(TAttributeValue), Ord(value))), 3);
+  for Value := Low(TAttributeValue) to High(TAttributeValue) do
+    AttributeValues[Value] := LowerCase(Copy(GetEnumName(TypeInfo(TAttributeValue),
+      Ord(Value)), 3));
 end;
 
 procedure AssignLexerPositionToNode(const Lexer: TPasLexer; const Node: TSyntaxNode);
@@ -352,8 +404,169 @@ end;
 
 function TPasLexer.GetToken: string;
 begin
-  SetString(Result, FLexer.Buffer.Buf + FLexer.TokenPos, FLexer.TokenLen);
+  Result := FLexer.Token;
   FOnHandleString(Result);
+end;
+
+{ TPasNamesBuilder.TNamesList.TNamePosition }
+
+procedure TPasNamesBuilder.TNameList.TNamePosition.SetTokenPos(const ATokenPos: Integer);
+begin
+  TokenPos := ATokenPos;
+  NextTokenPos := ATokenPos;
+end;
+
+procedure TPasNamesBuilder.TNameList.TNamePosition.SetNextTokenPos(const ATokenPos: Integer);
+begin
+  NextTokenPos := ATokenPos;
+end;
+
+function TPasNamesBuilder.TNameList.TNamePosition.TokenLen: Integer;
+begin
+  Result := NextTokenPos - TokenPos;
+end;
+
+{ TPasNamesBuilder.TNamesList }
+
+constructor TPasNamesBuilder.TNameList.Create(const ANamesBuilder: TPasNamesBuilder);
+begin
+  FNamesBuilder := ANamesBuilder;
+  FNamePositions := TList<TNamePosition>.Create;
+end;
+
+destructor TPasNamesBuilder.TNameList.Destroy;
+begin
+  FNamePositions.Free;
+  inherited;
+end;
+
+function TPasNamesBuilder.TNameList.GetLexer: TmwPasLex;
+begin
+  Result := FNamesBuilder.Lexer.Lexer;
+end;
+
+procedure TPasNamesBuilder.TNameList.BeginName;
+var
+  NamePosition: TNamePosition;
+begin
+  NamePosition.SetTokenPos(Lexer.TokenPos);
+  FNamePositions.Add(NamePosition);
+end;
+
+procedure TPasNamesBuilder.TNameList.EndName;
+begin
+  FNamePositions.Last.SetNextTokenPos(Lexer.TokenPos);
+end;
+
+function TPasNamesBuilder.TNameList.GetNames(const Index: Integer): string;
+var
+  NamePosition: TNamePosition;
+begin
+  NamePosition := FNamePositions[Index];
+  SetString(Result, Lexer.Buffer.Buf + NamePosition.TokenPos, NamePosition.TokenLen);
+  FNamesBuilder.DoHandleString(Result);
+end;
+
+function TPasNamesBuilder.TNameList.GetLastName: string;
+begin
+  Result := Names[Count - 1];
+end;
+
+function TPasNamesBuilder.TNameList.GetCount: Integer;
+begin
+  Result := FNamePositions.Count;
+end;
+
+{ TPasNamesBuilder.TNameListStack }
+
+constructor TPasNamesBuilder.TNameListStack.Create(
+  const ANamesBuilder: TPasNamesBuilder);
+begin
+  FNamesBuilder := ANamesBuilder;
+  FNameListStack := TObjectStack<TNameList>.Create(True);
+end;
+
+destructor TPasNamesBuilder.TNameListStack.Destroy;
+begin
+  FNameListStack.Free;
+  inherited;
+end;
+
+procedure TPasNamesBuilder.TNameListStack.PushNames;
+begin
+  FNameListStack.Push(TNameList.Create(FNamesBuilder));
+end;
+
+procedure TPasNamesBuilder.TNameListStack.PopNames;
+begin
+  FNameListStack.Pop;
+end;
+
+function TPasNamesBuilder.TNameListStack.ExtractNames: TNameList;
+begin
+  Result := FNameListStack.Extract;
+end;
+
+function TPasNamesBuilder.TNameListStack.PeekNames: TNameList;
+begin
+  Result := FNameListStack.Peek;
+end;
+
+{ TPasNamesBuilder }
+
+constructor TPasNamesBuilder.Create;
+begin
+  inherited;
+  FNameListStack := TNameListStack.Create(Self);
+  FNameListStack.PushNames;
+  FPreviousNames := TNameList.Create(Self);
+  FLexer := TPasLexer.Create(inherited Lexer, DoHandleString);
+end;
+
+destructor TPasNamesBuilder.Destroy;
+begin
+  FLexer.Free;
+  FPreviousNames.Free;
+  FNameListStack.PopNames;
+  FNameListStack.Free;
+  inherited;
+end;
+
+procedure TPasNamesBuilder.PushNames;
+begin
+  FNameListStack.PushNames;
+end;
+
+procedure TPasNamesBuilder.PopNames;
+begin
+  FPreviousNames.Free;
+  FPreviousNames := FNameListStack.ExtractNames;
+end;
+
+function TPasNamesBuilder.PeekNames: TNameList;
+begin
+  Result := FNameListStack.PeekNames;
+end;
+
+procedure TPasNamesBuilder.BeginName;
+begin
+  FNameListStack.PeekNames.BeginName;
+end;
+
+procedure TPasNamesBuilder.EndName;
+begin
+  FNameListStack.PeekNames.EndName;
+end;
+
+procedure TPasNamesBuilder.DoHandleString(var AString: string);
+begin
+  if Assigned(FOnHandleString) then
+    FOnHandleString(AString);
+end;
+
+function TPasNamesBuilder.GetCurrentNames: TNameList;
+begin
+  Result := PeekNames;
 end;
 
 { TNodeStack }
@@ -1099,22 +1312,13 @@ end;
 constructor TPasSyntaxTreeBuilder.Create;
 begin
   inherited;
-  FLexer := TPasLexer.Create(inherited Lexer, DoHandleString);
-  FStack := TNodeStack.Create(FLexer);
+  FStack := TNodeStack.Create(Lexer);
   FComments := TObjectList<TCommentNode>.Create(True);
-
   OnComment := DoOnComment;
-end;
-
-procedure TPasSyntaxTreeBuilder.DoHandleString(var s: string);
-begin
-  if Assigned(FOnHandleString) then
-    FOnHandleString(s);
 end;
 
 destructor TPasSyntaxTreeBuilder.Destroy;
 begin
-  FLexer.Free;
   FStack.Free;
   FComments.Free;
   inherited;
@@ -2784,6 +2988,7 @@ begin
 end;
 
 initialization
+
   InitAttributeValues;
 
 end.

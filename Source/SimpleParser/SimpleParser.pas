@@ -1045,25 +1045,15 @@ begin
   SkipJunk;
   case GenID of
     ptLibrary:
-      begin
-        LibraryFile;
-      end;
+      LibraryFile;
     ptPackage:
-      begin
-        PackageFile;
-      end;
+      PackageFile;
     ptProgram:
-      begin
-        ProgramFile;
-      end;
+      ProgramFile;
     ptUnit:
-      begin
-        UnitFile;
-      end;
+      UnitFile;
   else
-    begin
-      IncludeFile;
-    end;
+    IncludeFile;
   end;
 end;
 
@@ -5052,45 +5042,25 @@ procedure TmwSimplePasPar.InterfaceDeclaration;
 begin
   case TokenID of
     ptConst:
-      begin
-        ConstSection;
-      end;
+      ConstSection;
     ptFunction:
-      begin
-        ExportedHeading;
-      end;
+      ExportedHeading;
     ptProcedure:
-      begin
-        ExportedHeading;
-      end;
+      ExportedHeading;
     ptResourceString:
-      begin
-        ConstSection;
-      end;
+      ConstSection;
     ptType:
-      begin
-        TypeSection;
-      end;
+      TypeSection;
     ptThreadVar:
-      begin
-        VarSection;
-      end;
+      VarSection;
     ptVar:
-      begin
-        VarSection;
-      end;
+      VarSection;
     ptExports:
-      begin
-        ExportsClause;
-      end;
+      ExportsClause;
     ptSquareOpen:
-      begin
-        CustomAttribute;
-      end;
+      CustomAttribute;
   else
-    begin
-      SynError(InvalidInterfaceDeclaration);
-    end;
+    SynError(InvalidInterfaceDeclaration);
   end;
 end;
 
