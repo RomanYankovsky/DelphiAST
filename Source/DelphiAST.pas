@@ -43,11 +43,14 @@ type
     strict private type
       TNamePosition = class
       strict private
+        FTokenPoint: TTokenPoint;
         FTokenPos: Integer;
         FNextTokenPos: Integer;
         function GetTokenLen: Integer; inline;
       public
-        constructor Create(const ATokenPos: Integer);
+        constructor Create(const ATokenPoint: TTokenPoint;
+          const ATokenPos: Integer);
+        property TokenPoint: TTokenPoint read FTokenPoint;
         property TokenPos: Integer read FTokenPos;
         property NextTokenPos: Integer read FNextTokenPos write FNextTokenPos;
         property TokenLen: Integer read GetTokenLen;
@@ -56,6 +59,7 @@ type
       FNamesBuilder: TPasNamesBuilder;
       FNamePositions: TObjectList<TNamePosition>;
       function GetNames(const Index: Integer): string;
+      function GetTokenPoints(const Index: Integer): TTokenPoint;
       function GetLastName: string;
       function GetCount: Integer; inline;
       function GetLexer: TmwPasLex; inline;
@@ -66,6 +70,7 @@ type
       procedure BeginName;
       procedure EndName;
       property Names[const Index: Integer]: string read GetNames; default;
+      property TokenPoints[const Index: Integer]: TTokenPoint read GetTokenPoints;
       property LastName: string read GetLastName;
       property Count: Integer read GetCount;
     end;
@@ -417,8 +422,10 @@ end;
 
 { TPasNamesBuilder.TNamesList.TNamePosition }
 
-constructor TPasNamesBuilder.TNameList.TNamePosition.Create(const ATokenPos: Integer);
+constructor TPasNamesBuilder.TNameList.TNamePosition.Create(
+  const ATokenPoint: TTokenPoint; const ATokenPos: Integer);
 begin
+  FTokenPoint := ATokenPoint;
   FTokenPos := ATokenPos;
   FNextTokenPos := ATokenPos;
 end;
@@ -449,7 +456,7 @@ end;
 
 procedure TPasNamesBuilder.TNameList.BeginName;
 begin
-  FNamePositions.Add(TNamePosition.Create(Lexer.TokenPos));
+  FNamePositions.Add(TNamePosition.Create(Lexer.PosXY, Lexer.TokenPos));
 end;
 
 procedure TPasNamesBuilder.TNameList.EndName;
@@ -463,9 +470,15 @@ var
 begin
   NamePosition := FNamePositions[Index];
   SetString(Result, Lexer.Buffer.Buf + NamePosition.TokenPos, NamePosition.TokenLen);
+  Result := Trim(Result);
   if FNamesBuilder.LowerCaseNames then
     Result := LowerCase(Result);
   FNamesBuilder.DoHandleString(Result);
+end;
+
+function TPasNamesBuilder.TNameList.GetTokenPoints(const Index: Integer): TTokenPoint;
+begin
+  Result := FNamePositions[Index].TokenPoint;
 end;
 
 function TPasNamesBuilder.TNameList.GetLastName: string;
