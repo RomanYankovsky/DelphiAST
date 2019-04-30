@@ -1166,9 +1166,7 @@ end;
 procedure TmwSimplePasPar.ProgramBlock;
 begin
   if TokenID = ptUses then
-  begin
     MainUsesClause;
-  end;
   Block;
 end;
 
@@ -1262,13 +1260,9 @@ begin
   DeclarationSections;
   case TokenID of
     ptAsm:
-      begin
-        AsmStatement;
-      end;
+      AsmStatement;
   else
-    begin
-      CompoundStatement;
-    end;
+    CompoundStatement;
   end;
 end;
 
@@ -2104,24 +2098,19 @@ begin
           HasBlock := False;
         end
     else
-      begin
-        ProceduralDirective;
-      end;
+      ProceduralDirective;
     end;
-    if TokenID = ptSemiColon then Semicolon;
+    if TokenID = ptSemiColon then
+      Semicolon;
   end;
 
   if HasBlock then
   begin
     case TokenID of
       ptAsm:
-        begin
-          AsmStatement;
-        end;
+        AsmStatement;
     else
-      begin
-        Block;
-      end;
+      Block;
     end;
     Semicolon;
   end;

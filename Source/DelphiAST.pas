@@ -37,7 +37,7 @@ type
   end;
 
   TPasNamesBuilder = class(TmwSimplePasPar)
-  strict private type
+  strict protected type
     TNameListStack = class;
     TNameList = class
     strict private type
