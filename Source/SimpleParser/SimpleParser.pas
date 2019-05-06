@@ -1135,7 +1135,6 @@ begin
   Expected(ptUnit);
   UnitName;
   TypeDirective;
-
   Semicolon;
   InterfaceSection;
   if not InterfaceOnly then
@@ -1150,15 +1149,10 @@ begin
           Expected(ptEnd);
         end;
       ptBegin:
-        begin
-          CompoundStatement;
-        end;
+        CompoundStatement;
       ptEnd:
-        begin
-          NextToken;
-        end;
+        NextToken;
     end;
-
     Expected(ptPoint);
   end;
 end;
@@ -3664,7 +3658,6 @@ begin
       begin
         if Lexer.ExID = ptAbstract then
           Expected(ptIdentifier);
-
         if Lexer.ExID = ptHelper then
           ClassHelper;
       end;
@@ -3686,22 +3679,20 @@ begin
               Expected(ptEnd);
               ClassTypeEnd;
             end;
-          ptSemiColon: ClassTypeEnd;
-        else
-          begin
-            ClassMemberList; { Direct descendant of TObject }
-            Expected(ptEnd);
+          ptSemiColon:
             ClassTypeEnd;
-          end;
+        else
+          ClassMemberList; { Direct descendant of TObject }
+          Expected(ptEnd);
+          ClassTypeEnd;
         end;
       end;
-    ptSemicolon: ClassTypeEnd;
-  else
-    begin
-      ClassMemberList; { Direct descendant of TObject }
-      Expected(ptEnd);
+    ptSemicolon:
       ClassTypeEnd;
-    end;
+  else
+    ClassMemberList; { Direct descendant of TObject }
+    Expected(ptEnd);
+    ClassTypeEnd;
   end;
 end;
 
@@ -4335,91 +4326,56 @@ procedure TmwSimplePasPar.TypeDeclaration;
 begin
   TypeName;
   Expected(ptEqual);
-
   Lexer.InitAhead;
-
   if TokenID = ptType then
-  begin
     if Lexer.AheadTokenID = ptOf then
     begin
       TypeReferenceType;
       TypeDirective;
       Exit;
-    end else
+    end
+    else
       ExplicitType;
-  end;
-
   if (TokenID = ptPacked) and (Lexer.AheadTokenID in [ptClass, ptObject]) then
     NextToken;
-
   case TokenID of
     ptPointerSymbol:
-      begin
-        PointerType;
-      end;
+      PointerType;
     ptClass:
-      begin
-        case Lexer.AheadTokenID of
-          ptOf:
-            begin
-              ClassReferenceType;
-            end;
-          ptSemiColon:
-            begin
-              ClassForward;
-            end;
-        else
-          begin
-            ClassType;
-          end;
-        end;
+      case Lexer.AheadTokenID of
+        ptOf:
+          ClassReferenceType;
+        ptSemiColon:
+          ClassForward;
+      else
+        ClassType;
       end;
     ptInterface:
-      begin
-        case Lexer.AheadTokenID of
-          ptSemiColon:
-            begin
-              InterfaceForward;
-            end;
-        else
-          begin
-            InterfaceType;
-          end;
-        end;
+      case Lexer.AheadTokenID of
+        ptSemiColon:
+          InterfaceForward;
+      else
+        InterfaceType;
       end;
     ptDispInterface:
-      begin
-        case Lexer.AheadTokenID of
-          ptSemiColon:
-            begin
-              DispInterfaceForward;
-            end;
-        else
-          begin
-            InterfaceType;
-          end;
-        end;
+      case Lexer.AheadTokenID of
+        ptSemiColon:
+          DispInterfaceForward;
+      else
+        InterfaceType;
       end;
     ptObject:
-      begin
-        case Lexer.AheadTokenID of
-          ptSemiColon:
-            begin
-              ObjectForward;
-            end;
-        else
-          begin
-            ObjectType;
-          end;
-        end;
+      case Lexer.AheadTokenID of
+        ptSemiColon:
+          ObjectForward;
+      else
+        ObjectType;
       end;
   else
-    begin
-      if ExID = ptReference then
-        AnonymousMethodType
-      else
-        TypeKind;
-    end;
+    if ExID = ptReference then
+      AnonymousMethodType
+    else
+      TypeKind;
   end;
   TypeDirective;
 end;
@@ -5406,10 +5362,10 @@ procedure TmwSimplePasPar.AncestorIdList;
 begin
   AncestorId;
   while(TokenID = ptComma) do
-    begin
-      NextToken;
-      AncestorId;
-    end;
+  begin
+    NextToken;
+    AncestorId;
+  end;
 end;
 
 procedure TmwSimplePasPar.AnonymousMethod;
