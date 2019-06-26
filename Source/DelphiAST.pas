@@ -36,7 +36,7 @@ type
     property Lexer: TmwPasLex read FLexer;
   end;
 
-  TPasNamesBuilder = class(TmwSimplePasPar)
+  TmwSimplePasParEx = class(TmwSimplePasPar)
   strict protected type
     TNameListStack = class;
     TNameList = class
@@ -58,7 +58,7 @@ type
         property EndNameCalled: Boolean read FEndNameCalled write FEndNameCalled;
       end;
     strict private
-      FNamesBuilder: TPasNamesBuilder;
+      FParser: TmwSimplePasParEx;
       FNameItems: TObjectList<TNameItem>;
       function GetItems(const Index: Integer): TNameItem; inline;
       function GetLastItem: TNameItem; inline;
@@ -68,7 +68,7 @@ type
       function GetLexer: TmwPasLex; inline;
       property Lexer: TmwPasLex read GetLexer;
     public
-      constructor Create(const ANamesBuilder: TPasNamesBuilder);
+      constructor Create(const AParser: TmwSimplePasParEx);
       destructor Destroy; override;
       procedure BeginName;
       procedure EndName;
@@ -80,10 +80,10 @@ type
     end;
     TNameListStack = class
     strict private
-      FNamesBuilder: TPasNamesBuilder;
+      FParser: TmwSimplePasParEx;
       FNameListStack: TObjectStack<TNameList>;
     public
-      constructor Create(const ANamesBuilder: TPasNamesBuilder);
+      constructor Create(const AParser: TmwSimplePasParEx);
       destructor Destroy; override;
       procedure PushNames; inline;
       procedure PopNames; inline;
@@ -135,7 +135,7 @@ type
     property Count: Integer read GetCount;
   end;
 
-  TPasSyntaxTreeBuilder = class(TPasNamesBuilder)
+  TPasSyntaxTreeBuilder = class(TmwSimplePasParEx)
   private type
     TTreeBuilderMethod = procedure of object;
   private
@@ -426,7 +426,7 @@ end;
 
 { TPasNamesBuilder.TNamesList.TNameItem }
 
-constructor TPasNamesBuilder.TNameList.TNameItem.Create(
+constructor TmwSimplePasParEx.TNameList.TNameItem.Create(
   const ATokenPoint: TTokenPoint; const ATokenPos: Integer);
 begin
   FTokenPoint := ATokenPoint;
@@ -434,36 +434,36 @@ begin
   FNextTokenPos := ATokenPos;
 end;
 
-function TPasNamesBuilder.TNameList.TNameItem.GetTokenLen: Integer;
+function TmwSimplePasParEx.TNameList.TNameItem.GetTokenLen: Integer;
 begin
   Result := FNextTokenPos - FTokenPos;
 end;
 
 { TPasNamesBuilder.TNamesList }
 
-constructor TPasNamesBuilder.TNameList.Create(const ANamesBuilder: TPasNamesBuilder);
+constructor TmwSimplePasParEx.TNameList.Create(const AParser: TmwSimplePasParEx);
 begin
-  FNamesBuilder := ANamesBuilder;
+  FParser := AParser;
   FNameItems := TObjectList<TNameItem>.Create(True);
 end;
 
-destructor TPasNamesBuilder.TNameList.Destroy;
+destructor TmwSimplePasParEx.TNameList.Destroy;
 begin
   FNameItems.Free;
   inherited;
 end;
 
-function TPasNamesBuilder.TNameList.GetLexer: TmwPasLex;
+function TmwSimplePasParEx.TNameList.GetLexer: TmwPasLex;
 begin
-  Result := FNamesBuilder.Lexer.Lexer;
+  Result := FParser.Lexer.Lexer;
 end;
 
-procedure TPasNamesBuilder.TNameList.BeginName;
+procedure TmwSimplePasParEx.TNameList.BeginName;
 begin
   FNameItems.Add(TNameItem.Create(Lexer.PosXY, Lexer.TokenPos));
 end;
 
-procedure TPasNamesBuilder.TNameList.EndName;
+procedure TmwSimplePasParEx.TNameList.EndName;
 begin
   with FNameItems.Last do
   begin
@@ -472,76 +472,76 @@ begin
   end;
 end;
 
-function TPasNamesBuilder.TNameList.GetItems(const Index: Integer): TNameItem;
+function TmwSimplePasParEx.TNameList.GetItems(const Index: Integer): TNameItem;
 begin
   Result := FNameItems[Index];
 end;
 
-function TPasNamesBuilder.TNameList.GetLastItem: TNameItem;
+function TmwSimplePasParEx.TNameList.GetLastItem: TNameItem;
 begin
   Result := FNameItems.Last;
 end;
 
-function TPasNamesBuilder.TNameList.GetNames(const Index: Integer): string;
+function TmwSimplePasParEx.TNameList.GetNames(const Index: Integer): string;
 var
   NameItem: TNameItem;
 begin
   NameItem := Items[Index];
   SetString(Result, Lexer.Buffer.Buf + NameItem.TokenPos, NameItem.TokenLen);
   Result := Trim(Result);
-  if FNamesBuilder.LowerCaseNames then
+  if FParser.LowerCaseNames then
     Result := LowerCase(Result);
-  FNamesBuilder.DoHandleString(Result);
+  FParser.DoHandleString(Result);
 end;
 
-function TPasNamesBuilder.TNameList.GetLastName: string;
+function TmwSimplePasParEx.TNameList.GetLastName: string;
 begin
   Result := Names[Count - 1];
 end;
 
-function TPasNamesBuilder.TNameList.GetCount: Integer;
+function TmwSimplePasParEx.TNameList.GetCount: Integer;
 begin
   Result := FNameItems.Count;
 end;
 
 { TPasNamesBuilder.TNameListStack }
 
-constructor TPasNamesBuilder.TNameListStack.Create(
-  const ANamesBuilder: TPasNamesBuilder);
+constructor TmwSimplePasParEx.TNameListStack.Create(
+  const AParser: TmwSimplePasParEx);
 begin
-  FNamesBuilder := ANamesBuilder;
+  FParser := AParser;
   FNameListStack := TObjectStack<TNameList>.Create(True);
 end;
 
-destructor TPasNamesBuilder.TNameListStack.Destroy;
+destructor TmwSimplePasParEx.TNameListStack.Destroy;
 begin
   FNameListStack.Free;
   inherited;
 end;
 
-procedure TPasNamesBuilder.TNameListStack.PushNames;
+procedure TmwSimplePasParEx.TNameListStack.PushNames;
 begin
-  FNameListStack.Push(TNameList.Create(FNamesBuilder));
+  FNameListStack.Push(TNameList.Create(FParser));
 end;
 
-procedure TPasNamesBuilder.TNameListStack.PopNames;
+procedure TmwSimplePasParEx.TNameListStack.PopNames;
 begin
   FNameListStack.Pop;
 end;
 
-function TPasNamesBuilder.TNameListStack.ExtractNames: TNameList;
+function TmwSimplePasParEx.TNameListStack.ExtractNames: TNameList;
 begin
   Result := FNameListStack.Extract;
 end;
 
-function TPasNamesBuilder.TNameListStack.PeekNames: TNameList;
+function TmwSimplePasParEx.TNameListStack.PeekNames: TNameList;
 begin
   Result := FNameListStack.Peek;
 end;
 
-{ TPasNamesBuilder }
+{ TmwSimplePasParEx }
 
-constructor TPasNamesBuilder.Create;
+constructor TmwSimplePasParEx.Create;
 begin
   inherited;
   FNameListStack := TNameListStack.Create(Self);
@@ -551,7 +551,7 @@ begin
   FLowerCaseNames := True;
 end;
 
-destructor TPasNamesBuilder.Destroy;
+destructor TmwSimplePasParEx.Destroy;
 begin
   FLexer.Free;
   FPreviousNames.Free;
@@ -560,23 +560,23 @@ begin
   inherited;
 end;
 
-procedure TPasNamesBuilder.PushNames;
+procedure TmwSimplePasParEx.PushNames;
 begin
   FNameListStack.PushNames;
 end;
 
-procedure TPasNamesBuilder.PopNames;
+procedure TmwSimplePasParEx.PopNames;
 begin
   FPreviousNames.Free;
   FPreviousNames := FNameListStack.ExtractNames;
 end;
 
-function TPasNamesBuilder.PeekNames: TNameList;
+function TmwSimplePasParEx.PeekNames: TNameList;
 begin
   Result := FNameListStack.PeekNames;
 end;
 
-procedure TPasNamesBuilder.BeginName;
+procedure TmwSimplePasParEx.BeginName;
 var
   NameList: TNameList;
 begin
@@ -589,7 +589,7 @@ begin
   NameList.BeginName;
 end;
 
-procedure TPasNamesBuilder.EndName;
+procedure TmwSimplePasParEx.EndName;
 var
   NameList: TNameList;
 begin
@@ -602,13 +602,13 @@ begin
   NameList.EndName;
 end;
 
-procedure TPasNamesBuilder.DoHandleString(var AString: string);
+procedure TmwSimplePasParEx.DoHandleString(var AString: string);
 begin
   if Assigned(FOnHandleString) then
     FOnHandleString(AString);
 end;
 
-function TPasNamesBuilder.GetCurrentNames: TNameList;
+function TmwSimplePasParEx.GetCurrentNames: TNameList;
 begin
   Result := PeekNames;
 end;
