@@ -35,7 +35,8 @@ uses
   {$ENDIF}
   StringPool,
   DelphiAST, DelphiAST.Writer, DelphiAST.Classes,
-  SimpleParser.Lexer.Types, IOUtils, Diagnostics;
+  SimpleParser.Lexer.Types, IOUtils, Diagnostics,
+  DelphiAST.SimpleParserEx;
 
 {$IFNDEF FPC}
   {$R *.dfm}
