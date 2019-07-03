@@ -255,8 +255,8 @@ type
     procedure StringDQProc;
     procedure SymbolProc;
     procedure UnknownProc;
-    function GetToken: string;
-    function GetTokenLen: Integer;
+    function GetToken: string; inline;
+    function GetTokenLen: Integer; inline;
     function GetCompilerDirective: string;
     function GetDirectiveKind: TptTokenKind;
     function GetDirectiveParam: string;
