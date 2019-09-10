@@ -5,6 +5,7 @@ interface
 type
   TSyntaxNodeType = (
     ntUnknown,
+    ntAbsolute,
     ntAdd,
     ntAddr,
     ntAlignmentParam,
@@ -158,6 +159,7 @@ type
 const
   SyntaxNodeNames: array [TSyntaxNodeType] of string = (
     'unknown',
+    'absolute',
     'add',
     'addr',
     'alignmentparam',
