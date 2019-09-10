@@ -2584,13 +2584,12 @@ end;
 procedure TPasSyntaxTreeBuilder.RearrangeVarSection(const VarSect: TSyntaxNode);
 var
   Temp: TSyntaxNode;
-  VarList, Variable, TypeInfo, ValueInfo, AbsoluteInfo: TSyntaxNode;
+  VarList, Variable, TypeInfo, ValueInfo: TSyntaxNode;
 begin
   for VarList in VarSect.ChildNodes do
   begin
     TypeInfo := VarList.FindNode(ntType);
     ValueInfo := VarList.FindNode(ntValue);
-    AbsoluteInfo := VarList.FindNode(ntAbsolute);
     for Variable in VarList.ChildNodes do
     begin
       if Variable.Typ <> ntName then
@@ -2602,9 +2601,13 @@ begin
         if Assigned(TypeInfo) then
           FStack.AddChild(TypeInfo.Clone);
         if Assigned(ValueInfo) then
-          FStack.AddChild(ValueInfo.Clone);
-        if Assigned(AbsoluteInfo) then
-          FStack.AddChild(AbsoluteInfo.Clone);
+          FStack.AddChild(ValueInfo.Clone)
+        else
+        begin
+          Temp := VarList.FindNode([ntAbsolute, ntValue, ntExpression, ntIdentifier]);
+          if Assigned(Temp) then
+            FStack.AddChild(ntAbsolute).AddChild(Temp.Clone);
+        end;
       finally
         FStack.Pop;
       end;

@@ -53,9 +53,27 @@ type
     function AddChild(Typ: TSyntaxNodeType): TSyntaxNode; overload;
     procedure DeleteChild(Node: TSyntaxNode);
     procedure ExtractChild(Node: TSyntaxNode);
-
-    function FindNode(Typ: TSyntaxNodeType): TSyntaxNode;
-
+    function FindNode(Typ: TSyntaxNodeType): TSyntaxNode; overload;
+    // Searches for a node located along the path from the type of nodes
+    // specified in the TypesPath parameter.
+    // ntUnknown in the TypesPath parameter means a node of any type.
+    // For example, for the branch presented below as XML
+    // FindNode([ntAbsolute, ntValue, ntExpression, ntIdentifier]),
+    // FindNode([ntAbsolute, ntUnknown, ntExpression, ntIdentifier]) è
+    // FindNode([ntAbsolute, ntUnknown, ntUnknown, ntIdentifier])
+    // return the IDENTIFIER node.
+    // <VARIABLE line="9" col="3">
+    //   <NAME line="9" col="3" value="ValueRec"/>
+    //   <TYPE line="9" col="13" name="LongInt"/>
+    //   <ABSOLUTE line="9" col="21">
+    //     <VALUE line="9" col="30">
+    //       <EXPRESSION line="9" col="30">
+    //         <IDENTIFIER line="9" col="30" name="AValue"/>
+    //       </EXPRESSION>
+    //     </VALUE>
+    //   </ABSOLUTE>
+    // </VARIABLE>.
+    function FindNode(const TypesPath: array of TSyntaxNodeType): TSyntaxNode; overload;
     property Attributes: TArray<TAttributeEntry> read FAttributes;
     property ChildNodes: TArray<TSyntaxNode> read FChildNodes;
     property HasAttributes: Boolean read GetHasAttributes;
@@ -455,6 +473,33 @@ begin
     if FChildNodes[i].Typ = Typ then
       Exit(FChildNodes[i]);
   Result := nil;
+end;
+
+function TSyntaxNode.FindNode(const TypesPath: array of TSyntaxNodeType): TSyntaxNode;
+
+  function FindNodeRecursively(Node: TSyntaxNode;
+    const TypesPath: array of TSyntaxNodeType; TypeIndex: Integer): TSyntaxNode;
+  var
+    ChildNode: TSyntaxNode;
+  begin
+    Result := nil;
+    for ChildNode in Node.ChildNodes do
+      if TypesPath[TypeIndex] in [ChildNode.Typ] + [ntUnknown] then
+      begin
+        if TypeIndex < High(TypesPath) then
+          Result := FindNodeRecursively(ChildNode, TypesPath, TypeIndex + 1)
+        else
+          Result := ChildNode;
+        if Assigned(Result) then
+          Exit;
+      end;
+  end;
+
+begin
+  if TypesPath[High(TypesPath)] <> ntUnknown then
+    Result := FindNodeRecursively(Self, TypesPath, Low(TypesPath))
+  else
+    Result := nil;
 end;
 
 function TSyntaxNode.GetAttribute(const Key: TAttributeName): string;
