@@ -2613,44 +2613,10 @@ begin
   {$IFDEF VER190} // 2007.NET
   AddDefine('VER190');
   {$ENDIF}
-  {$IFDEF VER200} // 2009
-  AddDefine('VER200');
-  {$ENDIF}
-  {$IFDEF VER210} // 2010
-  AddDefine('VER210');
-  {$ENDIF}
-  {$IFDEF VER220} // XE
-  AddDefine('VER220');
-  {$ENDIF}
-  {$IFDEF VER230} // XE2
-  AddDefine('VER230');
-  {$ENDIF}
-  {$IFDEF VER240} // XE3
-  AddDefine('VER240');
-  {$ENDIF}
-  {$IFDEF VER250} // XE4
-  AddDefine('VER250');
-  {$ENDIF}
-  {$IFDEF VER260} // XE5
-  AddDefine('VER260');
-  {$ENDIF}
-  {$IFDEF VER270} // XE6
-  AddDefine('VER270');
-  {$ENDIF}
-  {$IFDEF VER280} // XE7
-  AddDefine('VER280');
-  {$ENDIF}
-  {$IFDEF VER290} // XE8
-  AddDefine('VER290');
-  {$ENDIF}
-  {$IFDEF VER300} // Seattle
-  AddDefine('VER300');
-  {$ENDIF}
-  {$IFDEF VER310} // Berlin
-  AddDefine('VER310');
-  {$ENDIF}
-  {$IFDEF VER320} // Tokyo
-  AddDefine('VER320');
+  {$IFDEF CONDITIONALEXPRESSIONS}
+    {$IF COMPILERVERSION > 19.0}
+    AddDefine('VER' + IntToStr(Round(10*CompilerVersion)));
+    {$ENDIF}
   {$ENDIF}
   {$IFDEF WIN32}
   AddDefine('WIN32');
