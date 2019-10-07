@@ -3213,6 +3213,8 @@ end;
 
 procedure TmwSimplePasPar.FieldDeclaration;
 begin
+  if TokenID = ptSquareOpen then
+    CustomAttribute;
   FieldNameList;
   Expected(ptColon);
   TypeKind;
@@ -3221,7 +3223,7 @@ end;
 
 procedure TmwSimplePasPar.FieldList;
 begin
-  while TokenID = ptIdentifier do
+  while TokenID in [ptIdentifier, ptSquareOpen] do
   begin
     FieldDeclaration;
     Semicolon;
