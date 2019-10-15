@@ -216,6 +216,7 @@ type
     procedure UnitId; override;
     procedure UsesClause; override;
     procedure UsedUnitName; override;
+    procedure VarAbsolute; override;
     procedure VarDeclaration; override;
     procedure VarName; override;
     procedure VarParameter; override;
@@ -2522,6 +2523,16 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.VarAbsolute;
+begin
+  FStack.Push(ntAbsolute);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.VarDeclaration;
 begin
   FStack.Push(ntVariables);
@@ -2583,17 +2594,20 @@ begin
     begin
       if Variable.Typ <> ntName then
         Continue;
-
       Temp := FStack.Push(ntVariable);
       try
         Temp.AssignPositionFrom(Variable);
-
         FStack.AddChild(Variable.Clone);
         if Assigned(TypeInfo) then
           FStack.AddChild(TypeInfo.Clone);
-
         if Assigned(ValueInfo) then
-          FStack.AddChild(ValueInfo.Clone);
+          FStack.AddChild(ValueInfo.Clone)
+        else
+        begin
+          Temp := VarList.FindNode([ntAbsolute, ntValue, ntExpression, ntIdentifier]);
+          if Assigned(Temp) then
+            FStack.AddChild(ntAbsolute).AddChild(Temp.Clone);
+        end;
       finally
         FStack.Pop;
       end;
