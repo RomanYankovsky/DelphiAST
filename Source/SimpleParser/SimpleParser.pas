@@ -3482,7 +3482,7 @@ begin
         case Lexer.AheadTokenID of
           ptPoint:
             begin
-              Expression;
+              TypeId;
             end;
           ptRoundOpen, ptDotDot:
             begin
