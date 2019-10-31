@@ -68,6 +68,8 @@ end;
 
 procedure TStringPool.StringIntern(var s: string);
 
+{$OVERFLOWCHECKS OFF}
+
   function HashString(const s: string): Cardinal; inline;
   var
     i: Integer;
@@ -77,6 +79,8 @@ procedure TStringPool.StringIntern(var s: string);
     for i := 1 to Result do
       Result := (Result xor Ord(s[i])) * 16777619;
   end;
+
+{$OVERFLOWCHECKS ON}
 
 var
   hash: Cardinal;
