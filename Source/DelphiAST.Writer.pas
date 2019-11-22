@@ -17,14 +17,20 @@ type
   public
     class function ToXML(const Root: TSyntaxNode;
       Formatted: Boolean = False): string; static;
-    class function ToBinary(const Root: TSyntaxNode; Stream: TStream): Boolean; static;
+
+    {$IFNDEF FPC}
+      class function ToBinary(const Root: TSyntaxNode; Stream: TStream): Boolean; static;
+    {$ENDIF}
   end;
 
 implementation
 
 uses
   Generics.Collections,
-  DelphiAST.Consts, DelphiAST.Serialize.Binary;
+  {$IFNDEF FPC}
+    DelphiAST.Serialize.Binary,
+  {$ENDIF}
+  DelphiAST.Consts;
 
 {$I SimpleParser.inc}
 {$IFDEF D18_NEWER}
@@ -33,7 +39,7 @@ uses
 
 { TSyntaxTreeWriter }
 
-class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder; 
+class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
   const Node: TSyntaxNode; Formatted: Boolean);
 
   function XMLEncode(const Data: string): string;
@@ -109,7 +115,7 @@ class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
     if HasChildren then
     begin
       if Formatted then
-        Builder.Append(Indent); 
+        Builder.Append(Indent);
       Builder.Append('</' + UpperCase(SyntaxNodeNames[Node.Typ]) + '>');
       if Formatted then
         Builder.AppendLine;
@@ -120,6 +126,7 @@ begin
   NodeToXMLInternal(Node, '');
 end;
 
+{$IFNDEF FPC}
 class function TSyntaxTreeWriter.ToBinary(const Root: TSyntaxNode; Stream: TStream):
   Boolean;
 var
@@ -130,8 +137,9 @@ begin
     Result := Writer.Write(Stream, Root);
   finally FreeAndNil(Writer); end;
 end;
+{$ENDIF}
 
-class function TSyntaxTreeWriter.ToXML(const Root: TSyntaxNode; 
+class function TSyntaxTreeWriter.ToXML(const Root: TSyntaxNode;
   Formatted: Boolean): string;
 var
   Builder: TStringBuilder;
