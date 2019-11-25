@@ -1236,7 +1236,7 @@ var
   HashKey: Integer;
 begin
   HashKey := KeyHash;
-  if HashKey < 192 then
+  if (HashKey < 192) and (FTokenID <> ptDoubleAddressOp) then
     Result := FIdentFuncTable[HashKey]
   else
     Result := ptIdentifier;
@@ -2567,6 +2567,7 @@ end;
 
 procedure TmwBasePasLex.Init;
 begin
+  FTokenID := ptNull;
   FCommentState := csNo;
   FBuffer.LineNumber := 0;
   FBuffer.LinePos := 0;
