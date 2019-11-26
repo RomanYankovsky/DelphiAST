@@ -2511,7 +2511,10 @@ begin
     if CharInSet(FBuffer.Buf[TempRun - 1], ['+', ',', '-']) and (FBuffer.Buf[TempRun] = ' ')
       then Inc(TempRun);
   end;
-  if FBuffer.Buf[TempRun] = ' ' then Inc(TempRun);
+
+  while CharInSet(FBuffer.Buf[TempRun], [' ', #9]) do Inc(TempRun);
+  while CharInSet(FBuffer.Buf[EndPos - 1], [' ', #9]) do Dec(EndPos);
+
   ParamLen := EndPos - TempRun;
   SetString(Result, (FBuffer.Buf + TempRun), ParamLen);
   Result := UpperCase(Result);
