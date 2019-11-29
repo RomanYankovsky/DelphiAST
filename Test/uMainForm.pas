@@ -14,6 +14,15 @@ uses
   SimpleParser.Lexer.Types;
 
 type
+  TIncludeHandler = class(TInterfacedObject, IIncludeHandler)
+  private
+    FPath: string;
+  public
+    constructor Create(const Path: string);
+    function GetIncludeFileContent(const ParentFileName, IncludeName: string;
+      out Content: string; out FileName: string): Boolean;
+  end;
+
   TForm2 = class(TForm)
     memLog: TMemo;
     btnRun: TButton;
@@ -22,14 +31,6 @@ type
     { Private declarations }
   public
     { Public declarations }
-  end;
-
-  TIncludeHandler = class(TInterfacedObject, IIncludeHandler)
-  private
-    FPath: string;
-  public
-    constructor Create(const Path: string);
-    function GetIncludeFileContent(const FileName: string): string;
   end;
 
 var
@@ -82,14 +83,17 @@ begin
   FPath := Path;
 end;
 
-function TIncludeHandler.GetIncludeFileContent(const FileName: string): string;
+function TIncludeHandler.GetIncludeFileContent(const ParentFileName, IncludeName: string;
+  out Content: string; out FileName: string): Boolean;
 var
   FileContent: TStringList;
 begin
   FileContent := TStringList.Create;
   try
-    FileContent.LoadFromFile(TPath.Combine(FPath, FileName));
-    Result := FileContent.Text;
+    FileName := TPath.Combine(FPath, IncludeName);
+    FileContent.LoadFromFile(FileName);
+    Content := FileContent.Text;
+    Result := True;
   finally
     FileContent.Free;
   end;

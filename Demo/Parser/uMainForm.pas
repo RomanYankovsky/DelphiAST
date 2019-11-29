@@ -50,7 +50,8 @@ type
     FPath: string;
   public
     constructor Create(const Path: string);
-    function GetIncludeFileContent(const FileName: string): string;
+    function GetIncludeFileContent(const ParentFileName, IncludeName: string;
+      out Content: string; out FileName: string): Boolean;
   end;
 
 {$IFNDEF FPC}
@@ -135,20 +136,24 @@ begin
   FPath := Path;
 end;
 
-function TIncludeHandler.GetIncludeFileContent(const FileName: string): string;
+function TIncludeHandler.GetIncludeFileContent(const ParentFileName, IncludeName: string;
+  out Content: string; out FileName: string): Boolean;
 var
   FileContent: TStringList;
 begin
   FileContent := TStringList.Create;
   try
-    if not FileExists(TPath.Combine(FPath, FileName)) then
+    if not FileExists(TPath.Combine(FPath, IncludeName)) then
     begin
-      Result := '';
+      Result := False;
       Exit;
     end;
 
-    FileContent.LoadFromFile(TPath.Combine(FPath, FileName));
-    Result := FileContent.Text;
+    FileContent.LoadFromFile(TPath.Combine(FPath, IncludeName));
+    Content := FileContent.Text;
+    FileName := TPath.Combine(FPath, IncludeName);
+
+    Result := True;
   finally
     FileContent.Free;
   end;

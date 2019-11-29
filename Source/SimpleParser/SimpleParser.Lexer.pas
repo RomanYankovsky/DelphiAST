@@ -2545,25 +2545,29 @@ end;
 
 procedure TmwBasePasLex.IncludeFile;
 var
-  IncludeFileName, IncludeDirective, Content: string;
+  IncludeName, IncludeDirective, Content, FileName: string;
   NewBuffer: PBufferRec;
 begin
   IncludeDirective := Token;
-  IncludeFileName := GetIncludeFileNameFromToken(IncludeDirective);
-  Content := FIncludeHandler.GetIncludeFileContent(IncludeFileName) + #13#10;
+  IncludeName := GetIncludeFileNameFromToken(IncludeDirective);
 
-  New(NewBuffer);
-  NewBuffer.SharedBuffer := False;
-  NewBuffer.Next := FBuffer;
-  NewBuffer.LineNumber := 0;
-  NewBuffer.LinePos := 0;
-  NewBuffer.Run := 0;
-  NewBuffer.FileName := IncludeFileName;
-  GetMem(NewBuffer.Buf, (Length(Content) + 1) * SizeOf(Char));
-  StrPCopy(NewBuffer.Buf, Content);
-  NewBuffer.Buf[Length(Content)] := #0;
+  if FIncludeHandler.GetIncludeFileContent(FBuffer.FileName, IncludeName, Content, FileName) then
+  begin
+    Content := Content + #13#10;
 
-  FBuffer := NewBuffer;
+    New(NewBuffer);
+    NewBuffer.SharedBuffer := False;
+    NewBuffer.Next := FBuffer;
+    NewBuffer.LineNumber := 0;
+    NewBuffer.LinePos := 0;
+    NewBuffer.Run := 0;
+    NewBuffer.FileName := FileName;
+    GetMem(NewBuffer.Buf, (Length(Content) + 1) * SizeOf(Char));
+    StrPCopy(NewBuffer.Buf, Content);
+    NewBuffer.Buf[Length(Content)] := #0;
+
+    FBuffer := NewBuffer;
+  end;
 
   Next;
 end;
