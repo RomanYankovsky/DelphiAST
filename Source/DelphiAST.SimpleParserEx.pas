@@ -264,7 +264,7 @@ begin
     Result := Result + Token;
   end;
   if FParser.LowerCaseNames then
-    Result := LowerCase(Result);
+    Result := Result.ToLower;
   FParser.DoHandleString(Result);
 end;
 
