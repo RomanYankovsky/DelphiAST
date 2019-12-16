@@ -2470,7 +2470,16 @@ begin
   { should be replaced with a Assembler lexer }
   while TokenID <> ptEnd do
     case FLexer.TokenID of
-      ptEnd: Break;
+      ptAddressOp:
+        begin
+          NextToken;
+          NextToken;
+        end;
+      ptDoubleAddressOp:
+        begin
+          NextToken;
+          NextToken;
+        end;
       ptNull:
         begin
           Expected(ptEnd);

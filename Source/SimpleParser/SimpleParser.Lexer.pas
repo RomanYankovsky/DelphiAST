@@ -54,11 +54,17 @@ unit SimpleParser.Lexer;
 interface
 
 uses
-  SysUtils, Classes, Character, 
+  SysUtils, Classes, Character,
   {$IFDEF FPC}
-    Generics.Collections, 
+    Generics.Collections,
   {$ENDIF}
   SimpleParser.Lexer.Types;
+
+{$IFDEF FPC}
+const
+  CompilerVersion = 0;
+  RTLVersion = 0;
+{$ENDIF}
 
 var
   Identifiers: array[#0..#127] of ByteBool;
@@ -122,7 +128,7 @@ type
     FScopedEnums: Boolean;
     FIncludeHandler: IIncludeHandler;
     FOnComment: TCommentEvent;
-    
+
     function KeyHash: Integer;
     function KeyComp(const aKey: string): Boolean;
     function Func9: tptTokenKind;
@@ -1633,7 +1639,7 @@ begin
     PtScopedEnumsDirect:
       begin
         UpdateScopedEnums;
-      end;      
+      end;
     PtUndefDirect:
       begin
         if FUseDefines and (FDefineStack = 0) then
@@ -2188,7 +2194,7 @@ begin
     PtScopedEnumsDirect:
       begin
         UpdateScopedEnums;
-      end;      
+      end;
     PtUndefDirect:
       begin
         if Assigned(FOnUnDefDirect) then
@@ -2469,7 +2475,7 @@ begin
     134:
       if KeyComp('SCOPEDENUMS') then
         Result := ptScopedEnumsDirect else
-        Result := ptCompDirect;        
+        Result := ptCompDirect;
   else Result := ptCompDirect;
   end;
   FTokenPos := TempPos;
@@ -2505,7 +2511,10 @@ begin
     if CharInSet(FBuffer.Buf[TempRun - 1], ['+', ',', '-']) and (FBuffer.Buf[TempRun] = ' ')
       then Inc(TempRun);
   end;
-  if FBuffer.Buf[TempRun] = ' ' then Inc(TempRun);
+
+  while CharInSet(FBuffer.Buf[TempRun], [' ', #9]) do Inc(TempRun);
+  while CharInSet(FBuffer.Buf[EndPos - 1], [' ', #9]) do Dec(EndPos);
+
   ParamLen := EndPos - TempRun;
   SetString(Result, (FBuffer.Buf + TempRun), ParamLen);
   Result := UpperCase(Result);
@@ -2536,25 +2545,29 @@ end;
 
 procedure TmwBasePasLex.IncludeFile;
 var
-  IncludeFileName, IncludeDirective, Content: string;
+  IncludeName, IncludeDirective, Content, FileName: string;
   NewBuffer: PBufferRec;
 begin
   IncludeDirective := Token;
-  IncludeFileName := GetIncludeFileNameFromToken(IncludeDirective);
-  Content := FIncludeHandler.GetIncludeFileContent(IncludeFileName) + #13#10;
+  IncludeName := GetIncludeFileNameFromToken(IncludeDirective);
 
-  New(NewBuffer);
-  NewBuffer.SharedBuffer := False;
-  NewBuffer.Next := FBuffer;
-  NewBuffer.LineNumber := 0;
-  NewBuffer.LinePos := 0;
-  NewBuffer.Run := 0;
-  NewBuffer.FileName := IncludeFileName;
-  GetMem(NewBuffer.Buf, (Length(Content) + 1) * SizeOf(Char));
-  StrPCopy(NewBuffer.Buf, Content);
-  NewBuffer.Buf[Length(Content)] := #0;
+  if FIncludeHandler.GetIncludeFileContent(FBuffer.FileName, IncludeName, Content, FileName) then
+  begin
+    Content := Content + #13#10;
 
-  FBuffer := NewBuffer;
+    New(NewBuffer);
+    NewBuffer.SharedBuffer := False;
+    NewBuffer.Next := FBuffer;
+    NewBuffer.LineNumber := 0;
+    NewBuffer.LinePos := 0;
+    NewBuffer.Run := 0;
+    NewBuffer.FileName := FileName;
+    GetMem(NewBuffer.Buf, (Length(Content) + 1) * SizeOf(Char));
+    StrPCopy(NewBuffer.Buf, Content);
+    NewBuffer.Buf[Length(Content)] := #0;
+
+    FBuffer := NewBuffer;
+  end;
 
   Next;
 end;

@@ -80,7 +80,8 @@ type
     public
       constructor Create(indexer: TProjectIndexer; includeCache: TIncludeCache;
         problemList: TProblems; const currentFile: string);
-      function  GetIncludeFileContent(const fileName: string): string;
+      function  GetIncludeFileContent(const ParentFileName, FileName: string; out Content: string;
+        out filePath: string): Boolean;
     end;
 
   var
@@ -558,10 +559,9 @@ begin
 end;
 
 function TProjectIndexer.TIncludeHandler.GetIncludeFileContent(
-  const fileName: string): string;
+  const ParentFileName, fileName: string; out Content: string; out filePath: string): Boolean;
 var
   errorMsg   : string;
-  filePath   : string;
   fileStream : TStringStream;
   fName      : string;
   includeInfo: TIncludeInfo;
@@ -576,29 +576,37 @@ begin
 
   key := fName + #13 + FUnitFileFolder;
   if FIncludeCache.TryGetValue(key, includeInfo) then
-    Exit(includeInfo.Content);
+  begin
+    Content := includeInfo.Content;
+    filePath := includeInfo.FileName;
+    Exit(True);
+  end;
 
   if not FIndexer.FindFile(fName, FUnitFileFolder, filePath) then begin
     FProblems.LogProblem(ptCantFindFile, fName, 'Source folder: ' + FUnitFileFolder);
     includeInfo.FileName := '';
     includeInfo.Content := '';
     FIncludeCache.Add(key, includeInfo);
-    Exit('');
+    Exit(False);
   end;
 
   if FIncludeCache.TryGetValue(filePath, includeInfo) then
-    Exit(includeInfo.Content);
+  begin
+    Content := includeInfo.Content;
+    Exit(True);
+  end;
 
   if not TProjectIndexer.SafeOpenFileStream(filePath, fileStream, errorMsg) then begin
     FProblems.LogProblem(ptCantOpenFile, filePath, errorMsg);
-    Result := ''
+    Result := False;
   end
   else try
-    Result := fileStream.DataString;
+    Content := fileStream.DataString;
+    Result := True;
   finally FreeAndNil(fileStream); end;
 
   includeInfo.FileName := filePath;
-  includeInfo.Content := Result;
+  includeInfo.Content := Content;
   FIncludeCache.Add(fName + #13 + FUnitFileFolder, includeInfo);
   includeInfo.FileName := '';
   FIncludeCache.Add(filePath, includeInfo);
