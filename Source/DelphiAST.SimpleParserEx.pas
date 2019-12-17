@@ -104,6 +104,7 @@ type
       function ExtractNames: TNameList; inline;
       function PeekNames: TNameList; inline;
       function ToArray: TArray<TNameList>; inline;
+      function Count: Integer; inline;
     end;
   strict private
     FNameListStack: TNameListStack;
@@ -294,6 +295,11 @@ end;
 
 { TPasNamesBuilder.TNameListStack }
 
+function TmwSimplePasParEx.TNameListStack.Count: Integer;
+begin
+  Result := FNameListStack.Count;
+end;
+
 constructor TmwSimplePasParEx.TNameListStack.Create(
   const AParser: TmwSimplePasParEx);
 begin
@@ -357,9 +363,13 @@ procedure TmwSimplePasParEx.NextToken;
 var
   NameList: TNameList;
 begin
-  for NameList in FNameListStack.ToArray do
-    if (NameList.Count > 0) and not NameList.LastItem.EndNameCalled then
-      NameList.AddToken;
+  if FNameListStack.Count > 0 then
+  begin
+    for NameList in FNameListStack.ToArray do
+      if (NameList.Count > 0) and not NameList.LastItem.EndNameCalled then
+        NameList.AddToken;
+  end;
+
   inherited;
 end;
 
