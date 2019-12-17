@@ -33,12 +33,14 @@ type
       strict private type
         TNameItemToken = class
         strict private
+          FTokenFileName: string;
           FTokenPoint: TTokenPoint;
           FTokenPos: Integer;
           FTokenLen: Integer;
         public
-          constructor Create(const ATokenPoint: TTokenPoint;
-            const ATokenPos, ATokenLen: Integer);
+          constructor Create(const ATokenFileName: string;
+            const ATokenPoint: TTokenPoint; const ATokenPos, ATokenLen: Integer);
+          property TokenFileName: string read FTokenFileName;
           property TokenPoint: TTokenPoint read FTokenPoint;
           property TokenPos: Integer read FTokenPos;
           property TokenLen: Integer read FTokenLen;
@@ -46,16 +48,20 @@ type
       strict private
         FTokenList: TObjectList<TNameItemToken>;
         FEndNameCalled: Boolean;
+        function GetTokenFileName: string;
         function GetTokenPoint: TTokenPoint;
         function GetTokenPos: Integer;
         function GetTokenLen: Integer;
       public
-        constructor Create(const ATokenPoint: TTokenPoint;
-          const ATokenID: TptTokenKind; const ATokenPos, ATokenLen: Integer);
+        constructor Create(const ATokenFileName: string;
+          const ATokenPoint: TTokenPoint; const ATokenID: TptTokenKind;
+          const ATokenPos, ATokenLen: Integer);
         destructor Destroy; override;
-        procedure AddToken(const ATokenPoint: TTokenPoint;
-          const ATokenID: TptTokenKind; const ATokenPos, ATokenLen: Integer);
+        procedure AddToken(const ATokenFileName: string;
+          const ATokenPoint: TTokenPoint; const ATokenID: TptTokenKind;
+          const ATokenPos, ATokenLen: Integer);
         property TokenList: TObjectList<TNameItemToken> read FTokenList;
+        property TokenFileName: string read GetTokenFileName;
         property TokenPoint: TTokenPoint read GetTokenPoint;
         property TokenPos: Integer read GetTokenPos;
         property TokenLen: Integer read GetTokenLen;
@@ -155,8 +161,10 @@ end;
 { TmwSimplePasParEx.TNameList.TNameItem.TNameItemToken }
 
 constructor TmwSimplePasParEx.TNameList.TNameItem.TNameItemToken.Create(
-  const ATokenPoint: TTokenPoint; const ATokenPos, ATokenLen: Integer);
+  const ATokenFileName: string; const ATokenPoint: TTokenPoint;
+  const ATokenPos, ATokenLen: Integer);
 begin
+  FTokenFileName := ATokenFileName;
   FTokenPoint := ATokenPoint;
   FTokenPos := ATokenPos;
   FTokenLen := ATokenLen;
@@ -165,11 +173,11 @@ end;
 { TPasNamesBuilder.TNamesList.TNameItem }
 
 constructor TmwSimplePasParEx.TNameList.TNameItem.Create(
-  const ATokenPoint: TTokenPoint; const ATokenID: TptTokenKind;
-  const ATokenPos, ATokenLen: Integer);
+  const ATokenFileName: string; const ATokenPoint: TTokenPoint;
+  const ATokenID: TptTokenKind; const ATokenPos, ATokenLen: Integer);
 begin
   FTokenList := TObjectList<TNameItemToken>.Create(True);
-  AddToken(ATokenPoint, ATokenID, ATokenPos, ATokenLen);
+  AddToken(ATokenFileName, ATokenPoint, ATokenID, ATokenPos, ATokenLen);
 end;
 
 destructor TmwSimplePasParEx.TNameList.TNameItem.Destroy;
@@ -179,12 +187,18 @@ begin
 end;
 
 procedure TmwSimplePasParEx.TNameList.TNameItem.AddToken(
-  const ATokenPoint: TTokenPoint; const ATokenID: TptTokenKind;
-  const ATokenPos, ATokenLen: Integer);
+  const ATokenFileName: string; const ATokenPoint: TTokenPoint;
+  const ATokenID: TptTokenKind; const ATokenPos, ATokenLen: Integer);
 begin
   if not IsTokenIDJunk(ATokenID) and
       ((FTokenList.Count = 0) or (FTokenList.Last.TokenPos < ATokenPos)) then
-    FTokenList.Add(TNameItemToken.Create(ATokenPoint, ATokenPos, ATokenLen));
+    FTokenList.Add(TNameItemToken.Create(
+      ATokenFileName, ATokenPoint, ATokenPos, ATokenLen));
+end;
+
+function TmwSimplePasParEx.TNameList.TNameItem.GetTokenFileName: string;
+begin
+  Result := FTokenList[0].TokenFileName;
 end;
 
 function TmwSimplePasParEx.TNameList.TNameItem.GetTokenPoint: TTokenPoint;
@@ -224,7 +238,7 @@ end;
 
 procedure TmwSimplePasParEx.TNameList.BeginName;
 begin
-  FNameItems.Add(TNameItem.Create(Lexer.PosXY, Lexer.TokenID,
+  FNameItems.Add(TNameItem.Create(Lexer.FileName, Lexer.PosXY, Lexer.TokenID,
     Lexer.TokenPos, Lexer.TokenLen));
 end;
 
@@ -235,7 +249,7 @@ end;
 
 procedure TmwSimplePasParEx.TNameList.AddToken;
 begin
-  FNameItems.Last.AddToken(Lexer.PosXY, Lexer.TokenID,
+  FNameItems.Last.AddToken(Lexer.FileName, Lexer.PosXY, Lexer.TokenID,
     Lexer.TokenPos, Lexer.TokenLen);
 end;
 
