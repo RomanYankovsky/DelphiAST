@@ -1,4 +1,4 @@
-![](https://tokei.rs/b1/github/RomanYankovsky/DelphiAST?category=lines) ![](https://tokei.rs/b1/github/RomanYankovsky/DelphiAST?category=code) ![](https://tokei.rs/b1/github/RomanYankovsky/DelphiAST?category=files)
+[![](https://tokei.rs/b1/github/RomanYankovsky/DelphiAST?category=lines)](https://github.com/RomanYankovsky/DelphiAST) [![](https://tokei.rs/b1/github/RomanYankovsky/DelphiAST?category=code)](https://github.com/RomanYankovsky/DelphiAST) [![](https://tokei.rs/b1/github/RomanYankovsky/DelphiAST?category=files)](https://github.com/RomanYankovsky/DelphiAST)
 ### Abstract Syntax Tree Builder for Delphi 
 With DelphiAST you can take real Delphi code and get an abstract syntax tree. One unit at time and without a symbol table though. 
 
