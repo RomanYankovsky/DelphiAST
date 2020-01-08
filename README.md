@@ -1,3 +1,4 @@
+![](https://tokei.rs/b1/github/RomanYankovsky/DelphiAST?category=lines) ![](https://tokei.rs/b1/github/RomanYankovsky/DelphiAST?category=code) ![](https://tokei.rs/b1/github/RomanYankovsky/DelphiAST?category=files)
 ### Abstract Syntax Tree Builder for Delphi 
 With DelphiAST you can take real Delphi code and get an abstract syntax tree. One unit at time and without a symbol table though. 
 
@@ -83,7 +84,7 @@ end.
 ```
 
 #### Copyright
-Copyright (c) 2014-2019 Roman Yankovsky (roman@yankovsky.me) et al
+Copyright (c) 2014-2020 Roman Yankovsky (roman@yankovsky.me) et al
 
 DelphiAST is released under the Mozilla Public License, v. 2.0
 
