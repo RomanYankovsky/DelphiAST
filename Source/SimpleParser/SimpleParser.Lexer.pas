@@ -2577,6 +2577,7 @@ begin
   FCommentState := csNo;
   FBuffer.LineNumber := 0;
   FBuffer.LinePos := 0;
+  FBuffer.Run := 0;
 end;
 
 procedure TmwBasePasLex.InitFrom(ALexer: TmwBasePasLex);
