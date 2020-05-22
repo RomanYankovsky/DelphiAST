@@ -4134,7 +4134,7 @@ begin
   end;
   while TheTokenID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptFar,
     ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
-    ptReintroduce, ptSafeCall, ptStdCall, ptVirtual, ptStatic, ptInline] do
+    ptReintroduce, ptSafeCall, ptStdCall, ptVirtual, ptStatic, ptInline, ptVarargs] do
   // DR 2001-11-14 no checking for deprecated etc. since it's captured by the typedecl
   begin
     if TokenID = ptSemiColon then Semicolon;
