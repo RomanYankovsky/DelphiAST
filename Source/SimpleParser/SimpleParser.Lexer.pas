@@ -1878,11 +1878,10 @@ end;
 
 function TmwBasePasLex.IsIdentifiers(AChar: Char): Boolean;
 begin
-{$IFDEF SUPPORTS_INTRINSIC_HELPERS}
-  Result := (AChar.IsLetterOrDigit) or (AChar = '_');
-{$ELSE}
-  Result := TCharacter.IsLetterOrDigit(AChar) or (AChar = '_');
-{$ENDIF}
+  // assuming Delphi identifier may include letters, digits, underscore symbol
+  // and any character over 127 except surrogates
+  Result := TCharacter.IsLetterOrDigit(AChar) or (AChar = '_')
+    or ((Ord(AChar) > 127) and not TCharacter.IsHighSurrogate(AChar) and not TCharacter.IsLowSurrogate(AChar));
 end;
 
 procedure TmwBasePasLex.LFProc;
