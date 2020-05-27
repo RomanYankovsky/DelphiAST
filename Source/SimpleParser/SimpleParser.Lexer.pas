@@ -2629,7 +2629,7 @@ begin
   {$IFDEF CONDITIONALEXPRESSIONS}
     {$IF COMPILERVERSION > 19.0}
     AddDefine('VER' + IntToStr(Round(10*CompilerVersion)));
-    {$ENDIF}
+    {$IFEND}
   {$ENDIF}
   {$IFDEF WIN32}
   AddDefine('WIN32');
@@ -2651,6 +2651,9 @@ begin
   {$ENDIF}
   {$IFDEF POSIX32}
   AddDefine('POSIX32');
+  {$ENDIF}
+  {$IFDEF POSIX64}
+  AddDefine('POSIX64');
   {$ENDIF}
   {$IFDEF CPUARM}
   AddDefine('CPUARM');
@@ -2685,17 +2688,26 @@ begin
   {$IFDEF MACOS32}
   AddDefine('MACOS32');
   {$ENDIF}
+  {$IFDEF MACOS64}
+  AddDefine('MACOS64');
+  {$ENDIF}
   {$IFDEF IOS}
   AddDefine('IOS');
   {$ENDIF}
   {$IFDEF IOS32}
   AddDefine('IOS32');
   {$ENDIF}
+  {$IFDEF IOS64}
+  AddDefine('IOS64');
+  {$ENDIF}
   {$IFDEF ANDROID}
   AddDefine('ANDROID');
   {$ENDIF}
   {$IFDEF ANDROID32}
   AddDefine('ANDROID32');
+  {$ENDIF}
+  {$IFDEF ANDROID64}
+  AddDefine('ANDROID64');
   {$ENDIF}
   {$IFDEF CONSOLE}
   AddDefine('CONSOLE');
