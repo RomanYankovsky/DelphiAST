@@ -16,7 +16,7 @@ type
     constructor Create(Line, Col: Integer; const FileName, Msg: string; SyntaxTree: TSyntaxNode); reintroduce;
     destructor Destroy; override;
 
-    property SyntaxTree: TSyntaxNode read FSyntaxTree;
+    property SyntaxTree: TSyntaxNode read FSyntaxTree write FSyntaxTree;
   end;
 
   TNodeStack = class
