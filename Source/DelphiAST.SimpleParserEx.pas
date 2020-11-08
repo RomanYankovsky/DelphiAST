@@ -269,7 +269,7 @@ begin
   Result := OriginalNames[Index];
   if FParser.LowerCaseNames then
   begin
-    Result := Result.ToLower;
+    Result := AnsiLowerCase(Result);
     FParser.DoHandleString(Result);
   end;
 end;
