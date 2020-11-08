@@ -266,6 +266,7 @@ type
     procedure ClassMethodHeading; virtual;
     procedure ClassMethodOrProperty; virtual;
     procedure ClassMethodResolution; virtual;
+    procedure ClassOperatorHeading; virtual;
     procedure ClassProcedureHeading; virtual;
     procedure ClassClass; virtual;
     procedure ClassConstraint; virtual;
@@ -1554,15 +1555,22 @@ begin
         begin
           DestructorHeading;
         end;
-      ptFunction, ptIdentifier:
+      ptFunction:
         begin
-          if (TokenID = ptIdentifier) and (Lexer.ExID <> ptOperator) then
-            Expected(ptOperator);
           ClassFunctionHeading;
         end;
       ptProcedure:
         begin
           ClassProcedureHeading;
+        end;
+      ptIdentifier:
+        begin
+          if Lexer.ExID = ptOperator then
+          begin
+            ClassOperatorHeading;
+          end
+          else
+            SynError(InvalidProcedureMethodDeclaration);
         end;
     else
       SynError(InvalidClassMethodHeading);
@@ -1572,8 +1580,6 @@ end;
 
 procedure TmwSimplePasPar.ClassFunctionHeading;
 begin
-  if (TokenID = ptIdentifier) and (Lexer.ExID = ptOperator) then
-    Expected(ptIdentifier) else
   Expected(ptFunction);
   FunctionProcedureName;
   if TokenID = ptRoundOpen then
@@ -1640,6 +1646,27 @@ begin
   Expected(ptEqual);
   FunctionMethodName;
   Semicolon;
+end;
+
+procedure TmwSimplePasPar.ClassOperatorHeading;
+begin
+  ExpectedEx(ptOperator);
+  FunctionProcedureName;
+  if TokenID = ptRoundOpen then
+  begin
+    FormalParameterList;
+  end;
+
+  if TokenID = ptColon then
+  begin
+    Expected(ptColon);
+    ReturnType;
+  end;
+
+  if TokenId = ptSemicolon then
+    Semicolon;
+  if ExID in ClassMethodDirectiveEnum then
+    ClassMethodDirective;
 end;
 
 procedure TmwSimplePasPar.ResolutionInterfaceName;
