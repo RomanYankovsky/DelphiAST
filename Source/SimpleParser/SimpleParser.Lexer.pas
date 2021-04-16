@@ -2528,6 +2528,7 @@ function TmwBasePasLex.GetIncludeFileNameFromToken(const IncludeToken: string): 
 var
   FileNameStartPos, CurrentPos: integer;
   TrimmedToken: string;
+  QuotedFileName: Boolean;
 begin
   TrimmedToken := Trim(IncludeToken);
   CurrentPos := 1;
@@ -2535,8 +2536,14 @@ begin
     inc(CurrentPos);
   while TrimmedToken[CurrentPos] <= #32 do
     inc(CurrentPos);
+  QuotedFileName := TrimmedToken[CurrentPos] = '''';
+  if QuotedFileName then
+    inc(CurrentPos);
   FileNameStartPos := CurrentPos;
-  while (TrimmedToken[CurrentPos] > #32) and (TrimmedToken[CurrentPos] <> '}')  do
+  while (TrimmedToken[CurrentPos] <> '}')
+    and (TrimmedToken[CurrentPos] <> '''')
+    and ((TrimmedToken[CurrentPos] > #32) or QuotedFileName)
+  do
     inc(CurrentPos);
 
   Result := Copy(TrimmedToken, FileNameStartPos, CurrentPos - FileNameStartPos);
