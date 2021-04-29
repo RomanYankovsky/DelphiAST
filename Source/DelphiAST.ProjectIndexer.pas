@@ -457,7 +457,7 @@ var
 begin
   Result := true;
   try
-    readStream := TFileStream.Create(fileName, fmOpenRead);
+    readStream := TFileStream.Create(fileName, fmOpenRead or fmShareDenyWrite);
   except
     on E: EFCreateError do begin
       errorMsg := E.Message;
