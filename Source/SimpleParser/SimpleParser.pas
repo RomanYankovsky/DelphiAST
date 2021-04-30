@@ -2230,7 +2230,7 @@ begin
     InlineVarDeclaration;
   end
   else
-    QualifiedIdentifier;
+    Variable;
 
   if Lexer.TokenID = ptAssign then
   begin
