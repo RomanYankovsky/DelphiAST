@@ -94,6 +94,7 @@ type
     procedure ClassProperty; override;
     procedure ClassReferenceType; override;
     procedure ClassType; override;
+    procedure ClassVar; override;
     procedure CompoundStatement; override;
     procedure ConstParameter; override;
     procedure ConstantDeclaration; override;
@@ -721,9 +722,13 @@ end;
 
 procedure TPasSyntaxTreeBuilder.ClassField;
 var
-  Fields, Temp: TSyntaxNode;
+  Fields, Temp, Parent: TSyntaxNode;
   Field, TypeInfo, TypeArgs: TSyntaxNode;
+  IsClassVar: Boolean;
 begin
+  Parent := FStack.Peek;  
+  IsClassVar := (Parent.Typ = ntVariables) and Parent.HasAttribute(anClass);
+
   Fields := TSyntaxNode.Create(ntFields);
   try
     FStack.Push(Fields);
@@ -743,6 +748,8 @@ begin
       Temp := FStack.Push(ntField);
       try
         Temp.AssignPositionFrom(Field);
+        if IsClassVar then
+          Temp.SetAttribute(anClass, AttributeValues[atTrue]);
 
         FStack.AddChild(Field.Clone);
         TypeInfo := TypeInfo.Clone;
@@ -840,6 +847,26 @@ begin
     inherited;
   finally
     MoveMembersToVisibilityNodes(FStack.Pop);
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ClassVar;
+var
+  FieldNode, Variables: TSyntaxNode;
+begin
+  Variables := FStack.Push(ntVariables);
+  try
+    Variables.SetAttribute(anClass, AttributeValues[atTrue]);
+    inherited;    
+  finally
+    FStack.Pop;
+  end;
+  
+  try
+    for FieldNode in Variables.ChildNodes do
+      FStack.AddChild(FieldNode.Clone);
+  finally
+    Variables.ParentNode.DeleteChild(Variables);
   end;
 end;
 
