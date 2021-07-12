@@ -757,7 +757,8 @@ function TmwBasePasLex.Func43: TptTokenKind;
 begin
   Result := ptIdentifier;
   if KeyComp('Int64') then FExID := ptInt64
-  else if KeyComp('local') then FExID := ptLocal;
+  else if KeyComp('local') then FExID := ptLocal
+  else if KeyComp('align') then Result := ptAlign;
 end;
 
 function TmwBasePasLex.Func44: TptTokenKind;
