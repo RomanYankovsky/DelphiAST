@@ -46,6 +46,7 @@ type
   TTokenPoint = packed record
     X: Integer;
     Y: Integer;
+    LineSeq: Integer;
   end;
 
   TptTokenKind = (

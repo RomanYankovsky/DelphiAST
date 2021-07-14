@@ -363,7 +363,6 @@ type
     property ScopedEnums: Boolean read FScopedEnums;
     property IncludeHandler: IIncludeHandler read FIncludeHandler write FIncludeHandler;
     property FileName: string read GetFileName;
-    property LineSeq: Integer read FLineSeq;
   end;
 
   TmwPasLex = class(TmwBasePasLex)
@@ -469,6 +468,7 @@ function TmwBasePasLex.GetPosXY: TTokenPoint;
 begin
   Result.Y := FBuffer.LineNumber + 1;
   Result.X := FTokenPos - FBuffer.LinePos + 1;
+  Result.LineSeq := FLineSeq;
 end;
 
 function TmwBasePasLex.GetRunPos: Integer;
@@ -2608,7 +2608,6 @@ begin
   FBuffer.Run := ALexer.RunPos;
   FTokenID := ALexer.TokenID;
   FExID := ALexer.ExID;
-  FLineSeq := ALexer.LineSeq;
   CloneDefinesFrom(ALexer);
 end;
 

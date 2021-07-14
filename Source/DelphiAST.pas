@@ -303,7 +303,7 @@ end;
 
 procedure AssignLexerPositionToNode(const Lexer: TPasLexer; const Node: TSyntaxNode);
 begin
-  Node.LineSeq := Lexer.LineSeq;
+  Node.LineSeq := Lexer.PosXY.LineSeq;
   Node.Col := Lexer.PosXY.X;
   Node.Line := Lexer.PosXY.Y;
   Node.FileName := Lexer.FileName;
@@ -575,7 +575,7 @@ var
   Col, Line, LineSeq: Integer;
   FileName: string;
 begin
-  LineSeq := Lexer.LineSeq;
+  LineSeq := Lexer.PosXY.LineSeq;
   Line := Lexer.PosXY.Y;
   Col := Lexer.PosXY.X;
   FileName := Lexer.FileName;
@@ -2117,7 +2117,7 @@ var
   FileName: string;
   LineSeq: Integer;
 begin
-  LineSeq := Lexer.LineSeq;
+  LineSeq := Lexer.PosXY.LineSeq;
   Position := Lexer.PosXY;
   FileName := Lexer.FileName;
 
@@ -2504,7 +2504,7 @@ var
   FileName: string;
   LineSeq: Integer;
 begin
-  LineSeq := Lexer.LineSeq;
+  LineSeq := Lexer.PosXY.LineSeq;
   Position := Lexer.PosXY;
   FileName := Lexer.FileName;
 
