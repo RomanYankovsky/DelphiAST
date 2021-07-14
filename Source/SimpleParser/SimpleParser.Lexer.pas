@@ -128,6 +128,7 @@ type
     FScopedEnums: Boolean;
     FIncludeHandler: IIncludeHandler;
     FOnComment: TCommentEvent;
+    FLineSeq: Integer;
 
     function KeyHash: Integer;
     function KeyComp(const aKey: string): Boolean;
@@ -362,6 +363,7 @@ type
     property ScopedEnums: Boolean read FScopedEnums;
     property IncludeHandler: IIncludeHandler read FIncludeHandler write FIncludeHandler;
     property FileName: string read GetFileName;
+    property LineSeq: Integer read FLineSeq;
   end;
 
   TmwPasLex = class(TmwBasePasLex)
@@ -1461,12 +1463,14 @@ begin
         end;
       #10:
         begin
+          Inc(FLineSeq);
           Inc(FBuffer.Run);
           Inc(FBuffer.LineNumber);
           FBuffer.LinePos := FBuffer.Run;
         end;
       #13:
         begin
+          Inc(FLineSeq);
           Inc(FBuffer.Run);
           if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
           Inc(FBuffer.LineNumber);
@@ -1509,12 +1513,14 @@ begin
         end;
       #10:
         begin
+          Inc(FLineSeq);
           Inc(FBuffer.Run);
           Inc(FBuffer.LineNumber);
           FBuffer.LinePos := FBuffer.Run;
         end;
       #13:
         begin
+          Inc(FLineSeq);
           Inc(FBuffer.Run);
           if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
           Inc(FBuffer.LineNumber);
@@ -1794,6 +1800,7 @@ begin
   else
     Inc(FBuffer.Run);
   end;
+  Inc(FLineSeq);
   Inc(FBuffer.LineNumber);
   FBuffer.LinePos := FBuffer.Run;
 end;
@@ -1893,6 +1900,7 @@ begin
   else
     FTokenID := ptCRLF;
   end;
+  Inc(FLineSeq);
   Inc(FBuffer.Run);
   Inc(FBuffer.LineNumber);
   FBuffer.LinePos := FBuffer.Run;
@@ -2063,12 +2071,14 @@ begin
         else Inc(FBuffer.Run);
       #10:
         begin
+          Inc(FLineSeq);
           Inc(FBuffer.Run);
           Inc(FBuffer.LineNumber);
           FBuffer.LinePos := FBuffer.Run;
         end;
       #13:
         begin
+          Inc(FLineSeq);
           Inc(FBuffer.Run);
           if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
           Inc(FBuffer.LineNumber);
@@ -2114,12 +2124,14 @@ begin
                 Inc(FBuffer.Run);
             #10:
               begin
+                Inc(FLineSeq);
                 Inc(FBuffer.Run);
                 Inc(FBuffer.LineNumber);
                 FBuffer.LinePos := FBuffer.Run;
               end;
             #13:
               begin
+                Inc(FLineSeq);
                 Inc(FBuffer.Run);
                 if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
                 Inc(FBuffer.LineNumber);
@@ -2585,6 +2597,7 @@ begin
   FBuffer.LineNumber := 0;
   FBuffer.LinePos := 0;
   FBuffer.Run := 0;
+  FLineSeq := 0;
 end;
 
 procedure TmwBasePasLex.InitFrom(ALexer: TmwBasePasLex);
@@ -2595,6 +2608,7 @@ begin
   FBuffer.Run := ALexer.RunPos;
   FTokenID := ALexer.TokenID;
   FExID := ALexer.ExID;
+  FLineSeq := ALexer.LineSeq;
   CloneDefinesFrom(ALexer);
 end;
 

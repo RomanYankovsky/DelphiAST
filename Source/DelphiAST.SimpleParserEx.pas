@@ -16,9 +16,11 @@ type
     function GetToken: string; inline;
     function GetPosXY: TTokenPoint; inline;
     function GetFileName: string;
+    function GetLineSeq: Integer;
   public
     constructor Create(const ALexer: TmwPasLex; AOnHandleString: TStringEvent);
     property FileName: string read GetFileName;
+    property LineSeq: Integer read GetLineSeq;
     property PosXY: TTokenPoint read GetPosXY;
     property Token: string read GetToken;
     property Lexer: TmwPasLex read FLexer;
@@ -144,6 +146,11 @@ end;
 function TPasLexer.GetFileName: string;
 begin
   Result := FLexer.Buffer.FileName;
+end;
+
+function TPasLexer.GetLineSeq: Integer;
+begin
+  Result := FLexer.LineSeq;
 end;
 
 function TPasLexer.GetPosXY: TTokenPoint;
