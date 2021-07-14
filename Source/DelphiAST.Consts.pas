@@ -153,7 +153,8 @@ type
     anReintroduce,
     anOverload,
     anAbstract,
-    anInline
+    anInline,
+    anAlign
   );
 
 const
@@ -307,7 +308,8 @@ const
     'reintroduce',
     'overload',
     'abstract',
-    'inline'
+    'inline',
+    'align'
   );
 
 implementation
