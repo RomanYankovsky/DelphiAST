@@ -468,7 +468,7 @@ function TmwBasePasLex.GetPosXY: TTokenPoint;
 begin
   Result.Y := FBuffer.LineNumber + 1;
   Result.X := FTokenPos - FBuffer.LinePos + 1;
-  Result.LineSeq := FLineSeq;
+  Result.LineSeq := FLineSeq + 1;
 end;
 
 function TmwBasePasLex.GetRunPos: Integer;
