@@ -9,7 +9,7 @@ uses
     Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
     Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
   {$ELSE}
-    SysUtils, Variants, Classes, Controls, Forms, StdCtrls,
+    SysUtils, Variants, Classes, Controls, Forms, StdCtrls, Dialogs, FileUtil,
   {$ENDIF}
   SimpleParser.Lexer.Types;
 
@@ -41,7 +41,11 @@ implementation
 uses
   FileCtrl, IOUtils, DelphiAST, DelphiAST.Classes;
 
-{$R *.dfm}
+{$IFNDEF FPC}
+  {$R *.dfm}
+{$ELSE}
+  {$R *.lfm}
+{$ENDIF}
 
 procedure TForm2.btnRunClick(Sender: TObject);
 var
@@ -54,7 +58,11 @@ begin
   if not SelectDirectory('Select Folder', '', Path) then
     Exit;
 
+  {$IFNDEF FPC}
   for FileName in TDirectory.GetFiles(Path, '*.pas', TSearchOption.soAllDirectories) do
+  {$ELSE}
+  for FileName in FindAllFiles(Path, '*.pas', true) do
+  {$ENDIF}
   begin
     try
       SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, False, TIncludeHandler.Create(Path));
