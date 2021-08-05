@@ -1,10 +1,11 @@
-unit managedrecords;
+unit alignedrecords;
 
 interface
 
 type
   TMyRecord = record
     Value: Integer;
+    Align: string;
     class operator Initialize (out Dest: TMyRecord);
     class operator Finalize(var Dest: TMyRecord);
   end align 8;

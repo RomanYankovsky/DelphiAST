@@ -4316,9 +4316,9 @@ end;
 
 procedure TmwSimplePasPar.RecordAlign;
 begin
-  if TokenID = ptAlign then
+  if ExID = ptAlign then
   begin
-    Expected(ptAlign);
+    NextToken;
     RecordAlignValue;
   end;
 end;
