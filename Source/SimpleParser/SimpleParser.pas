@@ -437,6 +437,8 @@ type
     procedure ReadAccessIdentifier; virtual;
     procedure RealIdentifier; virtual;
     procedure RealType; virtual;
+    procedure RecordAlign; virtual;
+    procedure RecordAlignValue; virtual;
     procedure RecordConstant; virtual;
     procedure RecordConstraint; virtual;
     procedure RecordFieldConstant; virtual;
@@ -3304,6 +3306,7 @@ begin
   Expected(ptEnd);
 
   ClassTypeEnd;
+  RecordAlign;
 end;
 
 procedure TmwSimplePasPar.FileType;
@@ -4309,6 +4312,20 @@ begin
       VariableReference;
     end;
   end;
+end;
+
+procedure TmwSimplePasPar.RecordAlign;
+begin
+  if ExID = ptAlign then
+  begin
+    NextToken;
+    RecordAlignValue;
+  end;
+end;
+
+procedure TmwSimplePasPar.RecordAlignValue;
+begin
+  Expected(ptIntegerConst);
 end;
 
 procedure TmwSimplePasPar.RecordFieldConstant;

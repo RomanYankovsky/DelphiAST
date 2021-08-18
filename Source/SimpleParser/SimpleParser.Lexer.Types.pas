@@ -54,6 +54,7 @@ type
     ptAbstract,
     ptAdd,
     ptAddressOp,
+    ptAlign,
     ptAmpersand,
     ptAnd,
     ptAnsiComment,

@@ -177,6 +177,7 @@ type
     procedure PropertyName; override;
     procedure PropertyParameterList; override;
     procedure RaiseStatement; override;
+    procedure RecordAlignValue; override;
     procedure RecordConstraint; override;
     procedure RecordFieldConstant; override;
     procedure RecordType; override;
@@ -991,6 +992,12 @@ begin
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.RecordAlignValue;
+begin
+  FStack.Peek.SetAttribute(anAlign, Lexer.Token);
+  inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.ConstSection;
