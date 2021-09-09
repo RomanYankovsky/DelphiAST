@@ -908,7 +908,7 @@ begin
   Result := ptIdentifier;
   if KeyComp('Single') then FExID := ptSingle else
     if KeyComp('Type') then Result := ptType else
-      if KeyComp('Unsafe') then Result := ptUnsafe;
+      if KeyComp('Unsafe') then FExID := ptUnsafe;
 end;
 
 function TmwBasePasLex.Func69: TptTokenKind;

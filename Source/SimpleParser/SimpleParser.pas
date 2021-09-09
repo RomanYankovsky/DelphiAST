@@ -180,7 +180,8 @@ const
     ptFinal,
     ptExperimental,
     ptDispId,
-    ptNoreturn
+    ptNoreturn,
+    ptUnsafe
   ];
 
 type
@@ -4860,38 +4861,18 @@ end;
 procedure TmwSimplePasPar.ProceduralDirective;
 begin
   case GenID of
-    ptAbstract:
-      begin
-        DirectiveBinding;
-      end;
+    ptAbstract, ptDynamic, ptMessage, ptNoreturn, ptOverload, ptOverride, ptReintroduce, ptVirtual:
+      DirectiveBinding;
     ptCdecl, ptPascal, ptRegister, ptSafeCall, ptStdCall:
-      begin
-        DirectiveCalling;
-      end;
+      DirectiveCalling;
     ptExport, ptFar, ptNear:
-      begin
-        Directive16Bit;
-      end;
+      Directive16Bit;
     ptExternal:
-      begin
-        ExternalDirective;
-      end;
-    ptDynamic, ptMessage, ptOverload, ptOverride, ptReintroduce, ptVirtual, ptNoreturn:
-      begin
-        DirectiveBinding;
-      end;
-    ptAssembler:
-      begin
-        NextToken;
-      end;
-    ptStatic:
-      begin
-        NextToken;
-      end;
+      ExternalDirective;
+    ptAssembler, ptFinal, ptExperimental, ptDelayed, ptStatic, ptUnsafe:
+      NextToken;
     ptInline:
-      begin
-        DirectiveInline;
-      end;
+      DirectiveInline;
     ptDeprecated:
       DirectiveDeprecated;
     ptLibrary:
@@ -4902,12 +4883,8 @@ begin
       DirectiveLocal;
     ptVarargs:
       DirectiveVarargs;
-    ptFinal, ptExperimental, ptDelayed:
-      NextToken;
   else
-    begin
-      SynError(InvalidProceduralDirective);
-    end;
+    SynError(InvalidProceduralDirective);
   end;
 end;
 
