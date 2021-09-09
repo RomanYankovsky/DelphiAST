@@ -112,6 +112,7 @@ type
     procedure DirectiveBindingMessage; override;
     procedure DirectiveCalling; override;
     procedure DirectiveInline; override;
+    procedure DirectiveVarargs; override;
     procedure DispInterfaceForward; override;
     procedure DotOp; override;
     procedure ElseExpression; override;
@@ -294,7 +295,8 @@ uses
 type
   TAttributeValue = (atAsm, atTrue, atFunction, atProcedure, atClassOf, atClass,
     atConst, atConstructor, atDestructor, atEnum, atInterface, atNil, atNumeric,
-    atOut, atPointer, atName, atString, atSubRange, atVar, atDispInterface);
+    atOut, atPointer, atName, atString, atSubRange, atVar, atDispInterface,
+    atVarargs);
 
 var
   AttributeValues: array[TAttributeValue] of string;
@@ -1149,6 +1151,16 @@ procedure TPasSyntaxTreeBuilder.DirectiveInline;
 begin
   FStack.Peek.SetAttribute(anInline, AttributeValues[atTrue]);
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.DirectiveVarargs;
+begin
+  FStack.Push(ntExternal).SetAttribute(anType, AttributeValues[atVarArgs]);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.DispInterfaceForward;
