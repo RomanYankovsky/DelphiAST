@@ -232,6 +232,7 @@ type
     procedure AmpersandOpProc;
     procedure AsciiCharProc;
     procedure AnsiProc;
+    procedure BinaryIntegerProc;
     procedure BorProc;
     procedure BraceCloseProc;
     procedure BraceOpenProc;
@@ -1257,12 +1258,13 @@ begin
       #1..#9, #11, #12, #14..#32: FProcTable[I] := SpaceProc;
       '#': FProcTable[I] := AsciiCharProc;
       '$': FProcTable[I] := IntegerProc;
+      '%': FProcTable[I] := BinaryIntegerProc;
       #39: FProcTable[I] := StringProc;
       '0'..'9': FProcTable[I] := NumberProc;
       'A'..'Z', 'a'..'z', '_': FProcTable[I] := IdentProc;
       '{': FProcTable[I] := BraceOpenProc;
       '}': FProcTable[I] := BraceCloseProc;
-      '!', '"', '%', '&', '('..'/', ':'..'@', '['..'^', '`', '~':
+      '!', '"', '&', '('..'/', ':'..'@', '['..'^', '`', '~':
         begin
           case I of
             '(': FProcTable[I] := RoundOpenProc;
@@ -1433,6 +1435,14 @@ begin
   FTokenID := ptError;
   if Assigned(FOnMessage) then
     FOnMessage(Self, meError, 'Illegal character', PosXY.X, PosXY.Y);
+end;
+
+procedure TmwBasePasLex.BinaryIntegerProc;
+begin
+  Inc(FBuffer.Run);
+  FTokenID := ptIntegerConst;
+  while CharInSet(FBuffer.Buf[FBuffer.Run], ['0', '1', '_']) do
+    Inc(FBuffer.Run);
 end;
 
 procedure TmwBasePasLex.BorProc;
@@ -1870,7 +1880,7 @@ procedure TmwBasePasLex.IntegerProc;
 begin
   Inc(FBuffer.Run);
   FTokenID := ptIntegerConst;
-  while CharInSet(FBuffer.Buf[FBuffer.Run], ['0'..'9', 'A'..'F', 'a'..'f']) do
+  while CharInSet(FBuffer.Buf[FBuffer.Run], ['0'..'9', 'A'..'F', 'a'..'f', '_']) do
     Inc(FBuffer.Run);
 end;
 
@@ -1952,7 +1962,7 @@ procedure TmwBasePasLex.NumberProc;
 begin
   Inc(FBuffer.Run);
   FTokenID := ptIntegerConst;
-  while CharInSet(FBuffer.Buf[FBuffer.Run], ['0'..'9', '.', 'e', 'E']) do
+  while CharInSet(FBuffer.Buf[FBuffer.Run], ['0'..'9', '.', 'e', 'E', '_']) do
   begin
     case FBuffer.Buf[FBuffer.Run] of
       '.':
