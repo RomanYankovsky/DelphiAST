@@ -925,7 +925,8 @@ end;
 function TmwBasePasLex.Func72: TptTokenKind;
 begin
   Result := ptIdentifier;
-  if KeyComp('Static') then FExID := ptStatic;
+  if KeyComp('Static') then FExID := ptStatic else
+    if KeyComp('WinApi') then FExID := ptWinApi;
 end;
 
 function TmwBasePasLex.Func73: TptTokenKind;

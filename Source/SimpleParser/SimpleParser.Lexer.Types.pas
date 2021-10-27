@@ -262,6 +262,7 @@ type
     ptWhile,
     ptWideChar,
     ptWideString,
+    ptWinApi,
     ptWith,
     ptWord,
     ptWordBool,

@@ -172,6 +172,7 @@ const
     ptSafeCall,
     ptStdCall,
     ptVirtual,
+    ptWinApi,
     ptDeprecated,
     ptLibrary,
     ptPlatform,
@@ -1837,7 +1838,7 @@ procedure TmwSimplePasPar.ObjectMethodDirective;
 begin
   while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptFar,
     ptMessage, ptNear, ptOverload, ptPascal, ptRegister, ptSafeCall, ptStdCall,
-    ptVirtual, ptDeprecated, ptLibrary, ptPlatform, ptStatic, ptInline] do
+    ptVirtual, ptWinApi, ptDeprecated, ptLibrary, ptPlatform, ptStatic, ptInline] do
   begin
     ProceduralDirective;
     if TokenID = ptSemiColon then Semicolon;
@@ -2127,7 +2128,7 @@ begin
 
   while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptDelayed, ptFar,
     ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
-    ptReintroduce, ptSafeCall, ptStdCall, ptVirtual, ptLibrary,
+    ptReintroduce, ptSafeCall, ptStdCall, ptVirtual, ptWinApi, ptLibrary,
     ptPlatform, ptLocal, ptVarargs, ptAssembler, ptStatic, ptInline, ptForward,
     ptExperimental, ptDeprecated] do
   begin
@@ -3186,6 +3187,10 @@ begin
       begin
         NextToken;
       end;
+    ptWinApi:
+      begin
+        NextToken;
+      end;
   else
     begin
       SynError(InvalidDirectiveCalling);
@@ -4164,7 +4169,7 @@ begin
   end;
   while TheTokenID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptFar,
     ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
-    ptReintroduce, ptSafeCall, ptStdCall, ptVirtual, ptStatic, ptInline, ptVarargs] do
+    ptReintroduce, ptSafeCall, ptStdCall, ptVirtual, ptWinApi, ptStatic, ptInline, ptVarargs] do
   // DR 2001-11-14 no checking for deprecated etc. since it's captured by the typedecl
   begin
     if TokenID = ptSemiColon then Semicolon;
@@ -4802,7 +4807,7 @@ begin
       begin
         DirectiveBinding;
       end;
-    ptCdecl, ptPascal, ptRegister, ptSafeCall, ptStdCall:
+    ptCdecl, ptPascal, ptRegister, ptSafeCall, ptStdCall, ptWinApi:
       begin
         DirectiveCalling;
       end;
@@ -4870,7 +4875,7 @@ begin
   //TODO: Add FINAL
   while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptFar,
     ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
-    ptReintroduce, ptSafeCall, ptStdCall, ptVirtual,
+    ptReintroduce, ptSafeCall, ptStdCall, ptVirtual, ptWinApi,
     ptDeprecated, ptLibrary, ptPlatform, ptLocal, ptVarargs,
     ptStatic, ptInline, ptAssembler, ptForward, ptDelayed] do
   begin
