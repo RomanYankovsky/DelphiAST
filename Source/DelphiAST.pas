@@ -61,7 +61,9 @@ type
     procedure CallInheritedPropertyParameterList;
     procedure SetCurrentCompoundNodesEndPosition;
     procedure DoOnComment(Sender: TObject; const Text: string);
+    procedure PushRootNode(Typ: TSyntaxNodeType);
   protected
+    FRootNode: TSyntaxNode;
     FStack: TNodeStack;
     FComments: TObjectList<TCommentNode>;
     procedure AccessSpecifier; override;
@@ -145,6 +147,7 @@ type
     procedure Identifier; override;
     procedure ImplementationSection; override;
     procedure ImplementsSpecifier; override;
+    procedure IncludeFile; override;
     procedure IndexSpecifier; override;
     procedure IndexOp; override;
     procedure InheritedStatement; override;
@@ -157,6 +160,7 @@ type
     procedure InterfaceSection; override;
     procedure InterfaceType; override;
     procedure LabelId; override;
+    procedure LibraryFile; override;
     procedure MainUsesClause; override;
     procedure MainUsedUnitStatement; override;
     procedure MethodKind; override;
@@ -166,6 +170,7 @@ type
     procedure Number; override;
     procedure ObjectNameOfMethod; override;
     procedure OutParameter; override;
+    procedure PackageFile; override;
     procedure ParameterFormal; override;
     procedure ParameterName; override;
     procedure PointerSymbol; override;
@@ -174,6 +179,7 @@ type
     procedure ProcedureHeading; override;
     procedure ProcedureDeclarationSection; override;
     procedure ProcedureProcedureName; override;
+    procedure ProgramFile; override;
     procedure PropertyName; override;
     procedure PropertyParameterList; override;
     procedure RaiseStatement; override;
@@ -1501,6 +1507,16 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.IncludeFile;
+begin
+  PushRootNode(ntInclude);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.IndexOp;
 begin
   FStack.Push(ntIndexed);
@@ -1633,6 +1649,16 @@ procedure TPasSyntaxTreeBuilder.LabelId;
 begin
   FStack.AddValuedChild(ntLabel, Lexer.Token);
   inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.LibraryFile;
+begin
+  PushRootNode(ntLibrary);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.MainUsedUnitStatement;
@@ -1787,6 +1813,16 @@ begin
   end;
 end;
 
+procedure TPasSyntaxTreeBuilder.PackageFile;
+begin
+  PushRootNode(ntPackage);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
 procedure TPasSyntaxTreeBuilder.ParameterFormal;
 begin
   FStack.Push(ntParameters);
@@ -1866,6 +1902,16 @@ procedure TPasSyntaxTreeBuilder.PropertyName;
 begin
   FStack.Peek.SetAttribute(anName, Lexer.Token);
   inherited PropertyName;
+end;
+
+procedure TPasSyntaxTreeBuilder.ProgramFile;
+begin
+  PushRootNode(ntProgramm);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.PropertyParameterList;
@@ -2047,25 +2093,28 @@ end;
 
 function TPasSyntaxTreeBuilder.Run(SourceStream: TStream): TSyntaxNode;
 begin
-  Result := TSyntaxNode.Create(ntUnit);
   try
+    FRootNode := nil;
     FStack.Clear;
-    FStack.Push(Result);
-    try
-      self.OnMessage := ParserMessage;
-      inherited Run('', SourceStream);
-    finally
-      FStack.Pop;
-    end;
+    self.OnMessage := ParserMessage;
+    inherited Run('', SourceStream);
   except
     on E: EParserException do
-      raise ESyntaxTreeException.Create(E.Line, E.Col, Lexer.FileName, E.Message, Result);
+      if FRootNode <> nil then
+        raise ESyntaxTreeException.Create(E.Line, E.Col, Lexer.FileName, E.Message, FRootNode)
+      else
+        raise;
     on E: ESyntaxError do
-      raise ESyntaxTreeException.Create(E.PosXY.X, E.PosXY.Y, Lexer.FileName, E.Message, Result);
+      if FRootNode <> nil then
+        raise ESyntaxTreeException.Create(E.PosXY.X, E.PosXY.Y, Lexer.FileName, E.Message, FRootNode)
+      else
+        raise;
     else
-      FreeAndNil(Result);
+      FreeAndNil(FRootNode);
       raise;
   end;
+
+  Result := FRootNode;
 
   Assert(FStack.Count = 0);
 end;
@@ -2458,12 +2507,13 @@ begin
 end;
 
 procedure TPasSyntaxTreeBuilder.UnitFile;
-var
-  Temp: TSyntaxNode;
 begin
-  Temp := FStack.Peek;
-  AssignLexerPositionToNode(Lexer, Temp);
-  inherited;
+  PushRootNode(ntUnit);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
 end;
 
 procedure TPasSyntaxTreeBuilder.UnitId;
@@ -2728,6 +2778,16 @@ begin
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.PushRootNode(Typ: TSyntaxNodeType);
+begin
+  Assert(FRootNode = nil); 
+  Assert(FStack.Count = 0);
+   
+  FRootNode := TSyntaxNode.Create(Typ);
+
+  FStack.Push(FRootNode);
 end;
 
 { ESyntaxTreeException }
