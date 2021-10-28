@@ -1,0 +1,5 @@
+library libraryrootnode;
+
+begin
+
+end.
