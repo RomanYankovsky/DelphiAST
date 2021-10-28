@@ -47,6 +47,7 @@ procedure TForm2.btnRunClick(Sender: TObject);
 var
   Path, FileName: string;
   SyntaxTree: TSyntaxNode;
+  FileNames : TArray<string>;
 begin
   memLog.Clear;
 
@@ -54,7 +55,21 @@ begin
   if not SelectDirectory('Select Folder', '', Path) then
     Exit;
 
-  for FileName in TDirectory.GetFiles(Path, '*.pas', TSearchOption.soAllDirectories) do
+  FileNames :=
+    TDirectory.GetFiles(Path, TSearchOption.soAllDirectories,
+      function(const Path: string; const SearchRec: TSearchRec): Boolean
+      var
+        Extension : string;
+      begin
+        Extension := TPath.GetExtension(SearchRec.Name);
+
+        Result := SameText(extension, '.pas')
+               OR SameText(extension, '.dpr')
+               OR SameText(extension, '.dpk')
+               OR SameText(extension, '.inc');
+      end);
+
+  for FileName in FileNames do
   begin
     try
       SyntaxTree := TPasSyntaxTreeBuilder.Run(FileName, False, TIncludeHandler.Create(Path));
