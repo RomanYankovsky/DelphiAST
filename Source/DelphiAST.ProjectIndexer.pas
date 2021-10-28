@@ -103,7 +103,7 @@ type
     FUnitPaths      : TUnitPathsCache;
   strict protected
     procedure AppendUnits(usesNode: TSyntaxNode; const filePath: string; unitList: TStrings);
-    procedure BuildUsesList(unitNode: TSyntaxNode; const fileName: string; isProject: boolean;
+    procedure BuildUsesList(rootNode: TSyntaxNode; const fileName: string; isProject: boolean;
       unitList: TStringList);
     function  FindType(node: TSyntaxNode; nodeType: TSyntaxNodeType): TSyntaxNode;
     procedure GetUnitSyntax(const fileName: string; var syntaxTree: TSyntaxNode; var
@@ -243,7 +243,7 @@ begin
     end;
 end;
 
-procedure TProjectIndexer.BuildUsesList(unitNode: TSyntaxNode; const fileName: string;
+procedure TProjectIndexer.BuildUsesList(rootNode: TSyntaxNode; const fileName: string;
   isProject: boolean; unitList: TStringList);
 var
   fileFolder: string;
@@ -253,21 +253,21 @@ var
 begin
   fileFolder := IncludeTrailingPathDelimiter(ExtractFilePath(fileName));
   if isProject then begin
-    usesNode := FindType(unitNode, ntUses);
+    usesNode := FindType(rootNode, ntUses);
     if assigned(usesNode) then
       AppendUnits(usesNode, fileFolder, unitList);
-    usesNode := FindType(unitNode, ntContains);
+    usesNode := FindType(rootNode, ntContains);
     if assigned(usesNode) then
       AppendUnits(usesNode, fileFolder, unitList);
   end
   else begin
-    intfNode := FindType(unitNode, ntInterface);
+    intfNode := FindType(rootNode, ntInterface);
     if assigned(intfNode) then begin
       usesNode := FindType(intfNode, ntUses);
       if assigned(usesNode) then
         AppendUnits(usesNode, fileFolder, unitList);
     end;
-    implNode := FindType(unitNode, ntImplementation);
+    implNode := FindType(rootNode, ntImplementation);
     if assigned(implNode) then begin
       usesNode := FindType(implNode, ntUses);
       if assigned(usesNode) then
@@ -518,17 +518,12 @@ procedure TProjectIndexer.ScanUsedUnits(const unitName, fileName: string; isProj
   syntaxTree: TSyntaxNode; syntaxTreeFromParser: boolean);
 var
   unitList: TStringList;
-  unitNode: TSyntaxNode;
   usesName: string;
   usesPath: string;
 begin
-  unitNode := FindType(syntaxTree, ntUnit);
-  if not assigned(unitNode) then
-    Exit;
-
   unitList := TStringList.Create;
   try
-    BuildUsesList(unitNode, fileName, isProject, unitList);
+    BuildUsesList(syntaxTree, fileName, isProject, unitList);
 
     NotifyUnitParsed(unitName, fileName, syntaxTree, syntaxTreeFromParser);
 
