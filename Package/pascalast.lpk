@@ -10,7 +10,7 @@
       <SearchPaths>
         <IncludeFiles Value="..\Source\SimpleParser"/>
         <OtherUnitFiles Value="..\Source;..\Source\FreePascalSupport;..\Source\FreePascalSupport\FPC_StringBuilder;..\Source\FreePascalSupport\FPC_StringBuilder\Src;..\Source\SimpleParser"/>
-        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)\"/>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Parsing>
         <SyntaxOptions>
@@ -70,10 +70,6 @@
       <Item>
         <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
         <UnitName Value="SimpleParser"/>
-      </Item>
-      <Item>
-        <Filename Value="..\Source\FreePascalSupport\StringBuilderUnit.pas"/>
-        <UnitName Value="StringBuilderUnit"/>
       </Item>
       <Item>
         <Filename Value="..\Source\SimpleParser\SimplerParser.Lexer.Config.pas"/>

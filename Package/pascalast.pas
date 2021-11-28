@@ -12,7 +12,7 @@ uses
   DelphiAST.ProjectIndexer, DelphiAST.Serialize.Binary, 
   DelphiAST.SimpleParserEx, Diagnostics, IOUtils, SimpleParser.Types, 
   SimpleParser.Lexer, SimpleParser.Lexer.Types, SimpleParser, 
-  StringBuilderUnit, SimplerParser.Lexer.Config, LazarusPackageIntf;
+  SimplerParser.Lexer.Config, LazarusPackageIntf;
 
 implementation
 
