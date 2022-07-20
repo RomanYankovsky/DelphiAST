@@ -5565,6 +5565,13 @@ begin
           FormalParameterList;
       end;
   end;
+
+  while ExID in [ptCdecl, ptExport, ptFar, ptNear, ptOverload, ptOverride,
+    ptPascal, ptRegister, ptSafeCall, ptStdCall, ptStatic, ptVarargs] do
+  begin
+    ProceduralDirective;
+  end;
+
   Block;
 end;
 
@@ -5573,12 +5580,6 @@ begin
   ExpectedEx(ptReference);
   Expected(ptTo);
   case TokenID of
-    ptProcedure:
-      begin
-        NextToken;
-        if TokenID = ptRoundOpen then
-          FormalParameterList;
-      end;
     ptFunction:
       begin
         NextToken;
@@ -5587,6 +5588,18 @@ begin
         Expected(ptColon);
         ReturnType;
       end;
+    ptProcedure:
+      begin
+        NextToken;
+        if TokenID = ptRoundOpen then
+          FormalParameterList;
+      end;
+  end;
+
+  while ExID in [ptCdecl, ptExport, ptFar, ptNear, ptOverload, ptOverride,
+    ptPascal, ptRegister, ptSafeCall, ptStdCall, ptStatic, ptVarargs] do
+  begin
+    ProceduralDirective;
   end;
 end;
 
