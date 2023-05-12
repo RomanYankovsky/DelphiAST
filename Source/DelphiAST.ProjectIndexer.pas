@@ -82,9 +82,9 @@ type
   strict private type
     TIncludeHandler = class(TInterfacedObject, IIncludeHandler)
     strict private
-      [weak] FIncludeCache: TIncludeCache;
-      [weak] FIndexer     : TProjectIndexer;
-      [weak] FProblems    : TProblems;
+      FIncludeCache: TIncludeCache;
+      FIndexer     : TProjectIndexer;
+      FProblems    : TProblems;
       FUnitFile           : string;
       FUnitFileFolder     : string;
     public
