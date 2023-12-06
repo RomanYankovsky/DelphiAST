@@ -2260,7 +2260,7 @@ end;
 procedure TPasSyntaxTreeBuilder.StringConstSimple;
 begin
   //TODO support ptAsciiChar
-  FStack.AddValuedChild(ntLiteral, AnsiDequotedStr(Lexer.Token, ''''));
+  FStack.AddValuedChild(ntLiteral, Lexer.Token);
   inherited;
 end;
 

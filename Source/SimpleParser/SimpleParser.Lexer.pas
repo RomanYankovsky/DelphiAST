@@ -2281,32 +2281,71 @@ begin
 end;
 
 procedure TmwBasePasLex.StringProc;
+var
+  StartQuoteCount, EndQuoteCount: Integer;
 begin
   FTokenID := ptStringConst;
-  repeat
-    Inc(FBuffer.Run);
-    case FBuffer.Buf[FBuffer.Run] of
-      #0, #10, #13:
-        begin
-          if Assigned(FOnMessage) then
-            FOnMessage(Self, meError, 'Unterminated string', PosXY.X, PosXY.Y);
-          Break;
-        end;
-      #39:
-        begin
-          while (FBuffer.Buf[FBuffer.Run] = #39) and (FBuffer.Buf[FBuffer.Run + 1] = #39) do
-          begin
-            Inc(FBuffer.Run, 2);
-          end;
-        end;
-    end;
-  until FBuffer.Buf[FBuffer.Run] = #39;
-  if FBuffer.Buf[FBuffer.Run] = #39 then
+
+  StartQuoteCount := 0;
+  while FBuffer.Buf[FBuffer.Run] = '''' do
   begin
+    StartQuoteCount := StartQuoteCount + 1;
     Inc(FBuffer.Run);
-    if TokenLen = 3 then
+  end;
+
+  if (StartQuoteCount > 1) and (StartQuoteCount mod 2 = 1)
+    and ((FBuffer.Buf[FBuffer.Run] = #10) or (FBuffer.Buf[FBuffer.Run] = #13)) then
+  begin
+    repeat
+      Inc(FBuffer.Run);
+      case FBuffer.Buf[FBuffer.Run] of
+        #0:
+          begin
+            if Assigned(FOnMessage) then
+              FOnMessage(Self, meError, 'Unterminated string', PosXY.X, PosXY.Y);
+            Break;
+          end;
+        #39:
+          begin
+            EndQuoteCount := 0;
+            while (FBuffer.Buf[FBuffer.Run] = #39) do
+            begin
+              Inc(EndQuoteCount);
+              Inc(FBuffer.Run);
+            end;
+            if EndQuoteCount = StartQuoteCount then
+              Break;
+          end;
+      end;
+    until False;
+  end
+  else
+  begin
+    repeat
+      Inc(FBuffer.Run);
+      case FBuffer.Buf[FBuffer.Run] of
+        #0, #10, #13:
+          begin
+            if Assigned(FOnMessage) then
+              FOnMessage(Self, meError, 'Unterminated string', PosXY.X, PosXY.Y);
+            Break;
+          end;
+        #39:
+          begin
+            while (FBuffer.Buf[FBuffer.Run] = #39) and (FBuffer.Buf[FBuffer.Run + 1] = #39) do
+            begin
+              Inc(FBuffer.Run, 2);
+            end;
+          end;
+      end;
+    until FBuffer.Buf[FBuffer.Run] = #39;
+    if FBuffer.Buf[FBuffer.Run] = #39 then
     begin
-      FTokenID := ptAsciiChar;
+      Inc(FBuffer.Run);
+      if TokenLen = 3 then
+      begin
+        FTokenID := ptAsciiChar;
+      end;
     end;
   end;
 end;
