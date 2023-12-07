@@ -103,6 +103,8 @@ type
     BufferSize: integer;
     FIdentFuncTable: array[0..191] of function: TptTokenKind of object;
     FTokenPos: Integer;
+    FTokenLine: Integer;
+    FTokenLinePos: Integer;
     FTokenID: TptTokenKind;
     FExID: TptTokenKind;
     FOnMessage: TMessageEvent;
@@ -466,8 +468,8 @@ end;
 
 function TmwBasePasLex.GetPosXY: TTokenPoint;
 begin
-  Result.Y := FBuffer.LineNumber + 1;
-  Result.X := FTokenPos - FBuffer.LinePos + 1;
+  Result.Y := FTokenLine + 1;
+  Result.X := FTokenPos - FTokenLinePos + 1;
 end;
 
 function TmwBasePasLex.GetRunPos: Integer;
@@ -2299,12 +2301,22 @@ begin
   begin // multiline string
     NewLine := False;
     repeat
-      Inc(FBuffer.Run);
       case FBuffer.Buf[FBuffer.Run] of
-        #10, #13:
-          NewLine := True;
-        #9, #32:
-          Continue;
+        #10:
+          begin
+            NewLine := True;
+            Inc(FBuffer.Run);
+            Inc(FBuffer.LineNumber);
+            FBuffer.LinePos := FBuffer.Run;
+          end;
+        #13:
+          begin
+            NewLine := True;
+            Inc(FBuffer.Run);
+            if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
+            Inc(FBuffer.LineNumber);
+            FBuffer.LinePos := FBuffer.Run;
+          end;
         #0:
           begin
             if Assigned(FOnMessage) then
@@ -2325,8 +2337,10 @@ begin
               Break;
           end;
         else
-          NewLine := False;
+          if (FBuffer.Buf[FBuffer.Run] <> #9) and (FBuffer.Buf[FBuffer.Run] <> #32) then
+            NewLine := False;
       end;
+      Inc(FBuffer.Run);
     until False;
   end
   else
@@ -2378,6 +2392,8 @@ procedure TmwBasePasLex.Next;
 begin
   FExID := ptUnKnown;
   FTokenPos := FBuffer.Run;
+  FTokenLine := FBuffer.LineNumber;
+  FTokenLinePos := FBuffer.LinePos;
   case FCommentState of
     csNo: DoProcTable(FBuffer.Buf[FBuffer.Run]);
     csBor: BorProc;
