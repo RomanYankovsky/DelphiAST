@@ -15,5 +15,13 @@ const
      STRING
   ''''';
 
+  Str3 = '''''
+     TEST 
+  ''''
+     STRING
+  text'''''
+  	''''';
+
+
 
 end.

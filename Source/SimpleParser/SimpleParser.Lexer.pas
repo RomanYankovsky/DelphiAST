@@ -2283,11 +2283,12 @@ end;
 procedure TmwBasePasLex.StringProc;
 var
   StartQuoteCount, EndQuoteCount: Integer;
+  NewLine: Boolean;
 begin
   FTokenID := ptStringConst;
 
   StartQuoteCount := 0;
-  while FBuffer.Buf[FBuffer.Run] = '''' do
+  while FBuffer.Buf[FBuffer.Run] = #39 do
   begin
     StartQuoteCount := StartQuoteCount + 1;
     Inc(FBuffer.Run);
@@ -2295,10 +2296,15 @@ begin
 
   if (StartQuoteCount > 1) and (StartQuoteCount mod 2 = 1)
     and ((FBuffer.Buf[FBuffer.Run] = #10) or (FBuffer.Buf[FBuffer.Run] = #13)) then
-  begin
+  begin // multiline string
+    NewLine := False;
     repeat
       Inc(FBuffer.Run);
       case FBuffer.Buf[FBuffer.Run] of
+        #10, #13:
+          NewLine := True;
+        #9, #32:
+          Continue;
         #0:
           begin
             if Assigned(FOnMessage) then
@@ -2306,7 +2312,9 @@ begin
             Break;
           end;
         #39:
+          if NewLine then
           begin
+            NewLine := False;
             EndQuoteCount := 0;
             while (FBuffer.Buf[FBuffer.Run] = #39) do
             begin
@@ -2316,11 +2324,13 @@ begin
             if EndQuoteCount = StartQuoteCount then
               Break;
           end;
+        else
+          NewLine := False;
       end;
     until False;
   end
   else
-  begin
+  begin // singleline string
     repeat
       Inc(FBuffer.Run);
       case FBuffer.Buf[FBuffer.Run] of
