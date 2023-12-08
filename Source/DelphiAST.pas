@@ -61,6 +61,7 @@ type
     procedure CallInheritedPropertyParameterList;
     procedure SetCurrentCompoundNodesEndPosition;
     procedure DoOnComment(Sender: TObject; const Text: string);
+    function DequoteString(const S: string): string;
   protected
     FStack: TNodeStack;
     FComments: TObjectList<TCommentNode>;
@@ -1060,6 +1061,26 @@ begin
   FStack := TNodeStack.Create(Lexer);
   FComments := TObjectList<TCommentNode>.Create(True);
   OnComment := DoOnComment;
+end;
+
+function TPasSyntaxTreeBuilder.DequoteString(const S: string): string;
+var
+  QuoteCount, I: Integer;
+begin
+  QuoteCount := 0;
+  for I := Low(S) to High(S) do
+    if S[I] = '''' then
+      Inc(QuoteCount)
+    else
+      Break;
+
+  if (QuoteCount = 1) or (QuoteCount mod 2 = 0) then
+  begin
+    Result := AnsiDequotedStr(S, '''');
+    Exit;
+  end;
+
+  Result := Copy(S, QuoteCount + 1, Length(S) - QuoteCount * 2);
 end;
 
 destructor TPasSyntaxTreeBuilder.Destroy;
@@ -2260,7 +2281,7 @@ end;
 procedure TPasSyntaxTreeBuilder.StringConstSimple;
 begin
   //TODO support ptAsciiChar
-  FStack.AddValuedChild(ntLiteral, Lexer.Token);
+  FStack.AddValuedChild(ntLiteral, DequoteString(Lexer.Token));
   inherited;
 end;
 
