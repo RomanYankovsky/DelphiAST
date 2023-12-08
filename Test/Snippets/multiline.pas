@@ -5,23 +5,20 @@ interface
 implementation
 
 const
-  Str1 = '''
+  Str1 = 'Str''Str';
+  Str2 = '';
+  Str3 = '''
      TEST
      STRING
   ''';
-
-  Str2 = '''''
+  Str4 = '''''
      TEST '''
      STRING
   ''''';
-
-  Str3 = '''''
-     TEST 
-  ''''
+  Str5 = '''''
+     TEST
+      ''''
      STRING
-  text'''''
-  	''''';
-
-
-
+     text''''
+  ''''';
 end.

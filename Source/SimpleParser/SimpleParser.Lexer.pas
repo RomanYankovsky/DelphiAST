@@ -2296,8 +2296,10 @@ begin
     Inc(FBuffer.Run);
   end;
 
-  if (StartQuoteCount > 1) and (StartQuoteCount mod 2 = 1)
-    and ((FBuffer.Buf[FBuffer.Run] = #10) or (FBuffer.Buf[FBuffer.Run] = #13)) then
+  if StartQuoteCount mod 2 = 0 then
+    Exit;
+
+  if (StartQuoteCount > 1) and ((FBuffer.Buf[FBuffer.Run] = #10) or (FBuffer.Buf[FBuffer.Run] = #13)) then
   begin // multiline string
     NewLine := False;
     repeat
@@ -2324,9 +2326,7 @@ begin
             Break;
           end;
         #39:
-          if NewLine then
           begin
-            NewLine := False;
             EndQuoteCount := 0;
             while (FBuffer.Buf[FBuffer.Run] = #39) do
             begin
@@ -2334,10 +2334,15 @@ begin
               Inc(FBuffer.Run);
             end;
             if EndQuoteCount = StartQuoteCount then
+            begin
+              if not NewLine and Assigned(FOnMessage) then
+                FOnMessage(Self, meError, 'Non-whitespace characters before closing quotes', PosXY.X, PosXY.Y);
               Break;
+            end;
+            NewLine := False;
           end;
         else
-          if (FBuffer.Buf[FBuffer.Run] <> #9) and (FBuffer.Buf[FBuffer.Run] <> #32) then
+          if NewLine and (FBuffer.Buf[FBuffer.Run] <> #9) and (FBuffer.Buf[FBuffer.Run] <> #32) then
             NewLine := False;
       end;
       Inc(FBuffer.Run);
