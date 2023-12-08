@@ -26,6 +26,7 @@ type
   TSyntaxNodeClass = class of TSyntaxNode;
   TSyntaxNode = class
   private
+    FLineSeq: Integer;
     FCol: Integer;
     FLine: Integer;
     FFileName: string;
@@ -81,6 +82,7 @@ type
     property Typ: TSyntaxNodeType read FTyp;
     property ParentNode: TSyntaxNode read FParentNode;
 
+    property LineSeq: Integer read FLineSeq write FLineSeq;
     property Col: Integer read FCol write FCol;
     property Line: Integer read FLine write FLine;
     property FileName: string read FFileName write FFileName;
@@ -536,6 +538,7 @@ end;
 
 procedure TSyntaxNode.AssignPositionFrom(const Node: TSyntaxNode);
 begin
+  FLineSeq := Node.LineSeq;
   FCol := Node.Col;
   FLine := Node.Line;
   FFileName := Node.FileName;

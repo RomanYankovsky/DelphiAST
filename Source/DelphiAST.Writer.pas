@@ -84,6 +84,8 @@ class procedure TSyntaxTreeWriter.NodeToXML(const Builder: TStringBuilder;
     end;
     Builder.Append('<' + UpperCase(SyntaxNodeNames[Node.Typ]));
 
+    Builder.Append('  line_seq="' + IntToStr(Node.LineSeq) + '"');
+
     if Node is TCompoundSyntaxNode then
     begin
       Builder.Append(' begin_line="' + IntToStr(TCompoundSyntaxNode(Node).Line) + '"');
