@@ -2319,6 +2319,7 @@ begin
         #10:
           begin
             NewLine := True;
+            Inc(FLineSeq);
             Inc(FBuffer.Run);
             Inc(FBuffer.LineNumber);
             FBuffer.LinePos := FBuffer.Run;
@@ -2326,6 +2327,7 @@ begin
         #13:
           begin
             NewLine := True;
+            Inc(FLineSeq);
             Inc(FBuffer.Run);
             if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
             Inc(FBuffer.LineNumber);
