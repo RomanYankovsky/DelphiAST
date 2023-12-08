@@ -103,6 +103,8 @@ type
     BufferSize: integer;
     FIdentFuncTable: array[0..191] of function: TptTokenKind of object;
     FTokenPos: Integer;
+    FTokenLine: Integer;
+    FTokenLinePos: Integer;
     FTokenID: TptTokenKind;
     FExID: TptTokenKind;
     FOnMessage: TMessageEvent;
@@ -467,8 +469,8 @@ end;
 
 function TmwBasePasLex.GetPosXY: TTokenPoint;
 begin
-  Result.Y := FBuffer.LineNumber + 1;
-  Result.X := FTokenPos - FBuffer.LinePos + 1;
+  Result.Y := FTokenLine + 1;
+  Result.X := FTokenPos - FTokenLinePos + 1;
   Result.LineSeq := FLineSeq + 1;
 end;
 
@@ -2293,32 +2295,100 @@ begin
 end;
 
 procedure TmwBasePasLex.StringProc;
+var
+  StartQuoteCount, EndQuoteCount: Integer;
+  NewLine: Boolean;
 begin
   FTokenID := ptStringConst;
-  repeat
-    Inc(FBuffer.Run);
-    case FBuffer.Buf[FBuffer.Run] of
-      #0, #10, #13:
-        begin
-          if Assigned(FOnMessage) then
-            FOnMessage(Self, meError, 'Unterminated string', PosXY.X, PosXY.Y);
-          Break;
-        end;
-      #39:
-        begin
-          while (FBuffer.Buf[FBuffer.Run] = #39) and (FBuffer.Buf[FBuffer.Run + 1] = #39) do
-          begin
-            Inc(FBuffer.Run, 2);
-          end;
-        end;
-    end;
-  until FBuffer.Buf[FBuffer.Run] = #39;
-  if FBuffer.Buf[FBuffer.Run] = #39 then
+
+  StartQuoteCount := 0;
+  while FBuffer.Buf[FBuffer.Run] = #39 do
   begin
+    StartQuoteCount := StartQuoteCount + 1;
     Inc(FBuffer.Run);
-    if TokenLen = 3 then
+  end;
+
+  if StartQuoteCount mod 2 = 0 then
+    Exit;
+
+  if (StartQuoteCount > 1) and ((FBuffer.Buf[FBuffer.Run] = #10) or (FBuffer.Buf[FBuffer.Run] = #13)) then
+  begin // multiline string
+    NewLine := False;
+    repeat
+      case FBuffer.Buf[FBuffer.Run] of
+        #10:
+          begin
+            NewLine := True;
+            Inc(FLineSeq);
+            Inc(FBuffer.Run);
+            Inc(FBuffer.LineNumber);
+            FBuffer.LinePos := FBuffer.Run;
+          end;
+        #13:
+          begin
+            NewLine := True;
+            Inc(FLineSeq);
+            Inc(FBuffer.Run);
+            if FBuffer.Buf[FBuffer.Run] = #10 then Inc(FBuffer.Run);
+            Inc(FBuffer.LineNumber);
+            FBuffer.LinePos := FBuffer.Run;
+          end;
+        #0:
+          begin
+            if Assigned(FOnMessage) then
+              FOnMessage(Self, meError, 'Unterminated string', PosXY.X, PosXY.Y);
+            Break;
+          end;
+        #39:
+          begin
+            EndQuoteCount := 0;
+            while (FBuffer.Buf[FBuffer.Run] = #39) do
+            begin
+              Inc(EndQuoteCount);
+              Inc(FBuffer.Run);
+            end;
+            if EndQuoteCount = StartQuoteCount then
+            begin
+              if not NewLine and Assigned(FOnMessage) then
+                FOnMessage(Self, meError, 'Non-whitespace characters before closing quotes', PosXY.X, PosXY.Y);
+              Break;
+            end;
+            NewLine := False;
+          end;
+        else
+          if NewLine and (FBuffer.Buf[FBuffer.Run] <> #9) and (FBuffer.Buf[FBuffer.Run] <> #32) then
+            NewLine := False;
+      end;
+      Inc(FBuffer.Run);
+    until False;
+  end
+  else
+  begin // singleline string
+    repeat
+      Inc(FBuffer.Run);
+      case FBuffer.Buf[FBuffer.Run] of
+        #0, #10, #13:
+          begin
+            if Assigned(FOnMessage) then
+              FOnMessage(Self, meError, 'Unterminated string', PosXY.X, PosXY.Y);
+            Break;
+          end;
+        #39:
+          begin
+            while (FBuffer.Buf[FBuffer.Run] = #39) and (FBuffer.Buf[FBuffer.Run + 1] = #39) do
+            begin
+              Inc(FBuffer.Run, 2);
+            end;
+          end;
+      end;
+    until FBuffer.Buf[FBuffer.Run] = #39;
+    if FBuffer.Buf[FBuffer.Run] = #39 then
     begin
-      FTokenID := ptAsciiChar;
+      Inc(FBuffer.Run);
+      if TokenLen = 3 then
+      begin
+        FTokenID := ptAsciiChar;
+      end;
     end;
   end;
 end;
@@ -2341,6 +2411,8 @@ procedure TmwBasePasLex.Next;
 begin
   FExID := ptUnKnown;
   FTokenPos := FBuffer.Run;
+  FTokenLine := FBuffer.LineNumber;
+  FTokenLinePos := FBuffer.LinePos;
   case FCommentState of
     csNo: DoProcTable(FBuffer.Buf[FBuffer.Run]);
     csBor: BorProc;

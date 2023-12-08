@@ -1761,7 +1761,7 @@ var
 begin
   case TokenID of
     ptAnsiComment: Node := TCommentNode.Create(ntAnsiComment);
-    ptBorComment: Node := TCommentNode.Create(ntAnsiComment);
+    ptBorComment: Node := TCommentNode.Create(ntBorComment);
     ptSlashesComment: Node := TCommentNode.Create(ntSlashesComment);
   else
     raise EParserException.Create(Lexer.PosXY.Y, Lexer.PosXY.X, Lexer.FileName, 'Invalid comment type');
@@ -2266,7 +2266,7 @@ end;
 procedure TPasSyntaxTreeBuilder.StringConstSimple;
 begin
   //TODO support ptAsciiChar
-  FStack.AddValuedChild(ntLiteral, AnsiDequotedStr(Lexer.Token, ''''));
+  FStack.AddValuedChild(ntLiteral, Lexer.Token);
   inherited;
 end;
 
