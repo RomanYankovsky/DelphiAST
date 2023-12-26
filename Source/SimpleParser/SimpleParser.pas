@@ -162,6 +162,7 @@ const
   ClassMethodDirectiveEnum = [
     ptAbstract,
     ptCdecl,
+    ptExtdecl,
     ptDynamic,
     ptMessage,
     ptOverride,
@@ -660,6 +661,15 @@ begin
   Semicolon;
 end;
 
+{$IFDEF FPC}
+function RemoveBOM( s : String) : String;
+begin
+//  writeln(copy(s, 1, 3)+' / '+inttostr()+'.'+inttostr(ord(s[2]))+'.'+inttostr(ord(s[3]))+' /  '+inttostr(b[0])+'.'+inttostr(b[1])+'.'+inttostr(b[2]));
+  if (ord(s[1]) = 239) and (ord(s[2]) = 187) and (ord(s[3]) = 191) then
+    delete(s, 1, 3);
+  result := s;
+end;
+{$ELSE}
 type
   TStringStreamHelper = class helper for TStringStream
     function GetDataString: string;
@@ -695,6 +705,7 @@ begin
   Result := Encoding.GetString(Bytes, Length(Encoding.GetPreamble), Size);
 {$ENDIF}
 end;
+{$ENDIF}
 
 procedure TmwSimplePasPar.Run(const UnitName: string; SourceStream: TStream);
 var
@@ -723,7 +734,11 @@ begin
   end
   else
     StringStream := TStringStream(SourceStream);
+  {$IFDEF FPC}
+  FLexer.Origin := removeBom(StringStream.DataString);
+  {$ELSE}
   FLexer.Origin := StringStream.GetDataString;
+  {$ENDIF}
   ParseFile;
   if OwnStream then
     StringStream.Free;
@@ -1835,7 +1850,7 @@ end;
 
 procedure TmwSimplePasPar.ObjectMethodDirective;
 begin
-  while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptFar,
+  while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExtdecl, ptExternal, ptFar,
     ptMessage, ptNear, ptOverload, ptPascal, ptRegister, ptSafeCall, ptStdCall,
     ptVirtual, ptDeprecated, ptLibrary, ptPlatform, ptStatic, ptInline] do
   begin
@@ -2125,7 +2140,7 @@ begin
   HasBlock := True;
   if TokenID = ptSemiColon then Semicolon;
 
-  while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptDelayed, ptFar,
+  while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExtdecl, ptExternal, ptDelayed, ptFar,
     ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
     ptReintroduce, ptSafeCall, ptStdCall, ptVirtual, ptLibrary,
     ptPlatform, ptLocal, ptVarargs, ptAssembler, ptStatic, ptInline, ptForward,
@@ -3170,6 +3185,10 @@ begin
       begin
         NextToken;
       end;
+    ptExtdecl:
+      begin
+        NextToken;
+      end;
     ptPascal:
       begin
         NextToken;
@@ -4162,7 +4181,7 @@ begin
   else
     TheTokenID := ExID;
   end;
-  while TheTokenID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptFar,
+  while TheTokenID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExtdecl, ptExternal, ptFar,
     ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
     ptReintroduce, ptSafeCall, ptStdCall, ptVirtual, ptStatic, ptInline, ptVarargs] do
   // DR 2001-11-14 no checking for deprecated etc. since it's captured by the typedecl
@@ -4802,7 +4821,7 @@ begin
       begin
         DirectiveBinding;
       end;
-    ptCdecl, ptPascal, ptRegister, ptSafeCall, ptStdCall:
+    ptCdecl, ptExtdecl, ptPascal, ptRegister, ptSafeCall, ptStdCall:
       begin
         DirectiveCalling;
       end;
@@ -4868,7 +4887,7 @@ begin
   if TokenID = ptSemiColon then Semicolon;
 
   //TODO: Add FINAL
-  while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExternal, ptFar,
+  while ExID in [ptAbstract, ptCdecl, ptDynamic, ptExport, ptExtdecl, ptExternal, ptFar,
     ptMessage, ptNear, ptOverload, ptOverride, ptPascal, ptRegister,
     ptReintroduce, ptSafeCall, ptStdCall, ptVirtual,
     ptDeprecated, ptLibrary, ptPlatform, ptLocal, ptVarargs,

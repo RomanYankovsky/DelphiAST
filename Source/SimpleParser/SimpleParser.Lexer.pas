@@ -58,6 +58,7 @@ uses
   {$IFDEF FPC}
     Generics.Collections,
   {$ENDIF}
+  SimplerParser.Lexer.Config,
   SimpleParser.Lexer.Types;
 
 {$IFDEF FPC}
@@ -933,7 +934,8 @@ end;
 function TmwBasePasLex.Func73: TptTokenKind;
 begin
   Result := ptIdentifier;
-  if KeyComp('Except') then Result := ptExcept;
+  if KeyComp('Except') then Result := ptExcept else
+    if KeyComp('Extdecl') then FExID := ptExtdecl;
 end;
 
 function TmwBasePasLex.Func75: TptTokenKind;
@@ -2679,175 +2681,11 @@ begin
 end;
 
 procedure TmwBasePasLex.InitDefinesDefinedByCompiler;
+var
+  s : String;
 begin
-  //Set up the defines that are defined by the compiler
-  {$IFDEF VER90}
-  AddDefine('VER90'); // 2
-  {$ENDIF}
-  {$IFDEF VER100}
-  AddDefine('VER100'); // 3
-  {$ENDIF}
-  {$IFDEF VER120}
-  AddDefine('VER120'); // 4
-  {$ENDIF}
-  {$IFDEF VER130}
-  AddDefine('VER130'); // 5
-  {$ENDIF}
-  {$IFDEF VER140} // 6
-  AddDefine('VER140');
-  {$ENDIF}
-  {$IFDEF VER150} // 7/7.1
-  AddDefine('VER150');
-  {$ENDIF}
-  {$IFDEF VER160} // 8
-  AddDefine('VER160');
-  {$ENDIF}
-  {$IFDEF VER170} // 2005
-  AddDefine('VER170');
-  {$ENDIF}
-  {$IFDEF VER180} // 2007
-  AddDefine('VER180');
-  {$ENDIF}
-  {$IFDEF VER185} // 2007
-  AddDefine('VER185');
-  {$ENDIF}
-  {$IFDEF VER190} // 2007.NET
-  AddDefine('VER190');
-  {$ENDIF}
-  {$IFDEF CONDITIONALEXPRESSIONS}
-    {$IF COMPILERVERSION > 19.0}
-    AddDefine('VER' + IntToStr(Round(10*CompilerVersion)));
-    {$IFEND}
-  {$ENDIF}
-  {$IFDEF WIN32}
-  AddDefine('WIN32');
-  {$ENDIF}
-  {$IFDEF WIN64}
-  AddDefine('WIN64');
-  {$ENDIF}
-  {$IFDEF LINUX}
-  AddDefine('LINUX');
-  {$ENDIF}
-  {$IFDEF LINUX32}
-  AddDefine('LINUX32');
-  {$ENDIF}
-  {$IFDEF LINUX64}
-  AddDefine('LINUX64');
-  {$ENDIF}
-  {$IFDEF POSIX}
-  AddDefine('POSIX');
-  {$ENDIF}
-  {$IFDEF POSIX32}
-  AddDefine('POSIX32');
-  {$ENDIF}
-  {$IFDEF POSIX64}
-  AddDefine('POSIX64');
-  {$ENDIF}
-  {$IFDEF CPUARM}
-  AddDefine('CPUARM');
-  {$ENDIF}
-  {$IFDEF CPUARM32}
-  AddDefine('CPUARM32');
-  {$ENDIF}
-  {$IFDEF CPUARM64}
-  AddDefine('CPUARM64');
-  {$ENDIF}
-  {$IFDEF CPU386}
-  AddDefine('CPU386');
-  {$ENDIF}
-  {$IFDEF CPUX86}
-  AddDefine('CPUX86');
-  {$ENDIF}
-  {$IFDEF CPUX64}
-  AddDefine('CPUX64');
-  {$ENDIF}
-  {$IFDEF CPU32BITS}
-  AddDefine('CPU32BITS');
-  {$ENDIF}
-  {$IFDEF CPU64BITS}
-  AddDefine('CPU64BITS');
-  {$ENDIF}
-  {$IFDEF MSWINDOWS}
-  AddDefine('MSWINDOWS');
-  {$ENDIF}
-  {$IFDEF MACOS}
-  AddDefine('MACOS');
-  {$ENDIF}
-  {$IFDEF MACOS32}
-  AddDefine('MACOS32');
-  {$ENDIF}
-  {$IFDEF MACOS64}
-  AddDefine('MACOS64');
-  {$ENDIF}
-  {$IFDEF IOS}
-  AddDefine('IOS');
-  {$ENDIF}
-  {$IFDEF IOS32}
-  AddDefine('IOS32');
-  {$ENDIF}
-  {$IFDEF IOS64}
-  AddDefine('IOS64');
-  {$ENDIF}
-  {$IFDEF ANDROID}
-  AddDefine('ANDROID');
-  {$ENDIF}
-  {$IFDEF ANDROID32}
-  AddDefine('ANDROID32');
-  {$ENDIF}
-  {$IFDEF ANDROID64}
-  AddDefine('ANDROID64');
-  {$ENDIF}
-  {$IFDEF CONSOLE}
-  AddDefine('CONSOLE');
-  {$ENDIF}
-  {$IFDEF NATIVECODE}
-  AddDefine('NATIVECODE');
-  {$ENDIF}
-  {$IFDEF CONDITIONALEXPRESSIONS}
-  AddDefine('CONDITIONALEXPRESSIONS');
-  {$ENDIF}
-  {$IFDEF UNICODE}
-  AddDefine('UNICODE');
-  {$ENDIF}
-  {$IFDEF ALIGN_STACK}
-  AddDefine('ALIGN_STACK');
-  {$ENDIF}
-  {$IFDEF ARM_NO_VFP_USE}
-  AddDefine('ARM_NO_VFP_USE');
-  {$ENDIF}
-  {$IFDEF ASSEMBLER}
-  AddDefine('ASSEMBLER');
-  {$ENDIF}
-  {$IFDEF AUTOREFCOUNT}
-  AddDefine('AUTOREFCOUNT');
-  {$ENDIF}
-  {$IFDEF EXTERNALLINKER}
-  AddDefine('EXTERNALLINKER');
-  {$ENDIF}
-  {$IFDEF ELF}
-  AddDefine('ELF');
-  {$ENDIF}
-  {$IFDEF NEXTGEN}
-  AddDefine('NEXTGEN');
-  {$ENDIF}
-  {$IFDEF PC_MAPPED_EXCEPTIONS}
-  AddDefine('PC_MAPPED_EXCEPTIONS');
-  {$ENDIF}
-  {$IFDEF PIC}
-  AddDefine('PIC');
-  {$ENDIF}
-  {$IFDEF UNDERSCOREIMPORTNAME}
-  AddDefine('UNDERSCOREIMPORTNAME');
-  {$ENDIF}
-  {$IFDEF WEAKREF}
-  AddDefine('WEAKREF');
-  {$ENDIF}
-  {$IFDEF WEAKINSTREF}
-  AddDefine('WEAKINSTREF');
-  {$ENDIF}
-  {$IFDEF WEAKINTFREF}
-  AddDefine('WEAKINTFREF');
-  {$ENDIF}
+  for s in DelphiParserConfig.GetDefines do
+    AddDefine(s);
 end;
 
 function TmwBasePasLex.GetStringContent: string;

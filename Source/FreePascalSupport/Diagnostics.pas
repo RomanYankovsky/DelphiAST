@@ -17,6 +17,9 @@ uses
   {$IFDEF LINUX}
   ,unixtype, linux
   {$ENDIF LINUX}
+  {$IFDEF DARWIN}
+  , unixtype
+  {$ENDIF}
   ;
 
 type
@@ -43,7 +46,10 @@ type
            Int64;
         {$ENDIF WINDOWS}
       {$IFDEF LINUX}
-           TTimeSpec;
+        TTimeSpec;
+      {$ENDIF LINUX}
+      {$IFDEF DARWIN}
+        TTimeSpec;
       {$ENDIF LINUX}
   strict private
     class var FFrequency : Int64;

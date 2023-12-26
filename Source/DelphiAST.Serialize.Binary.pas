@@ -38,6 +38,13 @@ implementation
 uses
   SysUtils;
 
+{$IFDEF FPC}
+function UTF8ToUnicodeString(s : String) : String;
+begin
+  result := s;
+end;
+{$ENDIF}
+
 var
   CSignature: AnsiString = 'DAST binary file'#26;
 
