@@ -1078,7 +1078,7 @@ var
   QuoteCount, I: Integer;
 begin
   QuoteCount := 0;
-  for I := Low(S) to High(S) do
+  for I := 1 to Length(S) do
     if S[I] = '''' then
       Inc(QuoteCount)
     else
