@@ -509,6 +509,9 @@ begin
           FProblems.LogProblem(ptCantParseFile, fileName,
             Format('Line %d, Column %d: %s', [E.Line, E.Col, E.Message]));
         end;
+        on E: EEncodingError do begin
+          FProblems.LogProblem(ptCantParseFile, fileName, E.Message);
+        end;
       end;
     finally FreeAndNil(builder); end;
   finally FreeAndNil(fileStream); end;
