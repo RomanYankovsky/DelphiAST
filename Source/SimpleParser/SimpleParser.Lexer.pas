@@ -1702,12 +1702,17 @@ var
   LIsComVer: Boolean;
   LIsRtlVer: Boolean;
   LOper: string;
-  LValue: Integer;
+  LValue: Extended;
   p: Integer;
 begin
   { TODO : Expand support for <=> evaluations (complicated to do). Expand support for NESTED expressions }
   LEvaluation := leeNone;
   LParams := TrimLeft(AParams);
+  if LParams.StartsWith('(') and LParams.EndsWith(')') then
+    begin
+      Delete(LParams,1, 1);
+      Delete(LParams, Length(LParams), 1);
+    end;
   LIsComVer := Pos('COMPILERVERSION', LParams) = 1;
   LIsRtlVer := Pos('RTLVERSION', LParams) = 1;
   if LIsComVer or LIsRtlVer then //simple parser which covers most frequent use cases
@@ -1729,7 +1734,7 @@ begin
       p := Pos(' ', LParams);
       if p = 0 then
         p := Length(LParams) + 1;
-      if TryStrToInt(Copy(LParams, 1, p-1), LValue) then
+      if TryStrToFloat(Copy(LParams, 1, p-1), LValue) then
       begin
         Delete(LParams, 1, p);
         while (LParams <> '') and (LParams[1] = ' ') do
