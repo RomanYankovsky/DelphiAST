@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="5">
+    <PathDelim Value="\"/>
+    <Name Value="PascalAST"/>
+    <Type Value="RunAndDesignTime"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <IncludeFiles Value="..\Source\SimpleParser"/>
+        <OtherUnitFiles Value="..\Source;..\Source\FreePascalSupport;..\Source\FreePascalSupport\FPC_StringBuilder;..\Source\FreePascalSupport\FPC_StringBuilder\Src;..\Source\SimpleParser"/>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+      <Parsing>
+        <SyntaxOptions>
+          <SyntaxMode Value="Delphi"/>
+        </SyntaxOptions>
+      </Parsing>
+    </CompilerOptions>
+    <Files>
+      <Item>
+        <Filename Value="..\Source\DelphiAST.Writer.pas"/>
+        <UnitName Value="DelphiAST.Writer"/>
+      </Item>
+      <Item>
+        <Filename Value="..\Source\StringPool.pas"/>
+        <UnitName Value="StringPool"/>
+      </Item>
+      <Item>
+        <Filename Value="..\Source\DelphiAST.Consts.pas"/>
+        <UnitName Value="DelphiAST.Consts"/>
+      </Item>
+      <Item>
+        <Filename Value="..\Source\DelphiAST.pas"/>
+        <UnitName Value="DelphiAST"/>
+      </Item>
+      <Item>
+        <Filename Value="..\Source\DelphiAST.ProjectIndexer.pas"/>
+        <UnitName Value="DelphiAST.ProjectIndexer"/>
+      </Item>
+      <Item>
+        <Filename Value="..\Source\DelphiAST.Serialize.Binary.pas"/>
+        <UnitName Value="DelphiAST.Serialize.Binary"/>
+      </Item>
+      <Item>
+        <Filename Value="..\Source\DelphiAST.SimpleParserEx.pas"/>
+        <UnitName Value="DelphiAST.SimpleParserEx"/>
+      </Item>
+      <Item>
+        <Filename Value="..\Source\FreePascalSupport\Diagnostics.pas"/>
+        <UnitName Value="Diagnostics"/>
+      </Item>
+      <Item>
+        <Filename Value="..\Source\FreePascalSupport\IOUtils.pas"/>
+        <UnitName Value="IOUtils"/>
+      </Item>
+      <Item>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.Types.pas"/>
+        <UnitName Value="SimpleParser.Types"/>
+      </Item>
+      <Item>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.Lexer.pas"/>
+        <UnitName Value="SimpleParser.Lexer"/>
+      </Item>
+      <Item>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.Lexer.Types.pas"/>
+        <UnitName Value="SimpleParser.Lexer.Types"/>
+      </Item>
+      <Item>
+        <Filename Value="..\Source\SimpleParser\SimpleParser.pas"/>
+        <UnitName Value="SimpleParser"/>
+      </Item>
+      <Item>
+        <Filename Value="..\Source\SimpleParser\SimplerParser.Lexer.Config.pas"/>
+        <UnitName Value="SimplerParser.Lexer.Config"/>
+      </Item>
+    </Files>
+    <RequiredPkgs>
+      <Item>
+        <PackageName Value="LazUtils"/>
+      </Item>
+      <Item>
+        <PackageName Value="FCL"/>
+      </Item>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+      <UseFileFilters Value="True"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

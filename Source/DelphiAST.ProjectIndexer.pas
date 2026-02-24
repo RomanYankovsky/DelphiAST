@@ -42,6 +42,11 @@ type
       end;
     end;
 
+    TUnitComparer = class (TComparer<TUnitInfo>)
+    public
+      function Compare(constref ALeft, ARight: TUnitInfo): Integer; override;
+    end;
+
     TParsedUnits = class(TList<TUnitInfo>)
     protected
       procedure Initialize(parsedUnits: TParsedUnitsCache; unitPaths: TUnitPathsCache);
@@ -50,6 +55,11 @@ type
     TIncludeFileInfo = record
       Name: string;
       Path: string;
+    end;
+
+    TIncludeFileComparer = class (TComparer<TIncludeFileInfo>)
+    public
+      function Compare(constref ALeft, ARight: TIncludeFileInfo): Integer; override;
     end;
 
     TIncludeFiles = class(TList<TIncludeFileInfo>)
@@ -72,9 +82,9 @@ type
   strict private type
     TIncludeHandler = class(TInterfacedObject, IIncludeHandler)
     strict private
-      [weak] FIncludeCache: TIncludeCache;
-      [weak] FIndexer     : TProjectIndexer;
-      [weak] FProblems    : TProblems;
+      FIncludeCache: TIncludeCache;
+      FIndexer     : TProjectIndexer;
+      FProblems    : TProblems;
       FUnitFile           : string;
       FUnitFileFolder     : string;
     public
@@ -141,6 +151,30 @@ uses
   SysUtils,
   SimpleParser;
 
+function IsRelativePath(s : String) : boolean;
+begin
+  {$IFDEF WINDOWS}
+  result := not (s.contains(':'));
+  {$ELSE}
+  result := not s.startsWith('\');
+  {$ENDIF}
+end;
+
+{ TProjectIndexer.TUnitComparer }
+
+function TProjectIndexer.TUnitComparer.Compare(constref ALeft, ARight: TUnitInfo): Integer;
+begin
+  Result := TOrdinalIStringComparer(TIStringComparer.Ordinal).Compare(ALeft.Name, ARight.Name);
+end;
+
+{ TProjectIndexer.TIncludeFileComparer }
+
+function TProjectIndexer.TIncludeFileComparer.Compare(constref ALeft, ARight: TIncludeFileInfo): Integer;
+begin
+  Result := TOrdinalIStringComparer(TIStringComparer.Ordinal).Compare(ALeft.Name, ARight.Name);
+end;
+
+
 { TProjectIndexer.TParsedUnits }
 
 procedure TProjectIndexer.TParsedUnits.Initialize(parsedUnits: TParsedUnitsCache;
@@ -168,12 +202,7 @@ begin
   end;
 
   TrimExcess;
-  Sort(
-    TComparer<TUnitInfo>.Construct(
-      function(const Left, Right: TUnitInfo): integer
-      begin
-        Result := TOrdinalIStringComparer(TIStringComparer.Ordinal).Compare(Left.Name, Right.Name);
-      end));
+  Sort(TUnitComparer.create);
 end;
 
 { TProjectIndexer.TIncludeFiles }
@@ -198,12 +227,7 @@ begin
   end;
 
   TrimExcess;
-  Sort(
-    TComparer<TIncludeFileInfo>.Construct(
-      function(const Left, Right: TIncludeFileInfo): integer
-      begin
-        Result := TOrdinalIStringComparer(TIStringComparer.Ordinal).Compare(Left.Name, Right.Name);
-      end));
+  Sort(TIncludeFileComparer.create);
 end;
 
 { TProjectIndexer.TProblems }

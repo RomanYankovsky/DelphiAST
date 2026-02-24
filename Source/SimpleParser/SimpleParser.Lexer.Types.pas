@@ -119,6 +119,7 @@ type
     ptExit,
     ptExport,
     ptExports,
+    ptExtdecl,
     ptExtended,
     ptExternal,
     ptFar,
