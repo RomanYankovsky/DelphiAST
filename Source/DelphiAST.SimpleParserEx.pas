@@ -1,5 +1,7 @@
 unit DelphiAST.SimpleParserEx;
 
+{$IFDEF FPC}{$MODE DELPHI}{$ENDIF}
+
 interface
 
 uses
