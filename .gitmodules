@@ -6,3 +6,6 @@
         path = Source/FreePascalSupport/FPC_StringBuilder
 	
         url = https://github.com/Wosi/FPC_StringBuilder.git
+[submodule "Source/FastMM4"]
+	path = Source/FastMM4
+	url = https://github.com/pleriche/FastMM4
