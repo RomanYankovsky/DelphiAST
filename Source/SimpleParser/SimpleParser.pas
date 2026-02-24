@@ -276,6 +276,7 @@ type
     procedure ClassReferenceType; virtual;
     procedure ClassType; virtual;
     procedure ClassTypeEnd; virtual;
+    procedure ClassVar; virtual;
     procedure ClassVisibility; virtual;
     procedure CompoundStatement; virtual;
     procedure ConstantColon; virtual;
@@ -3845,6 +3846,11 @@ begin
   Expected(ptRoundClose);
 end;
 
+procedure TmwSimplePasPar.ClassVar;
+begin
+  ClassField;
+end;
+
 procedure TmwSimplePasPar.ClassVisibility;
 var
   IsStrict: boolean;
@@ -3999,7 +4005,7 @@ begin
         NextToken;
         while (TokenID = ptIdentifier) and (ExID = ptUnknown) do
         begin
-          ClassField;
+          ClassVar;
           Semicolon;
         end;
       end;
