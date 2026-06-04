@@ -2365,8 +2365,8 @@ begin
         else
           if NewLine and (FBuffer.Buf[FBuffer.Run] <> #9) and (FBuffer.Buf[FBuffer.Run] <> #32) then
             NewLine := False;
+          Inc(FBuffer.Run);
       end;
-      Inc(FBuffer.Run);
     until False;
   end
   else
