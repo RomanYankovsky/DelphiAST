@@ -568,6 +568,7 @@ type
     procedure NamedArgument; virtual;
     procedure AttributeArgumentName; virtual;
     procedure AttributeArgumentExpression; virtual;
+    procedure AnonymousMethodBlock; virtual;
 
     property ExID: TptTokenKind read GetExID;
     property GenID: TptTokenKind read GetGenID;
@@ -5588,7 +5589,7 @@ begin
           FormalParameterList;
       end;
   end;
-  Block;
+  AnonymousMethodBlock;
 end;
 
 procedure TmwSimplePasPar.AnonymousMethodType;
@@ -5610,6 +5611,14 @@ begin
         Expected(ptColon);
         ReturnType;
       end;
+  end;
+  while ExID in [ptCdecl, ptFar,
+    ptNear, ptPascal, ptRegister,
+    ptSafeCall, ptStdCall,
+    ptPlatform, ptAssembler, ptStatic, ptInline,
+    ptExperimental, ptDeprecated, ptNoreturn] do
+  begin
+    ProceduralDirective;
   end;
 end;
 
@@ -5913,6 +5922,38 @@ procedure TmwSimplePasPar.CustomAttribute;
 begin
   //TODO: Global vs. Local attributes
   AttributeSections;
+end;
+
+procedure TmwSimplePasPar.AnonymousMethodBlock;
+var
+  HasBlock: Boolean;
+begin
+  HasBlock := True;
+  if TokenID = ptSemiColon then Semicolon;
+
+  while ExID in [ptCdecl, ptFar,
+    ptNear, ptPascal, ptRegister,
+    ptSafeCall, ptStdCall,
+    ptPlatform, ptAssembler, ptStatic, ptInline,
+    ptExperimental, ptDeprecated, ptNoreturn] do
+  begin
+    ProceduralDirective;
+    if TokenID = ptSemiColon then Semicolon;
+  end;
+
+  if HasBlock then
+  begin
+    case TokenID of
+      ptAsm:
+        begin
+          AsmStatement;
+        end;
+    else
+      begin
+        Block;
+      end;
+    end;
+  end;
 end;
 
 end.
