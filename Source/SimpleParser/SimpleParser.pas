@@ -4381,7 +4381,10 @@ begin
   if ExID = ptAlign then
   begin
     NextToken;
-    RecordAlignValue;
+    if TokenID = ptRoundOpen then
+      ConstantExpression
+    else
+      RecordAlignValue;
   end;
 end;
 
