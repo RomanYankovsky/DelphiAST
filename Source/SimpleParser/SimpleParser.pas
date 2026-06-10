@@ -5588,6 +5588,8 @@ begin
           FormalParameterList;
       end;
   end;
+  while ExID in [ptCdecl, ptPascal, ptRegister, ptSafeCall, ptStdCall] do
+    ProceduralDirective;
   Block;
 end;
 
@@ -5611,6 +5613,8 @@ begin
         ReturnType;
       end;
   end;
+  while ExID in [ptCdecl, ptPascal, ptRegister, ptSafeCall, ptStdCall] do
+    ProceduralDirective;
 end;
 
 procedure TmwSimplePasPar.AddDefine(const ADefine: string);
