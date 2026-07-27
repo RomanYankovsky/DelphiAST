@@ -4388,7 +4388,15 @@ end;
 
 procedure TmwSimplePasPar.RecordAlignValue;
 begin
-  Expected(ptIntegerConst);
+  if TokenID = ptRoundOpen then
+  begin
+    RoundOpen;
+    if TokenID in [ptIdentifier, ptIntegerConst] then
+      NextToken;
+    RoundClose;
+  end
+  else
+    Expected(ptIntegerConst);
 end;
 
 procedure TmwSimplePasPar.RecordFieldConstant;
