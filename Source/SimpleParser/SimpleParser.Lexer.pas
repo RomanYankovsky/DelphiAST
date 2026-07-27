@@ -908,7 +908,7 @@ begin
   Result := ptIdentifier;
   if KeyComp('Single') then FExID := ptSingle else
     if KeyComp('Type') then Result := ptType else
-      if KeyComp('Unsafe') then Result := ptUnsafe;
+      if KeyComp('Unsafe') then FExID := ptUnsafe;
 end;
 
 function TmwBasePasLex.Func69: TptTokenKind;
@@ -1703,7 +1703,7 @@ var
   LIsRtlVer: Boolean;
   LOper: string;
   LValue: Integer;
-  p: Integer;
+  p, LBracketLevel: Integer;
 begin
   { TODO : Expand support for <=> evaluations (complicated to do). Expand support for NESTED expressions }
   LEvaluation := leeNone;
@@ -1742,11 +1742,10 @@ begin
       end;
     end;
   end else
-  if (Pos('DEFINED(', LParams) = 1) or (Pos('NOT DEFINED(', LParams) = 1) then
+  if (Pos('DEFINED(', LParams) = 1) or (Pos('NOT DEFINED(', LParams) = 1) or (Pos('(', LParams) = 1) then
   begin
     Result := True; // Optimistic
-    while (Pos('DEFINED(', LParams) = 1) or (Pos('NOT DEFINED(', LParams) = 1) do
-    begin
+    repeat
       if Pos('DEFINED(', LParams) = 1 then
       begin
         LDefine := Copy(LParams, 9, Pos(')', LParams) - 9);
@@ -1766,6 +1765,30 @@ begin
           leeAnd: Result := Result and (not IsDefined(LDefine));
           leeOr: Result := Result or (not IsDefined(LDefine));
         end;
+      end
+      else if Pos('(', LParams) = 1 then
+      begin
+        LBracketLevel := 1;
+        for p := 2 to Length(LParams) do
+          case LParams[p] of
+            '(': Inc(LBracketLevel);
+            ')':
+            begin
+              Dec(LBracketLevel);
+              if LBracketLevel = 0 then
+                Break;
+            end;
+          end;
+        if LBracketLevel = 0 then // matching closing bracket was found
+        begin
+          LDefine := Copy(LParams, 2, p - 2);
+          LParams := TrimLeft(Copy(LParams, p + 1));
+          case LEvaluation of
+            leeNone: Result := EvaluateConditionalExpression(LDefine);
+            leeAnd: Result := Result and EvaluateConditionalExpression(LDefine);
+            leeOr: Result := Result or EvaluateConditionalExpression(LDefine);
+          end;
+        end;
       end;
       // Determine next Evaluation
       if Pos('AND ', LParams) = 1 then
@@ -1778,7 +1801,7 @@ begin
         LEvaluation := leeOr;
         LParams := TrimLeft(Copy(LParams, 3, Length(LParams) - 2));
       end;
-    end;
+    until not ((Pos('DEFINED(', LParams) = 1) or (Pos('NOT DEFINED(', LParams) = 1) or (Pos('(', LParams) = 1));
   end else
     Result := False;
 end;
@@ -1907,8 +1930,13 @@ function TmwBasePasLex.IsIdentifiers(AChar: Char): Boolean;
 begin
   // assuming Delphi identifier may include letters, digits, underscore symbol
   // and any character over 127 except surrogates
+  {$IF RTLVersion >= 25}
+  Result := AChar.IsLetterOrDigit or (AChar = '_')
+    or ((Ord(AChar) > 127) and not AChar.IsHighSurrogate and not AChar.IsLowSurrogate);
+  {$ELSE}
   Result := TCharacter.IsLetterOrDigit(AChar) or (AChar = '_')
     or ((Ord(AChar) > 127) and not TCharacter.IsHighSurrogate(AChar) and not TCharacter.IsLowSurrogate(AChar));
+  {$IFEND}
 end;
 
 procedure TmwBasePasLex.LFProc;
@@ -2848,6 +2876,9 @@ begin
   {$ENDIF}
   {$IFDEF ELF}
   AddDefine('ELF');
+  {$ENDIF}
+  {$IFDEF MANAGED_RECORD}
+  AddDefine('MANAGED_RECORD');
   {$ENDIF}
   {$IFDEF NEXTGEN}
   AddDefine('NEXTGEN');
