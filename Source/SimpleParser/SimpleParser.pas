@@ -242,6 +242,7 @@ type
     procedure AncestorIdList; virtual;
     procedure AncestorId; virtual;
     procedure AnonymousMethod; virtual;
+    procedure AnonymousMethodKind; virtual;
     procedure AnonymousMethodType; virtual;
     procedure ArrayConstant; virtual;
     procedure ArrayBounds; virtual;
@@ -5591,6 +5592,11 @@ begin
   Block;
 end;
 
+procedure TmwSimplePasPar.AnonymousMethodKind;
+begin
+  NextToken;
+end;
+
 procedure TmwSimplePasPar.AnonymousMethodType;
 begin
   ExpectedEx(ptReference);
@@ -5598,13 +5604,13 @@ begin
   case TokenID of
     ptProcedure:
       begin
-        NextToken;
+        AnonymousMethodKind;
         if TokenID = ptRoundOpen then
           FormalParameterList;
       end;
     ptFunction:
       begin
-        NextToken;
+        AnonymousMethodKind;
         if TokenID = ptRoundOpen then
           FormalParameterList;
         Expected(ptColon);

@@ -70,6 +70,8 @@ type
     procedure AddressOp; override;
     procedure AlignmentParameter; override;
     procedure AnonymousMethod; override;
+    procedure AnonymousMethodKind; override;
+    procedure AnonymousMethodType; override;
     procedure ArrayBounds; override;
     procedure ArrayConstant; override;
     procedure ArrayDimension; override;
@@ -175,6 +177,7 @@ type
     procedure ParameterName; override;
     procedure PointerSymbol; override;
     procedure PointerType; override;
+    procedure ProceduralDirectiveOf; override;
     procedure ProceduralType; override;
     procedure ProcedureHeading; override;
     procedure ProcedureDeclarationSection; override;
@@ -294,7 +297,8 @@ uses
 type
   TAttributeValue = (atAsm, atTrue, atFunction, atProcedure, atClassOf, atClass,
     atConst, atConstructor, atDestructor, atEnum, atInterface, atNil, atNumeric,
-    atOut, atPointer, atName, atString, atSubRange, atVar, atDispInterface);
+    atOut, atPointer, atName, atString, atSubRange, atVar, atDispInterface,
+    atOfObject, atReferenceTo);
 
 var
   AttributeValues: array[TAttributeValue] of string;
@@ -448,6 +452,26 @@ end;
 procedure TPasSyntaxTreeBuilder.AnonymousMethod;
 begin
   FStack.Push(ntAnonymousMethod);
+  try
+    inherited;
+  finally
+    FStack.Pop;
+  end;
+end;
+
+procedure TPasSyntaxTreeBuilder.AnonymousMethodKind;
+var
+  value: string;
+begin
+  value := LowerCase(Lexer.Token);
+  DoHandleString(value);
+  FStack.Peek.SetAttribute(anName, value);
+  inherited;
+end;
+
+procedure TPasSyntaxTreeBuilder.AnonymousMethodType;
+begin
+  FStack.Push(ntType).SetAttribute(anKind, AttributeValues[atReferenceTo]);
   try
     inherited;
   finally
@@ -1888,6 +1912,12 @@ begin
   finally
     FStack.Pop;
   end;
+end;
+
+procedure TPasSyntaxTreeBuilder.ProceduralDirectiveOf;
+begin
+  FStack.Peek.SetAttribute(anKind, AttributeValues[atOfObject]);
+  inherited;
 end;
 
 procedure TPasSyntaxTreeBuilder.ProceduralType;
