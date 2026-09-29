@@ -1676,6 +1676,40 @@ begin
   end;
 end;
 
+{ Parses a version operand of an $IF expression: digits, optionally followed by
+  '.' and more digits (e.g. 33 or 35.0). Deliberately not TryStrToFloat, which
+  depends on the locale's decimal separator. }
+function TryParseVersionOperand(const AText: String; out AValue: Extended): Boolean;
+var
+  LDot: Integer;
+  LWhole: Integer;
+  LFraction: Integer;
+  LFractionText: String;
+  LScale: Extended;
+  i: Integer;
+begin
+  LDot := Pos('.', AText);
+  if LDot = 0 then
+  begin
+    Result := TryStrToInt(AText, LWhole);
+    if Result then
+      AValue := LWhole;
+    Exit;
+  end;
+  LFractionText := Copy(AText, LDot + 1, Length(AText));
+  Result := (LFractionText <> '') and
+    (LFractionText[1] >= '0') and (LFractionText[1] <= '9') and
+    TryStrToInt(Copy(AText, 1, LDot - 1), LWhole) and
+    TryStrToInt(LFractionText, LFraction);
+  if Result then
+  begin
+    LScale := 1;
+    for i := 1 to Length(LFractionText) do
+      LScale := LScale * 10;
+    AValue := LWhole + LFraction / LScale;
+  end;
+end;
+
 function TmwBasePasLex.EvaluateComparison(AValue1: Extended; const AOper: String; AValue2: Extended): Boolean;
 begin
   if AOper = '=' then
@@ -1702,7 +1736,7 @@ var
   LIsComVer: Boolean;
   LIsRtlVer: Boolean;
   LOper: string;
-  LValue: Integer;
+  LValue: Extended;
   p: Integer;
 begin
   { TODO : Expand support for <=> evaluations (complicated to do). Expand support for NESTED expressions }
@@ -1729,7 +1763,7 @@ begin
       p := Pos(' ', LParams);
       if p = 0 then
         p := Length(LParams) + 1;
-      if TryStrToInt(Copy(LParams, 1, p-1), LValue) then
+      if TryParseVersionOperand(Copy(LParams, 1, p-1), LValue) then
       begin
         Delete(LParams, 1, p);
         while (LParams <> '') and (LParams[1] = ' ') do
